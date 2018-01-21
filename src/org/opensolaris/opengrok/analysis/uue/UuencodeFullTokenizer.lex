@@ -25,6 +25,7 @@
 
 package org.opensolaris.opengrok.analysis.uue;
 
+import java.util.Locale;
 import org.opensolaris.opengrok.analysis.JFlexSymbolMatcher;
 %%
 %public

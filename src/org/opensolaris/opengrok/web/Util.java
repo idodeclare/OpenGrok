@@ -963,8 +963,7 @@ public final class Util {
                     // Add leading zero if required.
                     sb.append('0');
                 }
-                sb.append(
-                        Integer.toHexString(u).toUpperCase(Locale.ENGLISH));
+                sb.append(Integer.toHexString(u).toUpperCase(Locale.ROOT));
             }
         }
         return sb.toString();

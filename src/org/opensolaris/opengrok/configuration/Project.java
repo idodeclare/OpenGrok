@@ -19,6 +19,7 @@
 
  /*
   * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
+  * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
   */
 package org.opensolaris.opengrok.configuration;
 
@@ -399,13 +400,15 @@ public class Project implements Comparable<Project>, Nameable, Serializable {
 
     @Override
     public int compareTo(Project p2) {
-        return getName().toUpperCase(Locale.getDefault()).compareTo(p2.getName().toUpperCase(Locale.getDefault()));
+        return getName().toUpperCase(Locale.ROOT).compareTo(
+                p2.getName().toUpperCase(Locale.ROOT));
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 41 * hash + (this.name == null ? 0 : this.name.toUpperCase(Locale.getDefault()).hashCode());
+        hash = 41 * hash + (this.name == null ? 0 :
+                this.name.toUpperCase(Locale.ROOT).hashCode());
         return hash;
     }
 
@@ -421,8 +424,10 @@ public class Project implements Comparable<Project>, Nameable, Serializable {
             return false;
         }
         final Project other = (Project) obj;
-        return !(this.name != other.name
-                && (this.name == null
-                || !this.name.toUpperCase(Locale.getDefault()).equals(other.name.toUpperCase(Locale.getDefault()))));
+
+        int nullchk = (this.name == null ? 1 : 0) + other.name == null ? 1 : 0;
+        return nullchk == 0 || (nullchk != 1 &&
+                this.name.toUpperCase(Locale.ROOT).equals(
+                        other.name.toUpperCase(Locale.ROOT)));
     }
 }

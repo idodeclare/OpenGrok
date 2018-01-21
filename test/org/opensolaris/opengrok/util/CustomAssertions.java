@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
@@ -213,7 +214,7 @@ public class CustomAssertions {
             String cutValue = input.substring(offs.startOffset(),
                 offs.endOffset());
             if (caseInsensitive) {
-                cutValue = cutValue.toLowerCase();
+                cutValue = cutValue.toLowerCase(Locale.ROOT);
             }
             assertEquals("cut term" + (1 + count), cutValue, termValue);
 

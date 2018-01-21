@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 /*
@@ -29,6 +29,7 @@
 package org.opensolaris.opengrok.analysis.ada;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.opensolaris.opengrok.analysis.JFlexSymbolMatcher;
 import org.opensolaris.opengrok.web.HtmlConsts;
 %%
@@ -69,7 +70,7 @@ import org.opensolaris.opengrok.web.HtmlConsts;
     public boolean offerSymbol(String value, int captureOffset,
         boolean ignoreKwd)
             throws IOException {
-        if (ignoreKwd || !Consts.kwd.contains(value.toLowerCase())) {
+        if (ignoreKwd || !Consts.kwd.contains(value.toLowerCase(Locale.ROOT))) {
             lastSymbol = value;
             onSymbolMatched(value, yychar + captureOffset);
             return true;
