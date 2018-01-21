@@ -19,11 +19,13 @@
 
  /*
  * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -246,7 +248,8 @@ public final class ProjectHelper {
         if (!cfg.isAllowed(g)) {
             return new TreeSet<>();
         }
-        return cacheProjects(PROJECT_HELPER_GROUPED_PROJECT_GROUP + g.getName().toLowerCase(), g.getProjects());
+        return cacheProjects(PROJECT_HELPER_GROUPED_PROJECT_GROUP +
+                g.getName().toLowerCase(Locale.ROOT), g.getProjects());
     }
 
     /**
@@ -257,7 +260,8 @@ public final class ProjectHelper {
         if (!cfg.isAllowed(g)) {
             return new TreeSet<>();
         }
-        return cacheProjects(PROJECT_HELPER_GROUPED_REPOSITORIES_GROUP + g.getName().toLowerCase(), g.getRepositories());
+        return cacheProjects(PROJECT_HELPER_GROUPED_REPOSITORIES_GROUP +
+                g.getName().toLowerCase(Locale.ROOT), g.getRepositories());
     }
 
     /**
@@ -331,7 +335,8 @@ public final class ProjectHelper {
         if (!cfg.isAllowed(g)) {
             return new TreeSet<>();
         }
-        return cacheGroups(PROJECT_HELPER_SUBGROUPS_OF + g.getName().toLowerCase(), g.getSubgroups());
+        return cacheGroups(PROJECT_HELPER_SUBGROUPS_OF +
+                g.getName().toLowerCase(Locale.ROOT), g.getSubgroups());
     }
 
     /**

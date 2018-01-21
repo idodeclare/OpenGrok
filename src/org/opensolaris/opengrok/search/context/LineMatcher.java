@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.search.context;
@@ -84,7 +85,7 @@ public abstract class LineMatcher {
         if (s == null) {
             return null;
         } else if (caseInsensitive) {
-            return s.toLowerCase(Locale.getDefault());
+            return s.toLowerCase(Locale.ROOT);
         } else {
             return s;
         }

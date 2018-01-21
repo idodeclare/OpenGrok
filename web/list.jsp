@@ -37,6 +37,7 @@ java.nio.charset.StandardCharsets,
 java.util.ArrayList,
 java.util.Arrays,
 java.util.List,
+java.util.Locale,
 java.util.Set,
 java.util.logging.Level,
 java.util.zip.GZIPInputStream,
@@ -149,7 +150,7 @@ document.pageReady.push(function() { pageReadyList();});
                 }
 %>
 <%
-    String lcName = readMes.get(i).toLowerCase();
+    String lcName = readMes.get(i).toLowerCase(Locale.ROOT);
     if (lcName.endsWith(".md") || lcName.endsWith(".markdown")) {
     %><div id="src<%=i%>" data-markdown>
         <div class="markdown-heading">

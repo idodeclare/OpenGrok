@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.configuration.messages;
 
@@ -115,7 +116,7 @@ public abstract class Message implements Comparable<Message> {
      */
     public static Message createMessage(String type) {
         String classname = Message.class.getPackage().getName();
-        classname += "." + type.substring(0, 1).toUpperCase(Locale.getDefault());
+        classname += "." + type.substring(0, 1).toUpperCase(Locale.ROOT);
         classname += type.substring(1) + "Message";
 
         try {

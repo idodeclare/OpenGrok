@@ -122,11 +122,11 @@ import org.opensolaris.opengrok.util.TextTrieMap;
 //WhiteSpace     = [ \t\f\r]+|\n
 Identifier = [a-zA-Z\p{Letter}_] [a-zA-Z\p{Letter}0-9\p{Number}_]*
 Number = [0-9]+|[0-9]+\.[0-9]+| "0[xX]" [0-9a-fA-F]+
-// No letters in the following, so no toLowerCase() needed in handling.
+// No letters in the following, so no toLowerCase(Locale.ROOT) needed.
 Printable = [\@\$\%\^\&\-+=\?\.\:]
 
 %%
-{Identifier}|{Number}|{Printable} {
+{Identifier}|{Number}|{Printable}    {
     String capture = yytext();
     switch (mode) {
         case SYMBOLS_AND_NON_WHITESPACE:
@@ -141,7 +141,6 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
     }
 }
 [^]    {
-    // below assumes locale from the shell/container, instead of just US
     switch (mode) {
         case SYMBOLS_AND_NON_WHITESPACE:
         case NON_WHITESPACE_ONLY:
