@@ -182,6 +182,8 @@ public class Ctags implements Resettable {
 
         addPowerShellSupport(command);
 
+        addForthSupport(command);
+
         //PLEASE add new languages ONLY with POSIX syntax (see above wiki link)
 
         /* Add extra command line options for ctags. */
@@ -341,6 +343,15 @@ public class Ctags implements Resettable {
         command.add("--regex-scala=/^[[:space:]]*((abstract|final|sealed|implicit|lazy)[[:space:]]*)*val[[:space:]]+([a-zA-Z0-9_]+)/\\3/l,constants/");
         command.add("--regex-scala=/^[[:space:]]*((abstract|final|sealed|implicit|lazy)[[:space:]]*)*var[[:space:]]+([a-zA-Z0-9_]+)/\\3/v,variables/");
         command.add("--regex-scala=/^[[:space:]]*package[[:space:]]+([a-zA-Z0-9_.]+)/\\1/p,packages/");
+    }
+
+    private void addForthSupport(List<String> command) {
+        command.add("--langdef=forth");
+        command.add("--langmap=forth:+.fs,forth:+.fth,forth:+.4th");
+        // Following matches "colon definition" at the start of a line:
+        command.add("--regex-forth=/^:[[:space:]]+([!-~]+)/\\1/f,function,functions/");
+        // Following matches "colon definition" after a semi-colon word:
+        command.add("--regex-forth=/[[:space:]];[[:space:]]+:[[:space:]]+([!-~]+)/\\1/f,function,functions/");
     }
 
     public Definitions doCtags(String file) throws IOException,
