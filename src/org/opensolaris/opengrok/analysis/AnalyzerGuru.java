@@ -77,6 +77,7 @@ import org.opensolaris.opengrok.analysis.erlang.ErlangAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.executables.ELFAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.executables.JarAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.executables.JavaClassAnalyzerFactory;
+import org.opensolaris.opengrok.analysis.forth.ForthAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.fortran.FortranAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.golang.GolangAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.haskell.HaskellAnalyzerFactory;
@@ -308,7 +309,8 @@ public class AnalyzerGuru {
                 new PascalAnalyzerFactory(env),
                 new AdaAnalyzerFactory(env),
                 new RubyAnalyzerFactory(env),
-                new EiffelAnalyzerFactory(env)
+                new EiffelAnalyzerFactory(env),
+                new ForthAnalyzerFactory(env)
             };
 
             for (FileAnalyzerFactory analyzer : analyzers) {
@@ -341,7 +343,7 @@ public class AnalyzerGuru {
      * {@link FileAnalyzerFactory} subclasses are revised to target more or
      * different files.
      * @return a value whose lower 32-bits are a static value
-     * 20171230_00
+     * 20180209_00
      * for the current implementation and whose higher-32 bits are non-zero if
      * {@link #addExtension(java.lang.String, org.opensolaris.opengrok.analysis.FileAnalyzerFactory)}
      * or
@@ -349,7 +351,7 @@ public class AnalyzerGuru {
      * has been called.
      */
     public long getVersionNo() {
-        final int ver32 = 20171230_00; // Edit comment above too!
+        final int ver32 = 20180209_00; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
             ver |= (long)customizationHashCode << 32;

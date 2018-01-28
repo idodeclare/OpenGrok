@@ -1,0 +1,90 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	0	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/1620c633/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+refill	grok.fs	/^: refill$/;"	function	line:31
+include-file	grok.fs	/^: include-file ( fileid -- )$/;"	function	line:46
+included	grok.fs	/^: included  ( c-addr u -- )$/;"	function	line:86
+include	grok.fs	/^: include                         ( "filename" -- )$/;"	function	line:91
+[ELSE]	grok.fs	/^: [ELSE]  ( -- )$/;"	function	line:100
+[IF]	grok.fs	/^: [IF]  ( flag -- )$/;"	function	line:122
+[THEN]	grok.fs	/^: [THEN]  ( -- )  ;  IMMEDIATE$/;"	function	line:125
+array	grok.fs	/^: array create cells allot does> swap cells + ;$/;"	function	line:128
+parity	grok.fs	/^: parity ( x -- p ) 8 1 do dup 2\/ xor loop invert 1 and ;$/;"	function	line:130
+pc!	grok.fs	/^: pc!   ram + pc ! ;    : pc@   pc @ ram - ;$/;"	function	line:145
+pc@	grok.fs	/^: pc!   ram + pc ! ;    : pc@   pc @ ram - ;$/;"	function	line:145
+rA!	grok.fs	/^: rA!   rA c! ;         : rA@   rA c@ ;$/;"	function	line:146
+rA@	grok.fs	/^: rA!   rA c! ;         : rA@   rA c@ ;$/;"	function	line:146
+8bit	grok.fs	/^: 8bit  0ff and ;       : 16bit 0ffff and ;$/;"	function	line:147
+16bit	grok.fs	/^: 8bit  0ff and ;       : 16bit 0ffff and ;$/;"	function	line:147
+split	grok.fs	/^: split ( x -- lo hi )  dup 0ff and swap 8 rshift ;$/;"	function	line:148
+merge	grok.fs	/^: merge ( lo hi -- x )  8 lshift + ;$/;"	function	line:149
+SET_SZP	grok.fs	/^: SET_SZP ( byte -- )   dup f_sp ! f_z ! ;$/;"	function	line:151
+Z	grok.fs	/^: Z    ( -- zero )      f_z @ 0= 1 and ;$/;"	function	line:152
+S	grok.fs	/^: S    ( -- sign )      f_sp @ 7 rshift ;$/;"	function	line:153
+P	grok.fs	/^: P    ( -- parity )    even_parity f_sp @ + c@ ;$/;"	function	line:154
+AC	grok.fs	/^: AC   ( -- auxcarry )  f_ac @ 4 rshift 1 and ;$/;"	function	line:155
+CY	grok.fs	/^: CY   ( -- carry )     f_cy @ 1 and ;$/;"	function	line:156
+nCY	grok.fs	/^: nCY  ( -- not-carry ) f_cy @ invert 1 and ;$/;"	function	line:157
+nybs	grok.fs	/^: nybs ( x y -- x y x' y' ) over $f and over $f and ;$/;"	function	line:158
++ac	grok.fs	/^: +ac ( x y ) + f_ac ! ;  \\ Set AC from sum of nybbles$/;"	function	line:159
+set_f	grok.fs	/^: set_f$/;"	function	line:160
+get_f	grok.fs	/^: get_f$/;"	function	line:166
+ram@	grok.fs	/^: ram@  ram + c@ ;  : ram!  ram + c! ;$/;"	function	line:172
+ram!	grok.fs	/^: ram@  ram + c@ ;  : ram!  ram + c! ;$/;"	function	line:172
+fetch	grok.fs	/^: fetch ( -- byte ) pc @ c@ 1 pc +! ;$/;"	function	line:173
+ram!16	grok.fs	/^: ram!16   ram + over 8 rshift over 1+ c! c! ;$/;"	function	line:174
+ram@16	grok.fs	/^: ram@16   ram + count swap c@ merge ;$/;"	function	line:175
+fetch16	grok.fs	/^: fetch16  pc @ count swap count swap pc ! merge ;$/;"	function	line:176
+(reg8)	grok.fs	/^: (reg8)$/;"	function	line:178
+w8	grok.fs	/^: w8 ( rrr -- )$/;"	function	line:185
+r8	grok.fs	/^: r8 ( rrr -- )$/;"	function	line:190
+(reg16)	grok.fs	/^: (reg16)   ( rp -- ) reg_pair postpone literal ;$/;"	function	line:195
+r16	grok.fs	/^: r16 (reg16) postpone @ ;      : w16 (reg16) postpone ! ;$/;"	function	line:196
+w16	grok.fs	/^: r16 (reg16) postpone @ ;      : w16 (reg16) postpone ! ;$/;"	function	line:196
+b210	grok.fs	/^: b210 7 and ; : b543 3 rshift b210 ; : b54 b543 2\/ ;$/;"	function	line:200
+b543	grok.fs	/^: b210 7 and ; : b543 3 rshift b210 ; : b54 b543 2\/ ;$/;"	function	line:200
+_dcr	grok.fs	/^: _dcr ( a -- b )   dup $f and $f +ac 1- 8bit dup SET_SZP ;$/;"	function	line:201
+_inr	grok.fs	/^: _inr ( a -- b )   dup $f and 1 +ac 1+ 8bit dup SET_SZP ;$/;"	function	line:202
+mk_DCR	grok.fs	/^: mk_DCR            b543 dup r8 postpone _dcr w8 ;$/;"	function	line:203
+mk_INR	grok.fs	/^: mk_INR            b543 dup r8 postpone _inr w8 ;$/;"	function	line:204
+mk_MVI	grok.fs	/^: mk_MVI ( op -- )  postpone fetch b543 w8 ;$/;"	function	line:205
+mk_LXI	grok.fs	/^: mk_LXI            postpone fetch16 b54 w16 ;$/;"	function	line:206
+1+/16	grok.fs	/^: 1+\/16  1 + 16bit ;            : 1-\/16 1 - 16bit ;$/;"	function	line:207
+1-/16	grok.fs	/^: 1+\/16  1 + 16bit ;            : 1-\/16 1 - 16bit ;$/;"	function	line:207
+mk_INX	grok.fs	/^: mk_INX            b54 dup r16 postpone 1+\/16 w16 ;$/;"	function	line:208
+mk_DCX	grok.fs	/^: mk_DCX            b54 dup r16 postpone 1-\/16 w16 ;$/;"	function	line:209
+_dad	grok.fs	/^: _dad              rHL @ + dup 16bit rHL ! $10 rshift f_cy ! ;$/;"	function	line:210
+mk_DAD	grok.fs	/^: mk_DAD            b54 r16 postpone _dad ;$/;"	function	line:211
+mk_MOV	grok.fs	/^: mk_MOV ( op -- )  dup b210 r8 b543 w8 ;$/;"	function	line:212
+_push	grok.fs	/^: _push ( n -- )    -2 rSp +! rSP @ ram!16 ;$/;"	function	line:213
+_pop	grok.fs	/^: _pop ( -- n )     rSP @ ram@16 2 rSP +!  ;$/;"	function	line:214
+mk_POP	grok.fs	/^: mk_POP            b54 postpone _pop w16 ;$/;"	function	line:215
+mk_PUSH	grok.fs	/^: mk_PUSH           b54 r16 postpone _push ;$/;"	function	line:216
+_jsr	grok.fs	/^: _jsr  pc@ _push pc! ;     : _call fetch16 pc@ _push pc! ;$/;"	function	line:218
+_call	grok.fs	/^: _jsr  pc@ _push pc! ;     : _call fetch16 pc@ _push pc! ;$/;"	function	line:218
+_ret	grok.fs	/^: _ret _pop pc! ;           : _jmp  fetch16 pc! ;$/;"	function	line:219
+_jmp	grok.fs	/^: _ret _pop pc! ;           : _jmp  fetch16 pc! ;$/;"	function	line:219
+_skip	grok.fs	/^: _skip 2 pc +! ;$/;"	function	line:220
+cond	grok.fs	/^: cond ( op xtF xtT -- )$/;"	function	line:221
+mk_CC	grok.fs	/^: mk_CC ['] _skip ['] _call cond ;$/;"	function	line:231
+mk_RC	grok.fs	/^: mk_RC ['] noop ['] _ret cond ;$/;"	function	line:232
+mk_JC	grok.fs	/^: mk_JC ['] _skip ['] _jmp cond ;$/;"	function	line:233
+mk_RST	grok.fs	/^: mk_RST b543 8 * postpone literal postpone _jsr ;$/;"	function	line:234
+aresult	grok.fs	/^: aresult ( x -- ) ( after arithmetic. Write to A and flags )$/;"	function	line:236
+lresult	grok.fs	/^: lresult ( byte -- ) ( after logical. Write to A and flags )$/;"	function	line:238
+_add	grok.fs	/^: _add rA@ nybs +ac + aresult ;$/;"	function	line:242
+_adc	grok.fs	/^: _adc rA@ nybs CY + +ac + CY + aresult ;$/;"	function	line:243
+_sub	grok.fs	/^: _sub invert rA@ nybs 1+ +ac + 1+ aresult ;$/;"	function	line:244
+_sbb	grok.fs	/^: _sbb invert rA@ nybs + nCY +ac + nCY + aresult ;$/;"	function	line:245
+_ana	grok.fs	/^: _ana rA@ 2dup or 2* f_ac ! and lresult ;$/;"	function	line:246
+_xra	grok.fs	/^: _xra 0 f_ac ! rA@ xor lresult ;$/;"	function	line:247
+_ora	grok.fs	/^: _ora 0 f_ac ! rA@ or lresult ;$/;"	function	line:248
+_cmp	grok.fs	/^: _cmp invert rA@ nybs 1+ +ac + 1+$/;"	function	line:249
+mk_ALU	grok.fs	/^: mk_ALU b543 aluops @ compile, ;$/;"	function	line:253
+aa	grok.fs	/^: aa ( -- a )  rA@ dup merge ;  ( double ACC, for rotates )$/;"	function	line:298
+alo	grok.fs	/^: alo   rA@ $f and ;            ( ACC low nybble, for DAA )$/;"	function	line:299
+ahi	grok.fs	/^: ahi   rA@ 4 rshift ;          ( ACC high nybble, for DAA )$/;"	function	line:300

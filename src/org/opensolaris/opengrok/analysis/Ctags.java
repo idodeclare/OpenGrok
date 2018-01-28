@@ -313,6 +313,13 @@ public class Ctags implements Resettable {
 
             }
 
+            command.add("--langdef=forth");
+            command.add("--langmap=forth:+.fs,forth:+.fth,forth:+.4th");
+            // Following matches "colon definition" at the start of a line:
+            command.add("--regex-forth=/^:[[:space:]]+([!-~]+)/\\1/f,function,functions/");
+            // Following matches "colon definition" after a semi-colon word:
+            command.add("--regex-forth=/[[:space:]];[[:space:]]+:[[:space:]]+([!-~]+)/\\1/f,function,functions/");
+
             //PLEASE add new languages ONLY with POSIX syntax (see above wiki link)
 
             /* Add extra command line options for ctags. */
