@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.fortran;
 
@@ -48,6 +48,6 @@ public class FortranAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new FortranXref(reader));
+        return new JFlexXref(new FortranXref(reader), getFactory().getEnv());
     }
 }

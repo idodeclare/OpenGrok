@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.fortran;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis.fortran;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class FortranAnalyzerFactory extends FileAnalyzerFactory {
 
@@ -53,10 +54,14 @@ public class FortranAnalyzerFactory extends FileAnalyzerFactory {
         "F08",
         "F15"};
      
-    public FortranAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public FortranAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link FortranAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new FortranAnalyzer(this);

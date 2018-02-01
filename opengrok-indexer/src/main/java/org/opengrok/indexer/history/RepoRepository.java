@@ -19,9 +19,8 @@
 
 /*
  * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
- */
-/*
  * Copyright (c) 2010, Trond Norbye <trond.norbye@gmail.com>. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -72,7 +71,8 @@ public class RepoRepository extends Repository {
         cmd.add(RepoCommand);
         cmd.add("sync");
 
-        Executor executor = new Executor(cmd, directory);
+        Executor executor = new Executor(cmd, directory,
+                env.getCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }

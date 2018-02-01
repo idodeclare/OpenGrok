@@ -19,22 +19,32 @@
 
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 import opengrok.auth.plugin.entity.User;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
  * @author Vladimir Kotal
  */
 public class LdapUserPluginTest {
+    private static RuntimeEnvironment env;
     private LdapUserPlugin plugin;
+
+    @BeforeClass
+    public static void beforeClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Before
     public void setUp() {
@@ -54,7 +64,7 @@ public class LdapUserPluginTest {
         Map<String, Object> params = getParamsMap();
         params.put("foo", (Object)"bar");
         try {
-            plugin.load(params);
+            plugin.load(env, params);
             Assert.fail("should have caused exception");
         } catch (NullPointerException e) {
         }
@@ -65,7 +75,7 @@ public class LdapUserPluginTest {
         Map<String, Object> params = getParamsMap();
         params.put(LdapUserPlugin.OBJECT_CLASS, (Object)"#$@");
         try {
-            plugin.load(params);
+            plugin.load(env, params);
             Assert.fail("should have caused exception");
         } catch (NullPointerException e) {
         }
@@ -76,7 +86,7 @@ public class LdapUserPluginTest {
         Map<String, Object> params = getParamsMap();
         params.put(LdapUserPlugin.OBJECT_CLASS, (Object)"posixUser");
         try {
-            plugin.load(params);
+            plugin.load(env, params);
         } catch (NullPointerException e) {
             Assert.fail("should not cause exception");
         }
@@ -87,7 +97,7 @@ public class LdapUserPluginTest {
         Map<String, Object> params = getParamsMap();
         String cl = "posixUser";
         params.put(LdapUserPlugin.OBJECT_CLASS, (Object) cl);
-        plugin.load(params);
+        plugin.load(env, params);
         String cn = "cn=foo-foo_bar1";
         User user = new User(cn + ",l=EMEA,dc=foobar,dc=com", "id", null, false);
         String filter = plugin.getFilter(user);

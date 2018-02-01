@@ -19,10 +19,10 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.web.messages.Message;
 import org.opengrok.indexer.web.messages.MessagesContainer.AcceptedMessage;
 
@@ -41,9 +41,7 @@ import java.util.Collections;
 import java.util.Set;
 
 @Path("/messages")
-public class MessagesController {
-
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+public class MessagesController extends ControllerBase {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

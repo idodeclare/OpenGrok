@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -47,7 +48,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Path(SearchController.PATH)
-public class SearchController {
+public class SearchController extends ControllerBase {
 
     public static final String PATH = "search";
 
@@ -93,9 +94,9 @@ public class SearchController {
         }
     }
 
-    private static class SearchEngineWrapper implements AutoCloseable {
+    private class SearchEngineWrapper implements AutoCloseable {
 
-        private SearchEngine engine = new SearchEngine();
+        private final SearchEngine engine = new SearchEngine(env);
 
         private int numResults;
 

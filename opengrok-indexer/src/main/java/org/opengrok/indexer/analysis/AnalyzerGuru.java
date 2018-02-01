@@ -108,7 +108,6 @@ import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.Annotation;
 import org.opengrok.indexer.history.HistoryException;
-import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.history.HistoryReader;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
@@ -150,25 +149,32 @@ public class AnalyzerGuru {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzerGuru.class);
 
+    private final RuntimeEnvironment env;
+
     /**
      * The default {@code FileAnalyzerFactory} instance.
      */
-    private static final FileAnalyzerFactory DEFAULT_ANALYZER_FACTORY = new FileAnalyzerFactory();
+    private final FileAnalyzerFactory DEFAULT_ANALYZER_FACTORY;
+
+    /**
+     * The default {@code PlainAnalyzerFactory} instance.
+     */
+    private final PlainAnalyzerFactory PLAIN_ANALYZER_FACTORY;
 
     /**
      * Map from file names to analyzer factories.
      */
-    private static final Map<String, FileAnalyzerFactory> FILE_NAMES = new HashMap<>();
+    private final Map<String, FileAnalyzerFactory> FILE_NAMES = new HashMap<>();
 
     /**
      * Map from file extensions to analyzer factories.
      */
-    private static final Map<String, FileAnalyzerFactory> ext = new HashMap<>();
+    private final Map<String, FileAnalyzerFactory> ext = new HashMap<>();
 
     /**
      * Map from file prefixes to analyzer factories.
      */
-    private static final Map<String, FileAnalyzerFactory> pre = new HashMap<>();
+    private final Map<String, FileAnalyzerFactory> pre = new HashMap<>();
 
     /**
      * Appended when
@@ -177,9 +183,9 @@ public class AnalyzerGuru {
      * {@link #addPrefix(java.lang.String, org.opengrok.indexer.analysis.FileAnalyzerFactory)}
      * are called to augment the value in {@link #getVersionNo()}.
      */
-    private static final TreeSet<String> CUSTOMIZATION_KEYS = new TreeSet<>();
+    private final TreeSet<String> CUSTOMIZATION_KEYS = new TreeSet<>();
 
-    private static int customizationHashCode;
+    private int customizationHashCode;
 
     /**
      * Descending string length comparator for magics
@@ -203,99 +209,107 @@ public class AnalyzerGuru {
     /**
      * Map from magic strings to analyzer factories.
      */
-    private static final SortedMap<String, FileAnalyzerFactory> magics =
+    private final SortedMap<String, FileAnalyzerFactory> magics =
         new TreeMap<>(descStrlenComparator);
 
     /**
      * List of matcher objects which can be used to determine which analyzer
      * factory to use.
      */
-    private static final List<FileAnalyzerFactory.Matcher> matchers = new ArrayList<>();
+    private final List<FileAnalyzerFactory.Matcher> matchers =
+            new ArrayList<>();
 
     /**
      * List of all registered {@code FileAnalyzerFactory} instances.
      */
-    private static final List<FileAnalyzerFactory> factories = new ArrayList<>();
+    private final List<FileAnalyzerFactory> factories = new ArrayList<>();
     
     /**
      * Names of all analysis packages.
      */
-    private static final List<String> analysisPkgNames = new ArrayList<>();
+    private final List<String> analysisPkgNames = new ArrayList<>();
 
     public static final Reader dummyR = new StringReader("");
     public static final String dummyS = "";
     public static final FieldType string_ft_stored_nanalyzed_norms = new FieldType(StringField.TYPE_STORED);
     public static final FieldType string_ft_nstored_nanalyzed_norms = new FieldType(StringField.TYPE_NOT_STORED);
 
-    private static final Map<String, String> fileTypeDescriptions = new TreeMap<>();
+    private final Map<String, String> fileTypeDescriptions = new TreeMap<>();
 
     /**
      * Maps from {@link FileAnalyzer#getFileTypeName()} to
      * {@link FileAnalyzerFactory}
      */
-    private static final Map<String, FileAnalyzerFactory> FILETYPE_FACTORIES =
+    private final Map<String, FileAnalyzerFactory> FILETYPE_FACTORIES =
             new HashMap<>();
 
     /**
      * Maps from {@link FileAnalyzer#getFileTypeName()} to
      * {@link FileAnalyzer#getVersionNo()}
      */
-    private static final Map<String, Long> ANALYZER_VERSIONS = new HashMap<>();
+    private final Map<String, Long> ANALYZER_VERSIONS = new HashMap<>();
 
-    /*
-     * If you write your own analyzer please register it here. The order is
-     * important for any factory that uses a FileAnalyzerFactory.Matcher
-     * implementation, as those are run in the same order as defined below --
-     * though precise Matchers are run before imprecise ones.
-     */
-    static {
+    public AnalyzerGuru(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+
+        DEFAULT_ANALYZER_FACTORY = new FileAnalyzerFactory(env);
+        PLAIN_ANALYZER_FACTORY = new PlainAnalyzerFactory(env);
+        /*
+         * If you write your own analyzer please register it here. The order is
+         * important for any factory that uses a FileAnalyzerFactory.Matcher
+         * implementation, as those are run in the same order as defined
+         * below -- though precise Matchers are run before imprecise ones.
+         */
         try {
             FileAnalyzerFactory[] analyzers = {
                 DEFAULT_ANALYZER_FACTORY,
-                new IgnorantAnalyzerFactory(),
-                new BZip2AnalyzerFactory(),
-                new XMLAnalyzerFactory(),
-                MandocAnalyzerFactory.DEFAULT_INSTANCE,
-                TroffAnalyzerFactory.DEFAULT_INSTANCE,
-                new ELFAnalyzerFactory(),
-                JavaClassAnalyzerFactory.DEFAULT_INSTANCE,
-                new ImageAnalyzerFactory(),
-                JarAnalyzerFactory.DEFAULT_INSTANCE,
-                ZipAnalyzerFactory.DEFAULT_INSTANCE,
-                new TarAnalyzerFactory(),
-                new CAnalyzerFactory(),
-                new CSharpAnalyzerFactory(),
-                new VBAnalyzerFactory(),
-                new CxxAnalyzerFactory(),
-                new ErlangAnalyzerFactory(),
-                new ShAnalyzerFactory(),
-                new PowershellAnalyzerFactory(),
-                PlainAnalyzerFactory.DEFAULT_INSTANCE,
-                new UuencodeAnalyzerFactory(),
-                new GZIPAnalyzerFactory(),
-                new JavaAnalyzerFactory(),
-                new JavaScriptAnalyzerFactory(),
-                new KotlinAnalyzerFactory(),
-                new SwiftAnalyzerFactory(),
-                new JsonAnalyzerFactory(),
-                new PythonAnalyzerFactory(),
-                new RustAnalyzerFactory(),
-                new PerlAnalyzerFactory(),
-                new PhpAnalyzerFactory(),
-                new LispAnalyzerFactory(),
-                new TclAnalyzerFactory(),
-                new ScalaAnalyzerFactory(),
-                new ClojureAnalyzerFactory(),
-                new SQLAnalyzerFactory(),
-                new PLSQLAnalyzerFactory(),
-                new FortranAnalyzerFactory(),
-                new HaskellAnalyzerFactory(),
-                new GolangAnalyzerFactory(),
-                new LuaAnalyzerFactory(),
-                new PascalAnalyzerFactory(),
-                new AdaAnalyzerFactory(),
-                new RubyAnalyzerFactory(),
-                new EiffelAnalyzerFactory()
+                new IgnorantAnalyzerFactory(env),
+                new BZip2AnalyzerFactory(env),
+                new XMLAnalyzerFactory(env),
+                new MandocAnalyzerFactory(env),
+                new TroffAnalyzerFactory(env),
+                new ELFAnalyzerFactory(env),
+                new JavaClassAnalyzerFactory(env),
+                new ImageAnalyzerFactory(env),
+                new JarAnalyzerFactory(env),
+                new ZipAnalyzerFactory(env),
+                new TarAnalyzerFactory(env),
+                new CAnalyzerFactory(env),
+                new CSharpAnalyzerFactory(env),
+                new VBAnalyzerFactory(env),
+                new CxxAnalyzerFactory(env),
+                new ErlangAnalyzerFactory(env),
+                new ShAnalyzerFactory(env),
+                new PowershellAnalyzerFactory(env),
+                PLAIN_ANALYZER_FACTORY,
+                new UuencodeAnalyzerFactory(env),
+                new GZIPAnalyzerFactory(env),
+                new JavaAnalyzerFactory(env),
+                new JavaScriptAnalyzerFactory(env),
+                new KotlinAnalyzerFactory(env),
+                new SwiftAnalyzerFactory(env),
+                new JsonAnalyzerFactory(env),
+                new PythonAnalyzerFactory(env),
+                new RustAnalyzerFactory(env),
+                new PerlAnalyzerFactory(env),
+                new PhpAnalyzerFactory(env),
+                new LispAnalyzerFactory(env),
+                new TclAnalyzerFactory(env),
+                new ScalaAnalyzerFactory(env),
+                new ClojureAnalyzerFactory(env),
+                new SQLAnalyzerFactory(env),
+                new PLSQLAnalyzerFactory(env),
+                new FortranAnalyzerFactory(env),
+                new HaskellAnalyzerFactory(env),
+                new GolangAnalyzerFactory(env),
+                new LuaAnalyzerFactory(env),
+                new PascalAnalyzerFactory(env),
+                new AdaAnalyzerFactory(env),
+                new RubyAnalyzerFactory(env),
+                new EiffelAnalyzerFactory(env)
             };
 
             for (FileAnalyzerFactory analyzer : analyzers) {
@@ -335,7 +349,7 @@ public class AnalyzerGuru {
      * {@link #addPrefix(java.lang.String, org.opengrok.indexer.analysis.FileAnalyzerFactory)}
      * has been called.
      */
-    public static long getVersionNo() {
+    public long getVersionNo() {
         final int ver32 = 20171230_00; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
@@ -352,31 +366,31 @@ public class AnalyzerGuru {
      * @return a registered value or {@link Long#MIN_VALUE} if
      * {@code fileTypeName} is unknown
      */
-    public static long getAnalyzerVersionNo(String fileTypeName) {
+    public long getAnalyzerVersionNo(String fileTypeName) {
         return ANALYZER_VERSIONS.getOrDefault(fileTypeName, Long.MIN_VALUE);
     }
 
-    public static Map<String, Long> getAnalyzersVersionNos() {
+    public Map<String, Long> getAnalyzersVersionNos() {
         return Collections.unmodifiableMap(ANALYZER_VERSIONS);
     }
 
-    public static Map<String, FileAnalyzerFactory> getExtensionsMap() {
+    public Map<String, FileAnalyzerFactory> getExtensionsMap() {
         return Collections.unmodifiableMap(ext);
     }
 
-    public static Map<String, FileAnalyzerFactory> getPrefixesMap() {
+    public Map<String, FileAnalyzerFactory> getPrefixesMap() {
         return Collections.unmodifiableMap(pre);
     }
 
-    public static Map<String, FileAnalyzerFactory> getMagicsMap() {
+    public Map<String, FileAnalyzerFactory> getMagicsMap() {
         return Collections.unmodifiableMap(magics);
     }
 
-    public static List<Matcher> getAnalyzerFactoryMatchers() {
+    public List<Matcher> getAnalyzerFactoryMatchers() {
         return Collections.unmodifiableList(matchers);
     }
 
-    public static Map<String, String> getfileTypeDescriptions() {
+    public Map<String, String> getfileTypeDescriptions() {
         return Collections.unmodifiableMap(fileTypeDescriptions);
     }
 
@@ -387,7 +401,7 @@ public class AnalyzerGuru {
     /**
      * Register a {@code FileAnalyzerFactory} instance.
      */
-    private static void registerAnalyzer(FileAnalyzerFactory factory) {
+    private void registerAnalyzer(FileAnalyzerFactory factory) {
         for (String name : factory.getFileNames()) {
             FileAnalyzerFactory old = FILE_NAMES.put(name, factory);
             assert old == null :
@@ -426,7 +440,7 @@ public class AnalyzerGuru {
      * extension (if you pass null as the analyzer, you will disable the
      * analyzer used for that extension)
      */
-    public static void addPrefix(String prefix, FileAnalyzerFactory factory) {
+    public void addPrefix(String prefix, FileAnalyzerFactory factory) {
         FileAnalyzerFactory oldFactory;
         if (factory == null) {
             oldFactory = pre.remove(prefix);
@@ -448,7 +462,7 @@ public class AnalyzerGuru {
      * extension (if you pass null as the analyzer, you will disable the
      * analyzer used for that extension)
      */
-    public static void addExtension(String extension,
+    public void addExtension(String extension,
             FileAnalyzerFactory factory) {
         FileAnalyzerFactory oldFactory;
         if (factory == null) {
@@ -467,7 +481,7 @@ public class AnalyzerGuru {
      *
      * @return default FileAnalyzer
      */
-    public static FileAnalyzer getAnalyzer() {
+    public FileAnalyzer getAnalyzer() {
         return DEFAULT_ANALYZER_FACTORY.getAnalyzer();
     }
 
@@ -477,9 +491,17 @@ public class AnalyzerGuru {
      * @param fileTypeName a defined name
      * @return a defined instance if known or otherwise {@code null}
      */
-    public static FileAnalyzer getAnalyzer(String fileTypeName) {
+    public FileAnalyzer getAnalyzer(String fileTypeName) {
         FileAnalyzerFactory factory = FILETYPE_FACTORIES.get(fileTypeName);
         return factory == null ? null : factory.getAnalyzer();
+    }
+
+    /**
+     * Get the default plain Analyzer.
+     * @return a defined instance
+     */
+    public FileAnalyzer getPlainAnalyzer() {
+        return PLAIN_ANALYZER_FACTORY.getAnalyzer();
     }
 
     /**
@@ -492,7 +514,8 @@ public class AnalyzerGuru {
      * @throws java.io.IOException If an error occurs while accessing the data
      * in the input stream.
      */
-    public static FileAnalyzer getAnalyzer(InputStream in, String file) throws IOException {
+    public FileAnalyzer getAnalyzer(InputStream in, String file)
+            throws IOException {
         FileAnalyzerFactory factory = find(in, file);
         if (factory == null) {
             FileAnalyzer defaultAnalyzer = getAnalyzer();
@@ -533,9 +556,9 @@ public class AnalyzerGuru {
         doc.add(new SortedDocValuesField(QueryBuilder.FULLPATH,
                 new BytesRef(file.getAbsolutePath())));
 
-        if (RuntimeEnvironment.getInstance().isHistoryEnabled()) {
+        if (env.isHistoryEnabled()) {
             try {
-                HistoryReader hr = HistoryGuru.getInstance().getHistoryReader(file);
+                HistoryReader hr = env.getHistoryGuru().getHistoryReader(file);
                 if (hr != null) {
                     doc.add(new TextField(QueryBuilder.HIST, hr));
                     // date = hr.getLastCommentDate() //RFE
@@ -549,7 +572,7 @@ public class AnalyzerGuru {
 
         // `path' is not null, as it was passed to Util.path2uid() above.
         doc.add(new TextField(QueryBuilder.PATH, path, Store.YES));
-        Project project = Project.getProject(path);
+        Project project = env.getProject(path);
         if (project != null) {
             doc.add(new TextField(QueryBuilder.PROJECT, project.getPath(), Store.YES));
         }
@@ -591,7 +614,8 @@ public class AnalyzerGuru {
      * @throws java.io.IOException If an error occurs while accessing the input
      * stream.
      */
-    public static String getContentType(InputStream in, String file) throws IOException {
+    public String getContentType(InputStream in, String file)
+            throws IOException {
         FileAnalyzerFactory factory = find(in, file);
         String type = null;
         if (factory != null) {
@@ -611,7 +635,7 @@ public class AnalyzerGuru {
      * @param project Project the file belongs to
      * @throws java.io.IOException If an error occurs while creating the output
      */
-    public static void writeXref(FileAnalyzerFactory factory, Reader in,
+    public void writeXref(FileAnalyzerFactory factory, Reader in,
             Writer out, Definitions defs,
             Annotation annotation, Project project)
             throws IOException {
@@ -628,7 +652,6 @@ public class AnalyzerGuru {
         args.setProject(project);
 
         FileAnalyzer analyzer = factory.getAnalyzer();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         analyzer.setScopesEnabled(env.isScopesEnabled());
         analyzer.setFoldingEnabled(env.isFoldingEnabled());
         analyzer.writeXref(args);
@@ -647,7 +670,7 @@ public class AnalyzerGuru {
      * @param project project the file belongs to
      * @throws java.io.IOException if an error occurs while creating the output
      */
-    public static void writeDumpedXref(String contextPath,
+    public void writeDumpedXref(String contextPath,
             FileAnalyzerFactory factory, Reader in, Writer out,
             Definitions defs, Annotation annotation, Project project)
             throws IOException {
@@ -669,7 +692,7 @@ public class AnalyzerGuru {
      * @param file The file to inspect
      * @return The genre suitable to decide how to display the file
      */
-    public static Genre getGenre(String file) {
+    public Genre getGenre(String file) {
         return getGenre(find(file));
     }
 
@@ -680,7 +703,7 @@ public class AnalyzerGuru {
      * @return The genre suitable to decide how to display the file
      * @throws java.io.IOException If an error occurs while getting the content
      */
-    public static Genre getGenre(InputStream in) throws IOException {
+    public Genre getGenre(InputStream in) throws IOException {
         return getGenre(find(in));
     }
 
@@ -690,7 +713,7 @@ public class AnalyzerGuru {
      * @param factory the analyzer factory to get the genre for
      * @return The genre of this class (null if not found)
      */
-    public static Genre getGenre(FileAnalyzerFactory factory) {
+    public Genre getGenre(FileAnalyzerFactory factory) {
         if (factory != null) {
             return factory.getGenre();
         }
@@ -703,7 +726,7 @@ public class AnalyzerGuru {
      * @param fileTypeName a defined instance
      * @return a defined instance or {@code null}
      */
-    public static FileAnalyzerFactory findByFileTypeName(String fileTypeName) {
+    public FileAnalyzerFactory findByFileTypeName(String fileTypeName) {
         return FILETYPE_FACTORIES.get(fileTypeName);
     }
 
@@ -724,7 +747,7 @@ public class AnalyzerGuru {
      * @throws NoSuchMethodException if no-argument constructor could not be found
      * @throws InvocationTargetException if the underlying constructor throws an exception
      */
-    public static FileAnalyzerFactory findFactory(String factoryClassName)
+    public FileAnalyzerFactory findFactory(String factoryClassName)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, 
             InvocationTargetException {
         Class<?> fcn = null;
@@ -751,7 +774,7 @@ public class AnalyzerGuru {
      * 
      * @return the analyzer factory class, or null when not found.
      */
-    public static Class<?> getFactoryClass(String simpleName) {
+    public Class<?> getFactoryClass(String simpleName) {
         Class<?> factoryClass = null;
         
         // Build analysis package name list first time only
@@ -806,7 +829,7 @@ public class AnalyzerGuru {
      * @throws NoSuchMethodException if no-argument constructor could not be found
      * @throws InvocationTargetException if the underlying constructor throws an exception
      */
-    private static FileAnalyzerFactory findFactory(Class<?> factoryClass)
+    private FileAnalyzerFactory findFactory(Class<?> factoryClass)
             throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         for (FileAnalyzerFactory f : factories) {
             if (f.getClass() == factoryClass) {
@@ -831,7 +854,7 @@ public class AnalyzerGuru {
      * @return the analyzer factory to use
      * @throws java.io.IOException If a problem occurs while reading the data
      */
-    public static FileAnalyzerFactory find(InputStream in, String file)
+    public FileAnalyzerFactory find(InputStream in, String file)
             throws IOException {
         FileAnalyzerFactory factory = find(file);
         // TODO above is not that great, since if 2 analyzers share one extension
@@ -850,7 +873,7 @@ public class AnalyzerGuru {
      * @param file The file name to get the analyzer for
      * @return the analyzer factory to use
      */
-    public static FileAnalyzerFactory find(String file) {
+    public FileAnalyzerFactory find(String file) {
         String path = file;
         int i;
 
@@ -903,7 +926,7 @@ public class AnalyzerGuru {
      * @throws java.io.IOException if an error occurs while reading data from
      * the stream
      */
-    public static FileAnalyzerFactory find(InputStream in) throws IOException {
+    public FileAnalyzerFactory find(InputStream in) throws IOException {
         return findForStream(in, "<anonymous>");
     }
 
@@ -917,8 +940,8 @@ public class AnalyzerGuru {
      * @throws java.io.IOException if an error occurs while reading data from
      * the stream
      */
-    private static FileAnalyzerFactory findForStream(InputStream in,
-        String file) throws IOException {
+    private FileAnalyzerFactory findForStream(InputStream in, String file)
+            throws IOException {
 
         in.mark(MAGIC_BYTES_NUM);
         byte[] content = new byte[MAGIC_BYTES_NUM];
@@ -978,8 +1001,7 @@ public class AnalyzerGuru {
         return null;
     }
 
-    private static FileAnalyzerFactory findMagicString(String opening,
-        String file)
+    private FileAnalyzerFactory findMagicString(String opening, String file)
             throws IOException {
 
         // first, try to look up two words in magics
@@ -1129,7 +1151,7 @@ public class AnalyzerGuru {
         return opening.toString();
     }
 
-    private static void addCustomizationKey(String k) {
+    private void addCustomizationKey(String k) {
         CUSTOMIZATION_KEYS.add(k);
         Object[] keys = CUSTOMIZATION_KEYS.toArray();
         customizationHashCode = Objects.hash(keys);

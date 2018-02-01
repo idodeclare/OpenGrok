@@ -19,6 +19,7 @@ information: Portions Copyright [yyyy] [name of copyright owner]
 CDDL HEADER END
 
 Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
 
 --%>
 <%@page import="java.util.TreeSet"%>
@@ -110,7 +111,8 @@ Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
                             <span class="pull-left">
                                 <span class="name"><%= Util.htmlize(group.getName())%></span>
                                 <%
-                                if (!(messages = Util.messagesToJson(group)).isEmpty()) { %>
+                                if (!(messages = Util.messagesToJson(
+                                        cfg.getEnv(), group)).isEmpty()) { %>
                                     <span class="important-note important-note-rounded" data-messages='<%= messages %>'>!</span>
                                 <% } %>
                                 <small>
@@ -167,7 +169,8 @@ Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
                         <%= Util.htmlize(projDesc) %>
                     </a>
                     <%
-                    if (!(messages = Util.messagesToJson(project)).isEmpty()) { %>
+                    if (!(messages = Util.messagesToJson(cfg.getEnv(),
+                            project)).isEmpty()) { %>
                         <span class="important-note important-note-rounded" data-messages='<%= messages %>'>!</span>
                     <% } %>
                                 </td><%
@@ -246,7 +249,8 @@ Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
                                 <span class="pull-left">
                                     <span class="name">Other</span>
                                     <%
-                                    if (!(messages = Util.messagesToJson("other")).isEmpty()) { %>
+                                    if (!(messages = Util.messagesToJson(
+                                            cfg.getEnv(), "other")).isEmpty()) { %>
                                         <span class="important-note important-note-rounded" data-messages='<%= messages %>'>!</span>
                                     <% } %>
                                     <small>
@@ -297,7 +301,8 @@ Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
                         <%= Util.htmlize(projDesc) %>
                     </a>
                     <%
-                    if (!(messages = Util.messagesToJson(proj)).isEmpty()) { %>
+                    if (!(messages = Util.messagesToJson(cfg.getEnv(),
+                            proj)).isEmpty()) { %>
                         <span class="important-note important-note-rounded" data-messages='<%= messages %>'>!</span>
                     <% } %>
                     </td><%

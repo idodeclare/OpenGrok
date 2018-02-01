@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -74,15 +75,13 @@ import java.util.stream.Collectors;
  */
 @Path(SuggesterController.PATH)
 @Suggester
-public final class SuggesterController {
+public final class SuggesterController extends ControllerBase {
 
     public static final String PATH = "suggest";
 
     private static final int POPULARITY_DEFAULT_PAGE_SIZE = 100;
 
     private static final Logger logger = LoggerFactory.getLogger(SuggesterController.class);
-
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
     @Inject
     private SuggesterService suggester;
@@ -99,7 +98,8 @@ public final class SuggesterController {
     public Result getSuggestions(@Valid @BeanParam final SuggesterQueryData data) throws ParseException {
         Instant start = Instant.now();
 
-        SuggesterData suggesterData = SuggesterQueryDataParser.parse(data);
+        SuggesterQueryDataParser parser = new SuggesterQueryDataParser(env);
+        SuggesterData suggesterData = parser.parse(data);
         if (suggesterData.getSuggesterQuery() == null) {
             throw new ParseException("Could not determine suggester query");
         }
@@ -211,7 +211,7 @@ public final class SuggesterController {
     }
 
     private Query getQuery(final String field, final String value) throws ParseException {
-        QueryBuilder builder = new QueryBuilder();
+        QueryBuilder builder = new QueryBuilder(env);
 
         switch (field) {
             case "q":

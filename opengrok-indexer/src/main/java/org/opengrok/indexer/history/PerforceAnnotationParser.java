@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -33,6 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 
@@ -44,24 +46,26 @@ public class PerforceAnnotationParser implements Executor.StreamHandler {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(PerforceAnnotationParser.class);
     
+    private final RuntimeEnvironment env;
     /**
      * Store annotation created by processStream.
      */
     private final Annotation annotation;
-
     private final File file;
-
     private final String rev;
     
     private static final Pattern ANNOTATION_PATTERN
             = Pattern.compile("^(\\d+): .*");
-   
+
     /**
+     * @param env a required instance
      * @param file the file being annotated
      * @param rev revision to be annotated
      */
-    public PerforceAnnotationParser(File file, String rev) {
+    public PerforceAnnotationParser(RuntimeEnvironment env, File file,
+            String rev) {
         annotation = new Annotation(file.getName());
+        this.env = env;
         this.file = file;
         this.rev = rev;
     }
@@ -77,8 +81,8 @@ public class PerforceAnnotationParser implements Executor.StreamHandler {
     
     @Override
     public void processStream(InputStream input) throws IOException {
-        List<HistoryEntry> revisions
-                = PerforceHistoryParser.getRevisions(file, rev).getHistoryEntries();
+        List<HistoryEntry> revisions = PerforceHistoryParser.getRevisions(env,
+                file, rev).getHistoryEntries();
         HashMap<String, String> revAuthor = new HashMap<>();
         for (HistoryEntry entry : revisions) {
             // a.addDesc(entry.getRevision(), entry.getMessage());

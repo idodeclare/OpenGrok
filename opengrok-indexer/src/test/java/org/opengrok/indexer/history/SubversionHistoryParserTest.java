@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -29,18 +30,23 @@ import java.text.SimpleDateFormat;
 
 import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.web.Util;
-
-import static org.junit.Assert.*;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
  * @author austvik
  */
 public class SubversionHistoryParserTest {
+
+    private static RuntimeEnvironment env;
 
     private SubversionHistoryParser instance;
 
@@ -49,6 +55,7 @@ public class SubversionHistoryParserTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @AfterClass
@@ -57,7 +64,7 @@ public class SubversionHistoryParserTest {
 
     @Before
     public void setUp() {
-        instance = new SubversionHistoryParser();
+        instance = new SubversionHistoryParser(env);
     }
 
     @After

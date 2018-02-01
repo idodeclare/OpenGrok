@@ -17,8 +17,9 @@
  * CDDL HEADER END
  */
 
- /*
+/*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.configuration;
 
@@ -33,14 +34,24 @@ public class IndexTimestamp {
     private transient Date lastModified;
     
     private static final Logger LOGGER = LoggerFactory.getLogger(IndexTimestamp.class);
+    private final RuntimeEnvironment env;
 
+    /**
+     * Initializes an instance to use the specified, required environment.
+     * @param env a defined instance
+     */
+    public IndexTimestamp(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
     /**
      * Get the date of the last index update.
      *
      * @return the time of the last index update.
      */
     public Date getDateForLastIndexRun() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (lastModified == null) {
             File timestamp = new File(env.getDataRootFile(), "timestamp");
             if (timestamp.exists()) {
@@ -55,7 +66,6 @@ public class IndexTimestamp {
     }
 
     public void stamp() throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         File timestamp = new File(env.getDataRootFile(), "timestamp");
         String purpose = "used for timestamping the index database.";
         if (timestamp.exists()) {

@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.suggester.parser;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.Query;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.suggest.query.SuggesterQuery;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
@@ -46,7 +48,13 @@ public class SuggesterQueryDataParser {
 
     private static final Logger logger = LoggerFactory.getLogger(SuggesterQueryDataParser.class);
 
-    private SuggesterQueryDataParser() {
+    private final RuntimeEnvironment env;
+
+    public SuggesterQueryDataParser(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
     }
 
     /**
@@ -55,14 +63,15 @@ public class SuggesterQueryDataParser {
      * @return parsed data for the suggester use
      * @throws ParseException if could not parse the search data into a valid {@link Query}
      */
-    public static SuggesterData parse(final SuggesterQueryData data) throws ParseException {
+    public SuggesterData parse(final SuggesterQueryData data) throws ParseException {
         Map<String, String> fieldQueries = getFieldQueries(data);
 
         ProcessedQueryData queryData = processQuery(fieldQueries.get(data.getField()), data.getCaretPosition());
 
         fieldQueries.put(data.getField(), queryData.query);
 
-        SuggesterQueryBuilder builder = new SuggesterQueryBuilder(data.getField(), queryData.identifier);
+        SuggesterQueryBuilder builder = new SuggesterQueryBuilder(data.getField(),
+                queryData.identifier, env);
 
         builder.setFreetext(fieldQueries.get(QueryBuilder.FULL))
                 .setDefs(fieldQueries.get(QueryBuilder.DEFS))

@@ -63,7 +63,7 @@ public class PascalAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PascalXref(reader));
+        return new JFlexXref(new PascalXref(reader), getFactory().getEnv());
     }
     
     @Override

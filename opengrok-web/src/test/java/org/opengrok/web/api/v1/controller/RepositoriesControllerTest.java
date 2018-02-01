@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -52,7 +53,7 @@ import static org.junit.Assert.assertEquals;
 @ConditionalRun(CtagsInstalled.class)
 public class RepositoriesControllerTest extends JerseyTest {
 
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
     private TestRepository repository;
 
@@ -67,7 +68,7 @@ public class RepositoriesControllerTest extends JerseyTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
 
         env.setSourceRoot(repository.getSourceRoot());

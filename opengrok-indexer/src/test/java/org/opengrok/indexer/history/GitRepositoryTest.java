@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -57,14 +57,18 @@ import org.opengrok.indexer.util.TestRepository;
 @ConditionalRun(RepositoryInstalled.GitInstalled.class)
 public class GitRepositoryTest {
 
+    private static RuntimeEnvironment env;
+
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
-    static private TestRepository repository = new TestRepository();
+    private static TestRepository repository;
     private GitRepository instance;
 
     @BeforeClass
     public static void setUpClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(GitRepositoryTest.class.getResourceAsStream("repositories.zip"));
     }
 
@@ -87,8 +91,8 @@ public class GitRepositoryTest {
     @Test
     public void testDetermineCurrentVersion() throws Exception {
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
         String ver = gitrepo.determineCurrentVersion();
         Assert.assertNotNull(ver);
     }
@@ -187,8 +191,8 @@ public class GitRepositoryTest {
         };
 
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
         gitrepo.setHandleRenamedFiles(true);
 
         int i = 0;
@@ -220,8 +224,8 @@ public class GitRepositoryTest {
         Collections.addAll(revSet, revisions);
 
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)
+                RepositoryFactory.getRepository(env, root);
         gitrepo.setHandleRenamedFiles(false);
         File renamedFile = Paths.get(root.getAbsolutePath(),"moved2", "renamed2.c").toFile();
         testAnnotationOfFile(gitrepo, renamedFile, null, revSet);
@@ -234,8 +238,8 @@ public class GitRepositoryTest {
         Collections.addAll(revSet, revisions);
 
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)
+                RepositoryFactory.getRepository(env, root);
         gitrepo.setHandleRenamedFiles(true);
         File renamedFile = Paths.get(root.getAbsolutePath(),"moved2", "renamed2.c").toFile();
         testAnnotationOfFile(gitrepo, renamedFile, null, revSet);
@@ -248,8 +252,8 @@ public class GitRepositoryTest {
         Collections.addAll(revSet, revisions);
 
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)
+                RepositoryFactory.getRepository(env, root);
         gitrepo.setHandleRenamedFiles(true);
         File renamedFile = Paths.get(root.getAbsolutePath(),"moved2", "renamed2.c").toFile();
         testAnnotationOfFile(gitrepo, renamedFile, "1086eaf5", revSet);
@@ -266,8 +270,8 @@ public class GitRepositoryTest {
 
         };
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
 
         for (String[] test : tests) {
             String file = test[0];
@@ -395,8 +399,8 @@ public class GitRepositoryTest {
 
     private void runRenamedTest(String fname, String cset, String content) throws Exception {
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
         byte[] buffer = new byte[4096];
 
         InputStream input = gitrepo.getHistoryGet(root.getCanonicalPath(),
@@ -414,10 +418,10 @@ public class GitRepositoryTest {
 
     @Test
     public void testRenamedHistory() throws Exception {
-        RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
+        env.setHandleHistoryOfRenamedFiles(true);
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
 
         History history = gitrepo.getHistory(root);
         Assert.assertNotNull(history);
@@ -445,10 +449,10 @@ public class GitRepositoryTest {
 
     @Test
     public void testRenamedSingleHistory() throws Exception {
-        RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
+        env.setHandleHistoryOfRenamedFiles(true);
         File root = new File(repository.getSourceRoot(), "git");
-        GitRepository gitrepo
-                = (GitRepository) RepositoryFactory.getRepository(root);
+        GitRepository gitrepo = (GitRepository)RepositoryFactory.getRepository(
+                env, root);
 
         History history = gitrepo.getHistory(new File(root.getAbsolutePath(), "moved2/renamed2.c"));
         Assert.assertNotNull(history);

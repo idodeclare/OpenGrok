@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.suggester.query;
 
@@ -33,6 +34,7 @@ import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.suggest.query.SuggesterFuzzyQuery;
 import org.opengrok.suggest.query.SuggesterPhraseQuery;
 import org.opengrok.suggest.query.SuggesterPrefixQuery;
@@ -73,8 +75,9 @@ class SuggesterQueryParser extends CustomQueryParser {
      * @param field field that is being parsed
      * @param identifier identifier that was inserted into the query to detect the {@link SuggesterQuery}
      */
-    SuggesterQueryParser(final String field, final String identifier) {
-        super(field);
+    SuggesterQueryParser(final String field, final String identifier,
+                         RuntimeEnvironment env) {
+        super(field, env);
         this.identifier = identifier;
         // always allow leading wildcard suggestions (even if they are disabled in configuration)
         setAllowLeadingWildcard(true);

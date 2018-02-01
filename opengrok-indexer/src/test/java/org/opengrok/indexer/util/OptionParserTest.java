@@ -19,6 +19,7 @@
 
 /*
  * Portions Copyright (c) 2017, Steven Haehn.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.util;
 
@@ -27,25 +28,35 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 import java.lang.reflect.Field;
 import java.text.ParseException;
+
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.index.Indexer;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  *
  * @author shaehn
  */
 public class OptionParserTest {
-    
-    int actionCounter;
+
+    private static RuntimeEnvironment env;
+    private int actionCounter;
     
     public OptionParserTest() {
     }
     
     @BeforeClass
     public static void setUpClass() {
+        env = RuntimeEnvironment.getInstance();
     }
     
     @AfterClass
@@ -528,7 +539,7 @@ public class OptionParserTest {
     public void catchIndexerOptionsWithoutDescription() throws NoSuchFieldException, IllegalAccessException {
         String[] argv = {"---unitTest"};
         try {
-            Indexer.parseOptions(argv);
+            Indexer.parseOptions(env, argv);
 
             // Use reflection to get the option parser from Indexer.
             Field f = Indexer.class.getDeclaredField("optParser");

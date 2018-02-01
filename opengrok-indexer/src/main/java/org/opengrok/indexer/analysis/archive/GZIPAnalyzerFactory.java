@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.archive;
 
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class GZIPAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -38,10 +40,14 @@ public class GZIPAnalyzerFactory extends FileAnalyzerFactory {
         "\037\213"
     };
 
-    public GZIPAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, null, null, name);
+    public GZIPAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, null, null, name);
     }
 
+    /**
+     * Creates a new instance of {@link GZIPAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new GZIPAnalyzer(this);

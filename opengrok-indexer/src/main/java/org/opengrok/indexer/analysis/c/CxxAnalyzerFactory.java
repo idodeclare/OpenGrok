@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.c;
 
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class CxxAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -42,8 +44,8 @@ public class CxxAnalyzerFactory extends FileAnalyzerFactory {
         "TCC"
     };
 
-    public CxxAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public CxxAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

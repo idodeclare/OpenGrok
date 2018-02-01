@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -59,8 +60,7 @@ public class SuggesterControllerProjectsDisabledTest extends JerseyTest {
     @ClassRule
     public static ConditionalRunRule rule = new ConditionalRunRule();
 
-    private static final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
+    private static RuntimeEnvironment env;
     private static TestRepository repository;
 
     @Override
@@ -70,7 +70,8 @@ public class SuggesterControllerProjectsDisabledTest extends JerseyTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
 
         repository.create(SuggesterControllerTest.class.getResourceAsStream("/org/opengrok/indexer/index/source.zip"));
 
@@ -81,7 +82,7 @@ public class SuggesterControllerProjectsDisabledTest extends JerseyTest {
         Indexer.getInstance().prepareIndexer(env, true, true,
                 Collections.singleton("__all__"),
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         env.getSuggesterConfig().setRebuildCronConfig(null);
     }

@@ -43,7 +43,7 @@ import org.opengrok.indexer.util.TestRepository;
  */
 @ConditionalRun(CtagsInstalled.class)
 public class CtagsTest {
-
+    private static RuntimeEnvironment env;
     private static Ctags ctags;
     private static TestRepository repository;
 
@@ -52,10 +52,10 @@ public class CtagsTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        ctags = new Ctags();
-        ctags.setBinary(RuntimeEnvironment.getInstance().getCtags());
+        env = RuntimeEnvironment.getInstance();
+        ctags = new Ctags(env);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(CtagsTest.class.getResourceAsStream(
                 "/org/opengrok/indexer/index/source.zip"));
 

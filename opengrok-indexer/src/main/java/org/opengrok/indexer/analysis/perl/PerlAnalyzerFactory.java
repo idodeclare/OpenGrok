@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.perl;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis.perl;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -51,10 +52,15 @@ public class PerlAnalyzerFactory extends FileAnalyzerFactory {
         "#!perl",
     };
 
-    public PerlAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public PerlAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link PerlAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new PerlAnalyzer(this);

@@ -86,6 +86,6 @@ public class XMLAnalyzer extends TextAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new XMLXref(reader));
+        return new JFlexXref(new XMLXref(reader), getFactory().getEnv());
     }
 }

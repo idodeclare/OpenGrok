@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.sql;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.sql;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class SQLAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,10 +37,14 @@ public class SQLAnalyzerFactory extends FileAnalyzerFactory {
         "SQL"        
     };
 
-    public SQLAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public SQLAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link SQLAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new SQLAnalyzer(this);

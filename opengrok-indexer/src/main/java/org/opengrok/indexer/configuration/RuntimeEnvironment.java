@@ -71,7 +71,9 @@ import org.opengrok.indexer.util.ForbiddenSymlinkException;
 import org.opengrok.indexer.util.LazilyInstantiate;
 import org.opengrok.indexer.util.PathUtils;
 import org.opengrok.indexer.web.Prefix;
+import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.web.Statistics;
+import org.opengrok.indexer.web.Util;
 import org.opengrok.indexer.web.messages.Message;
 import org.opengrok.indexer.web.messages.MessagesContainer;
 import org.opengrok.indexer.web.messages.MessagesContainer.AcceptedMessage;
@@ -87,11 +89,14 @@ public final class RuntimeEnvironment {
     /** {@code "/source"} + {@link Prefix#SEARCH_R} + {@code "?"} */
     private static final String URL_PREFIX = "/source" + Prefix.SEARCH_R + "?";
 
+    private static final RuntimeEnvironment instance = new RuntimeEnvironment();
+
     private Configuration configuration;
     private final ReentrantReadWriteLock configLock;
     private final LazilyInstantiate<IndexerParallelizer> lzIndexerParallelizer;
     private final LazilyInstantiate<ExecutorService> lzSearchExecutor;
-    private static final RuntimeEnvironment instance = new RuntimeEnvironment();
+    private final LazilyInstantiate<AnalyzerGuru> lzAnalyzerGuru;
+    private final LazilyInstantiate<HistoryGuru> lzHistoryGuru;
 
     private final Map<Project, List<RepositoryInfo>> repository_map = new ConcurrentHashMap<>();
     private final Map<String, SearcherManager> searcherManagerMap = new ConcurrentHashMap<>();
@@ -99,7 +104,7 @@ public final class RuntimeEnvironment {
     private String configURI;
 
     private Statistics statistics = new Statistics();
-    public IncludeFiles includeFiles = new IncludeFiles();
+    public final IncludeFiles includeFiles;
     private final MessagesContainer messagesContainer = new MessagesContainer();
 
     /**
@@ -122,7 +127,7 @@ public final class RuntimeEnvironment {
      */
     private Boolean allNonWhitespace;
 
-    private static final IndexTimestamp indexTime = new IndexTimestamp();
+    private final IndexTimestamp indexTime;
 
     /**
      * Stores a transient value when
@@ -146,9 +151,14 @@ public final class RuntimeEnvironment {
     private RuntimeEnvironment() {
         configuration = new Configuration();
         configLock = new ReentrantReadWriteLock();
-        watchDog = new WatchDogService();
+        watchDog = new WatchDogService(this);
+        includeFiles = new IncludeFiles(this);
+        indexTime = new IndexTimestamp(this);
+
         lzIndexerParallelizer = LazilyInstantiate.using(() ->
                 new IndexerParallelizer(this));
+        lzAnalyzerGuru = LazilyInstantiate.using(() -> new AnalyzerGuru(this));
+        lzHistoryGuru = LazilyInstantiate.using(() -> new HistoryGuru(this));
         lzSearchExecutor = LazilyInstantiate.using(() -> newSearchExecutor());
     }
 
@@ -186,6 +196,14 @@ public final class RuntimeEnvironment {
 
     public IndexerParallelizer getIndexerParallelizer() {
         return lzIndexerParallelizer.get();
+    }
+
+    public AnalyzerGuru getAnalyzerGuru() {
+        return lzAnalyzerGuru.get();
+    }
+
+    public HistoryGuru getHistoryGuru() {
+        return lzHistoryGuru.get();
     }
 
     private String getCanonicalPath(String s) {
@@ -432,7 +450,7 @@ public final class RuntimeEnvironment {
      */
     public String getPathRelativeToSourceRoot(File file)
             throws IOException, ForbiddenSymlinkException {
-        return PathUtils.getPathRelativeToSourceRoot(file, 0);
+        return PathUtils.getPathRelativeToSourceRoot(this, file, 0);
     }
 
     /**
@@ -489,6 +507,77 @@ public final class RuntimeEnvironment {
     }
 
     /**
+     * Get the project for a specific file
+     *
+     * @param path the file to lookup (relative to source root)
+     * @return the project that this file belongs to (or null if the file
+     * doesn't belong to a project)
+     */
+    public Project getProject(String path) {
+        // Try to match each project path as prefix of the given path.
+        if (hasProjects()) {
+            final String lpath = Util.fixPathIfWindows(path);
+            for (Project p : getProjectList()) {
+                String projectPath = p.getPath();
+                if (projectPath == null) {
+                    LOGGER.log(Level.WARNING, "Path of project {0} is not set", p.getName());
+                    return null;
+                }
+                // Check if the project's path is a prefix of the given
+                // path. It has to be an exact match, or the project's path
+                // must be immediately followed by a separator. "/foo" is
+                // a prefix for "/foo" and "/foo/bar", but not for "/foof".
+                if (lpath.startsWith(projectPath)
+                        && (projectPath.length() == lpath.length()
+                        || lpath.charAt(projectPath.length()) == '/')) {
+                    return p;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the project for a specific file
+     *
+     * @param file the file to lookup
+     * @return the project that this file belongs to (or null if the file
+     * doesn't belong to a project)
+     */
+    public Project getProject(File file) {
+        Project ret = null;
+        try {
+            ret = getProject(getPathRelativeToSourceRoot(file));
+        } catch (FileNotFoundException e) { // NOPMD
+            // ignore if not under source root
+        } catch (ForbiddenSymlinkException e) {
+            LOGGER.log(Level.FINER, e.getMessage());
+            // ignore
+        } catch (IOException e) { // NOPMD
+            // problem has already been logged, just return null
+        }
+        return ret;
+    }
+
+    /**
+     * Returns project object by its name, used in webapp to figure out which
+     * project is to be searched
+     *
+     * @param name name of the project
+     * @return project that fits the name
+     */
+    public Project getProjectByName(String name) {
+        if (hasProjects()) {
+            Project proj;
+            if ((proj = getProjects().get(name)) != null) {
+                return (proj);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Do we have groups?
      *
      * @return true if we have groups
@@ -514,6 +603,23 @@ public final class RuntimeEnvironment {
     public void setGroups(Set<Group> groups) {
         populateGroups(groups, new TreeSet<>(getProjects().values()));
         setConfigurationValue("groups", groups);
+    }
+
+    /**
+     * Returns group object by its name
+     * @param name name of a group
+     * @return group that fits the name
+     */
+    public Group getGroupByName(String name) {
+        Group ret = null;
+        if (hasGroups()) {
+            for (Group grp : getGroups()) {
+                if (name.equals(grp.getName())) {
+                    ret = grp;
+                }
+            }
+        }
+        return ret;
     }
 
     /**
@@ -618,11 +724,8 @@ public final class RuntimeEnvironment {
      */
     public boolean validateUniversalCtags() {
         if (ctagsFound == null) {
-            if (!CtagsUtil.validate(getCtags())) {
-                ctagsFound = false;
-            } else {
-                ctagsFound = true;
-            }
+            CtagsUtil ctagsUtil = new CtagsUtil();
+            ctagsFound = ctagsUtil.validate(getCtags());
         }
         return ctagsFound;
     }
@@ -738,10 +841,10 @@ public final class RuntimeEnvironment {
      * @param dir the root directory to start the search in
      */
     public void setRepositories(String dir) {
-        List<RepositoryInfo> repos = new ArrayList<>(HistoryGuru.getInstance().
-                addRepositories(new File[]{new File(dir)},
-                    RuntimeEnvironment.getInstance().getIgnoredNames()));
-        RuntimeEnvironment.getInstance().setRepositories(repos);
+        List<RepositoryInfo> repos = new ArrayList<>(
+                getHistoryGuru().addRepositories(new File[]{new File(dir)},
+                getIgnoredNames()));
+        setRepositories(repos);
     }
 
     /**
@@ -1424,13 +1527,13 @@ public final class RuntimeEnvironment {
             String repoPath;
             try {
                 repoPath = PathUtils.getPathRelativeToSourceRoot(
-                        new File(r.getDirectoryName()), 0);
+                        this, new File(r.getDirectoryName()), 0);
             } catch (ForbiddenSymlinkException e) {
                 LOGGER.log(Level.FINER, e.getMessage());
                 continue;
             }
 
-            if ((proj = Project.getProject(repoPath)) != null) {
+            if ((proj = getProject(repoPath)) != null) {
                 List<RepositoryInfo> values = repository_map.computeIfAbsent(proj, k -> new ArrayList<>());
                 // the map is held under the lock because the next call to
                 // values.add(r) which should not be called from multiple threads at the same time
@@ -1500,21 +1603,18 @@ public final class RuntimeEnvironment {
             configLock.writeLock().unlock();
         }
 
-        // HistoryGuru constructor needs environment properties so no locking is done here.
-        HistoryGuru histGuru = HistoryGuru.getInstance();
-
         // Set the working repositories in HistoryGuru.
         if (subFileList != null) {
-            histGuru.invalidateRepositories(
+            getHistoryGuru().invalidateRepositories(
                     getRepositories(), subFileList, interactive);
         } else {
-            histGuru.invalidateRepositories(getRepositories(),
-                    interactive);
+            getHistoryGuru().invalidateRepositories(
+                    getRepositories(), interactive);
         }
 
         // The invalidation of repositories above might have excluded some
         // repositories in HistoryGuru so the configuration needs to reflect that.
-        setRepositories(new ArrayList<>(histGuru.getRepositories()));
+        setRepositories(new ArrayList<>(getHistoryGuru().getRepositories()));
 
         // generate repository map is dependent on getRepositories()
         try {
@@ -1631,7 +1731,7 @@ public final class RuntimeEnvironment {
         // set the new plugin directory and reload the authorization framework
         getAuthorizationFramework().setPluginDirectory(getPluginDirectory());
         getAuthorizationFramework().setStack(getPluginStack());
-        getAuthorizationFramework().reload();
+        getAuthorizationFramework().reload(this);
 
         messagesContainer.setMessageLimit(getMessageLimit());
     }
@@ -1690,7 +1790,8 @@ public final class RuntimeEnvironment {
 
             try {
                 Directory dir = FSDirectory.open(new File(indexDir, proj).toPath());
-                mgr = new SearcherManager(dir, new ThreadpoolSearcherFactory());
+                mgr = new SearcherManager(dir,
+                        new ThreadpoolSearcherFactory(this));
                 searcherManagerMap.put(proj, mgr);
                 searcher = (SuperIndexSearcher) mgr.acquire();
                 searcher.setSearcherManager(mgr);
@@ -1754,7 +1855,7 @@ public final class RuntimeEnvironment {
         // TODO might need to rewrite to Project instead of String, need changes in projects.jspf too.
         for (String proj : projects) {
             try {
-                SuperIndexSearcher searcher = RuntimeEnvironment.getInstance().getIndexSearcher(proj);
+                SuperIndexSearcher searcher = getIndexSearcher(proj);
                 subreaders[ii++] = searcher.getIndexReader();
                 searcherList.add(searcher);
             } catch (IOException | NullPointerException ex) {

@@ -19,6 +19,7 @@
 
  /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.configuration;
 
@@ -34,8 +35,15 @@ import junit.framework.AssertionFailedError;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
 
 public class ProjectTest {
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     /**
      * Test that a {@code Project} instance can be encoded and decoded without
@@ -97,17 +105,16 @@ public class ProjectTest {
         HashMap<String, Project> projects = new HashMap<>();
         projects.put("foo", foo);
         projects.put("bar", bar);
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.setProjectsEnabled(true);
         env.setProjects(projects);
 
         // The matching of project name to project should be exact.
-        assertEquals(foo, Project.getProject("/foo"));
-        assertEquals(bar, Project.getProject("/foo-bar"));
-        assertEquals(foo, Project.getProject("/foo/blah.c"));
-        assertEquals(bar, Project.getProject("/foo-bar/ha.c"));
-        assertNull(Project.getProject("/foof"));
-        assertNull(Project.getProject("/foof/ha.c"));
+        assertEquals(foo, env.getProject("/foo"));
+        assertEquals(bar, env.getProject("/foo-bar"));
+        assertEquals(foo, env.getProject("/foo/blah.c"));
+        assertEquals(bar, env.getProject("/foo-bar/ha.c"));
+        assertNull(env.getProject("/foof"));
+        assertNull(env.getProject("/foof/ha.c"));
     }
 
     /**
@@ -123,7 +130,6 @@ public class ProjectTest {
         HashMap<String, Project> projects = new HashMap<>();
         projects.put("foo", foo);
         projects.put("bar", bar);
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.setProjects(projects);
 
         List<String> descs = env.getProjectNames();

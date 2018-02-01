@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.suggester.provider.filter;
 
@@ -36,7 +37,8 @@ import javax.ws.rs.ext.Provider;
 @Suggester
 public class SuggestionsEnabledFilter implements ContainerRequestFilter {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Override
     public void filter(final ContainerRequestContext context) {

@@ -63,6 +63,6 @@ public class PerlAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PerlXref(reader));
+        return new JFlexXref(new PerlXref(reader), getFactory().getEnv());
     }
 }

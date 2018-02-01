@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Nameable;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
@@ -90,14 +91,16 @@ public class AuthorizationPlugin extends AuthorizationStack {
      * the future.
      * </p>
      *
+     * @param env a defined instance
      * @param parameters parameters given in the configuration
      *
-     * @see IAuthorizationPlugin#load(java.util.Map)
+     * @see IAuthorizationPlugin#load(org.opengrok.indexer.configuration.RuntimeEnvironment, java.util.Map)
      */
     @Override
-    public synchronized void load(Map<String, Object> parameters) {
+    public synchronized void load(RuntimeEnvironment env,
+            Map<String, Object> parameters) {
         // fill properly the "forGroups" and "forProjects" fields
-        processTargetGroupsAndProjects();
+        processTargetGroupsAndProjects(env);
 
         if (!hasPlugin()) {
             LOGGER.log(Level.SEVERE, "Configured plugin \"{0}\" has not been loaded into JVM (missing file?). "
@@ -118,7 +121,7 @@ public class AuthorizationPlugin extends AuthorizationStack {
         getCurrentSetup().putAll(getSetup());
 
         try {
-            plugin.load(getCurrentSetup());
+            plugin.load(env, getCurrentSetup());
             setWorking();
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "Plugin \"" + getName() + "\" has failed while loading with exception:", ex);

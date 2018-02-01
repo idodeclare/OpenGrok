@@ -19,11 +19,10 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import org.opengrok.indexer.util.ClassUtil;
 import org.opengrok.web.api.v1.suggester.provider.service.SuggesterService;
 
 import javax.inject.Inject;
@@ -41,9 +40,7 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 
 @Path("/configuration")
-public class ConfigurationController {
-
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+public class ConfigurationController extends ControllerBase {
 
     @Inject
     private SuggesterService suggesterService;
@@ -89,7 +86,7 @@ public class ConfigurationController {
     @POST
     @Path("/authorization/reload")
     public void reloadAuthorization() {
-        env.getAuthorizationFramework().reload();
+        env.getAuthorizationFramework().reload(env);
     }
 
 }

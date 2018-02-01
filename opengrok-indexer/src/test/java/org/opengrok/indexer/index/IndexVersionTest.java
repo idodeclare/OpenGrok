@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -57,19 +58,19 @@ public class IndexVersionTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
+    private static RuntimeEnvironment env;
     private TestRepository repository;
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
     private Path oldIndexDataDir;
     
     @BeforeClass
     public static void setUpClass() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+        env = RuntimeEnvironment.getInstance();
         RepositoryFactory.initializeIgnoredNames(env);
     }
 
     @Before
     public void setUp() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(IndexerTest.class.getResourceAsStream("/org/opengrok/indexer/history/repositories.zip"));
         oldIndexDataDir = null;
     }
@@ -92,14 +93,14 @@ public class IndexVersionTest {
         env.setProjectsEnabled(projectsEnabled);
         Indexer.getInstance().prepareIndexer(env, true, true, null,
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
-        IndexVersion.check(subFiles);
+        IndexVersion.check(env, subFiles);
     }
     
     @Test
     public void testIndexVersionNoIndex() throws Exception {
-        IndexVersion.check(new ArrayList<>());
+        IndexVersion.check(env, new ArrayList<>());
     }
     
     @Test
@@ -134,6 +135,6 @@ public class IndexVersionTest {
         FileUtilities.extractArchive(archive, indexDir);
         env.setDataRoot(oldIndexDataDir.toString());
         env.setProjectsEnabled(false);
-        IndexVersion.check(new ArrayList<>());
+        IndexVersion.check(env, new ArrayList<>());
     }
 }

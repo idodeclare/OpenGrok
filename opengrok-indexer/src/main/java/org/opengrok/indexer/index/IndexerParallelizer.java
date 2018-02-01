@@ -26,11 +26,9 @@ package org.opengrok.indexer.index;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.logging.Logger;
 import org.opengrok.indexer.analysis.Ctags;
 import org.opengrok.indexer.analysis.CtagsValidator;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.BoundedBlockingObjectPool;
 import org.opengrok.indexer.util.LazilyInstantiate;
 import org.opengrok.indexer.util.ObjectFactory;
@@ -46,9 +44,6 @@ import org.opengrok.indexer.util.ObjectPool;
  * latter, and the bulk of work is done in the latter pool.
  */
 public class IndexerParallelizer implements AutoCloseable {
-
-    private static final Logger LOGGER =
-        LoggerFactory.getLogger(IndexerParallelizer.class);
 
     private final RuntimeEnvironment env;
     private final int indexingParallelism;
@@ -113,9 +108,10 @@ public class IndexerParallelizer implements AutoCloseable {
     /**
      * Calls {@link #bounce()}, which prepares for -- but does not start -- new
      * pools.
+     * @throws Exception
      */
     @Override
-    public void close() {
+    public void close() throws Exception {
         bounce();
     }
 
@@ -182,19 +178,10 @@ public class IndexerParallelizer implements AutoCloseable {
      * setting if a value was not available from {@link RuntimeEnvironment}.
      */
     private static Ctags getNewCtags(RuntimeEnvironment env) {
-        Ctags ctags = new Ctags();
-
-        String ctagsBinary = env.getCtags();
-        if (ctagsBinary == null) {
-            LOGGER.severe("Unable to run ctags!" +
-                " searching definitions will not work!");
-        } else {
-            ctags.setBinary(ctagsBinary);
-
-            String filename = env.getCTagsExtraOptionsFile();
-            if (filename != null) {
-                ctags.setCTagsExtraOptionsFile(filename);
-            }
+        Ctags ctags = new Ctags(env);
+        String filename = env.getCTagsExtraOptionsFile();
+        if (filename != null) {
+            ctags.setCTagsExtraOptionsFile(filename);
         }
         return ctags;
     }

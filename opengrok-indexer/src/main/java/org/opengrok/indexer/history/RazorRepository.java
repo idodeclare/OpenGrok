@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 /* Portions Copyright 2008 Peter Bray */
 package org.opengrok.indexer.history;
@@ -243,7 +243,7 @@ public class RazorRepository extends Repository {
             if (sccsFile != null && sccsFile.exists()) {
                 ensureCommand(SCCSRepository.CMD_PROPERTY_KEY,
                         SCCSRepository.CMD_FALLBACK);
-                return SCCSget.getRevision(RepoCommand, sccsFile, rev);
+                return SCCSget.getRevision(env, RepoCommand, sccsFile, rev);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "getHistoryGet( "

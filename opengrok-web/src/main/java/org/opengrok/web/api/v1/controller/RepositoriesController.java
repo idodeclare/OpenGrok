@@ -19,10 +19,10 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.RepositoryInfo;
 
 import javax.ws.rs.GET;
@@ -32,9 +32,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 @Path("/repositories")
-public class RepositoriesController {
-
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+public class RepositoriesController extends ControllerBase {
 
     @GET
     @Path("/type")

@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.search;
@@ -34,6 +34,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
@@ -47,6 +48,15 @@ public class DirectoryExtraReader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(
         DirectoryExtraReader.class);
+
+    private final RuntimeEnvironment env;
+
+    public DirectoryExtraReader(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
 
     /**
      * Search for supplemental file information in the specified {@code path}.
@@ -64,7 +74,7 @@ public class DirectoryExtraReader {
             throw new IllegalArgumentException("`path' is null");
         }
 
-        QueryBuilder qbuild = new QueryBuilder();
+        QueryBuilder qbuild = new QueryBuilder(env);
         qbuild.setDirPath(path);
         Query query;
         try {

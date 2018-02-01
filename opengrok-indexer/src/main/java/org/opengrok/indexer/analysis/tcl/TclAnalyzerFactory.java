@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.tcl;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.tcl;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class TclAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -42,10 +44,14 @@ public class TclAnalyzerFactory extends FileAnalyzerFactory {
         "ITK",
     };
 
-    public TclAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public TclAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link TclAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new TclAnalyzer(this);

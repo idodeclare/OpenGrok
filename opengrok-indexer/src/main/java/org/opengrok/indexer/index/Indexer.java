@@ -57,7 +57,6 @@ import org.opengrok.indexer.configuration.LuceneLockName;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.HistoryException;
-import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.history.Repository;
 import org.opengrok.indexer.history.RepositoryFactory;
 import org.opengrok.indexer.history.RepositoryInfo;
@@ -115,7 +114,6 @@ public final class Indexer {
     private static final HashSet<String> allowedSymlinks = new HashSet<>();
     private static final Set<String> defaultProjects = new TreeSet<>();
     private static final ArrayList<String> zapCache = new ArrayList<>();
-    private static RuntimeEnvironment env = null;
     private static String webappURI = null;
 
     private static OptionParser optParser = null;
@@ -143,25 +141,25 @@ public final class Indexer {
         boolean createDict = false;
 
         try {
-            argv = parseOptions(argv);
+            RuntimeEnvironment env =
+                    RuntimeEnvironment.getInstance(); // Irksome static dependency
+            argv = parseOptions(env, argv);
             if (help) {
                 status = 1;
                 System.err.println(helpUsage);
                 if (helpDetailed) {
-                    System.err.println(AnalyzerGuruHelp.getUsage());
+                    System.err.println(AnalyzerGuruHelp.getUsage(env));
                     System.err.println(
                         ConfigurationHelp.getSamples());
                 }
                 System.exit(status);
             }
 
-            checkConfiguration();
+            checkConfiguration(env);
 
             if (awaitProfiler) {
                 pauseToAwaitProfiler();
             }
-
-            env = RuntimeEnvironment.getInstance();
 
             // Complete the configuration of repository types.
             List<Class<? extends Repository>> repositoryClasses
@@ -235,7 +233,7 @@ public final class Indexer {
                 }
 
                 try {
-                    IndexVersion.check(subFilesList);
+                    IndexVersion.check(env, subFilesList);
                 } catch (IndexVersionException e) {
                     System.err.printf("Index version check failed: %s\n", e);
                     System.err.printf("You might want to remove " +
@@ -277,7 +275,7 @@ public final class Indexer {
                 if (env.hasProjects()) {
                     // The paths need to correspond to a project.
                     Project project;
-                    if ((project = Project.getProject(path)) != null) {
+                    if ((project = env.getProject(path)) != null) {
                         subFiles.add(path);
                         List<RepositoryInfo> repoList = env.getProjectRepositoriesMap().get(project);
                         if (repoList != null) {
@@ -327,7 +325,8 @@ public final class Indexer {
             // And now index it all.
             if (runIndex) {
                 IndexChangedListener progress = new DefaultIndexChangedListener();
-                getInstance().doIndexerExecution(update, subFiles, progress);
+                getInstance().doIndexerExecution(env, update, subFiles,
+                        progress);
             }
 
             writeConfigToFile(env, configFilename);
@@ -403,11 +402,13 @@ public final class Indexer {
      * This method was created so that it would be easier to write unit
      * tests against the Indexer option parsing mechanism.
      *
+     * @param env a defined instance
      * @param argv the command line arguments
      * @return array of remaining non option arguments
      * @throws ParseException if parsing failed
      */
-    public static String[] parseOptions(String[] argv) throws ParseException {
+    public static String[] parseOptions(RuntimeEnvironment env, String[] argv)
+            throws ParseException {
         String[] usage = {"--help"};
         String program = "opengrok.jar";
         final String[] ON_OFF = {ON, OFF};
@@ -467,7 +468,7 @@ public final class Indexer {
                     String[] arg = ((String)analyzerSpec).split(":");
                     String fileSpec = arg[0];
                     String analyzer = arg[1];
-                    configureFileAnalyzer(fileSpec, analyzer);
+                    configureFileAnalyzer(env, fileSpec, analyzer);
                 }
             );
 
@@ -762,7 +763,6 @@ public final class Indexer {
                         die("URL '" + webappURI + "' is not valid.");
                     }
 
-                    env = RuntimeEnvironment.getInstance();
                     env.setConfigURI(webappURI);
                 }
             );
@@ -824,9 +824,7 @@ public final class Indexer {
         return argv;
     }
 
-    private static void checkConfiguration() {
-        env = RuntimeEnvironment.getInstance();
-
+    private static void checkConfiguration(RuntimeEnvironment env) {
         if (noindex && (env.getConfigURI() == null || env.getConfigURI().isEmpty())) {
             die("Missing webappURI URL");
         }
@@ -841,7 +839,8 @@ public final class Indexer {
         System.exit(1);
     }
 
-    private static void configureFileAnalyzer(String fileSpec, String analyzer) {
+    private static void configureFileAnalyzer(
+            RuntimeEnvironment env, String fileSpec, String analyzer) {
 
         boolean prefix = false;
 
@@ -855,23 +854,20 @@ public final class Indexer {
         }
         fileSpec = fileSpec.toUpperCase(Locale.ROOT);
 
+        AnalyzerGuru guru = env.getAnalyzerGuru();
         // Disable analyzer?
         if (analyzer.equals("-")) {
             if (prefix) {
-                AnalyzerGuru.addPrefix(fileSpec, null);
+                guru.addPrefix(fileSpec, null);
             } else {
-                AnalyzerGuru.addExtension(fileSpec, null);
+                guru.addExtension(fileSpec, null);
             }
         } else {
             try {
                 if (prefix) {
-                    AnalyzerGuru.addPrefix(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addPrefix(fileSpec, guru.findFactory(analyzer));
                 } else {
-                    AnalyzerGuru.addExtension(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addExtension(fileSpec, guru.findFactory(analyzer));
                 }
 
             } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoSuchMethodException
@@ -1010,7 +1006,7 @@ public final class Indexer {
                         }
                     }
                     try {
-                        HistoryGuru.getInstance().removeCache(toZap);
+                        env.getHistoryGuru().removeCache(toZap);
                     } catch (HistoryException e) {
                         LOGGER.log(Level.WARNING, "Clearing history cache failed: {0}",
                                 e.getLocalizedMessage());
@@ -1043,22 +1039,22 @@ public final class Indexer {
         if (repositories != null && !repositories.isEmpty()) {
             LOGGER.log(Level.INFO, "Generating history cache for repositories: " +
                 repositories.stream().collect(Collectors.joining(",")));
-            HistoryGuru.getInstance().createCache(repositories);
+            env.getHistoryGuru().createCache(repositories);
             LOGGER.info("Done...");
           } else {
               LOGGER.log(Level.INFO, "Generating history cache for all repositories ...");
-              HistoryGuru.getInstance().createCache();
+              env.getHistoryGuru().createCache();
               LOGGER.info("Done...");
           }
 
         if (listFiles) {
-            for (String file : IndexDatabase.getAllFiles(subFiles)) {
+            for (String file : IndexDatabase.getAllFiles(env, subFiles)) {
                 LOGGER.fine(file);
             }
         }
 
         if (createDict) {
-            IndexDatabase.listFrequentTokens(subFiles);
+            IndexDatabase.listFrequentTokens(env, subFiles);
         }
     }
 
@@ -1068,23 +1064,23 @@ public final class Indexer {
      * and storing data from the source files in the index (along with history,
      * if any).
      *
+     * @param env a defined instance
      * @param update if set to true, index database is updated, otherwise optimized
      * @param subFiles index just some subdirectories
      * @param progress object to receive notifications as indexer progress is made
      * @throws IOException if I/O exception occurred
      */
-    public void doIndexerExecution(final boolean update, List<String> subFiles,
-        IndexChangedListener progress)
+    public void doIndexerExecution(RuntimeEnvironment env, final boolean update,
+            List<String> subFiles, IndexChangedListener progress)
             throws IOException {
         Statistics elapsed = new Statistics();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         LOGGER.info("Starting indexing");
 
         IndexerParallelizer parallelizer = env.getIndexerParallelizer();
         final CountDownLatch latch;
         if (subFiles == null || subFiles.isEmpty()) {
             if (update) {
-                latch = IndexDatabase.updateAll(progress);
+                latch = IndexDatabase.updateAll(env, progress);
             } else {
                 latch = new CountDownLatch(0);
             }
@@ -1092,15 +1088,15 @@ public final class Indexer {
             List<IndexDatabase> dbs = new ArrayList<>();
 
             for (String path : subFiles) {
-                Project project = Project.getProject(path);
+                Project project = env.getProject(path);
                 if (project == null && env.hasProjects()) {
                     LOGGER.log(Level.WARNING, "Could not find a project for \"{0}\"", path);
                 } else {
                     IndexDatabase db;
                     if (project == null) {
-                        db = new IndexDatabase();
+                        db = new IndexDatabase(env);
                     } else {
-                        db = new IndexDatabase(project);
+                        db = new IndexDatabase(env, project);
                     }
                     int idx = dbs.indexOf(db);
                     if (idx != -1) {

@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2015, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.clojure;
 
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class ClojureAnalyzerFactory extends FileAnalyzerFactory {
 
@@ -36,8 +38,8 @@ public class ClojureAnalyzerFactory extends FileAnalyzerFactory {
         "CLJX"
     };
 
-    public ClojureAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public ClojureAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

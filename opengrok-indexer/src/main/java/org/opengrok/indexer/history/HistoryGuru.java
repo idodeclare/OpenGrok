@@ -63,10 +63,7 @@ public final class HistoryGuru {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HistoryGuru.class);
 
-    /**
-     * The one and only instance of the HistoryGuru
-     */
-    private static final HistoryGuru INSTANCE = new HistoryGuru();
+    private final RuntimeEnvironment env;
 
     /**
      * The history cache to use
@@ -89,14 +86,19 @@ public final class HistoryGuru {
     /**
      * Creates a new instance of HistoryGuru, and try to set the default source
      * control system.
+     * @param env a defined instance
      */
-    private HistoryGuru() {
+    public HistoryGuru(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+
+        this.env = env;
         HistoryCache cache = null;
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         scanningDepth = env.getScanningDepth();
 
         if (env.useHistoryCache()) {
-            cache = new FileHistoryCache();
+            cache = new FileHistoryCache(env);
 
             try {
                 cache.initialize();
@@ -108,15 +110,6 @@ public final class HistoryGuru {
             }
         }
         historyCache = cache;
-    }
-
-    /**
-     * Get the one and only instance of the HistoryGuru
-     *
-     * @return the one and only HistoryGuru instance
-     */
-    public static HistoryGuru getInstance() {
-        return INSTANCE;
     }
 
     /**
@@ -244,7 +237,7 @@ public final class HistoryGuru {
         final File dir = file.isDirectory() ? file : file.getParentFile();
         final Repository repo = getRepository(dir);
 
-        RemoteSCM rscm = RuntimeEnvironment.getInstance().getRemoteScmSupported();
+        RemoteSCM rscm = env.getRemoteScmSupported();
         boolean doRemote = (ui && (rscm == RemoteSCM.UIONLY))
                 || (rscm == RemoteSCM.ON)
                 || (ui || ((rscm == RemoteSCM.DIRBASED) && (repo != null) && repo.hasHistoryForDirectories()));
@@ -318,9 +311,9 @@ public final class HistoryGuru {
 
         // This should return true for Annotate view.
         return repo.isWorking() && repo.fileHasHistory(file)
-                && ((RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.ON)
-                || (RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.UIONLY)
-                || (RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.DIRBASED)
+                && ((env.getRemoteScmSupported() == RemoteSCM.ON)
+                || (env.getRemoteScmSupported() == RemoteSCM.UIONLY)
+                || (env.getRemoteScmSupported() == RemoteSCM.DIRBASED)
                 || !repo.isRemote());
     }
 
@@ -407,7 +400,7 @@ public final class HistoryGuru {
 
                 Repository repository = null;
                 try {
-                    repository = RepositoryFactory.getRepository(file);
+                    repository = RepositoryFactory.getRepository(env, file);
                 } catch (InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                     LOGGER.log(Level.WARNING, "Could not create repository for '"
                             + file + "', could not instantiate the repository.", e);
@@ -606,8 +599,8 @@ public final class HistoryGuru {
 
     private void createCacheReal(Collection<Repository> repositories) {
         Statistics elapsed = new Statistics();
-        ExecutorService executor = RuntimeEnvironment.getInstance()
-                .getIndexerParallelizer().getForkJoinPool();
+        ExecutorService executor = env.getIndexerParallelizer().
+                getForkJoinPool();
         // Since we know each repository object from the repositories
         // collection is unique, we can abuse HashMap to create a list of
         // repository,revision tuples with repository as key (as the revision
@@ -769,7 +762,7 @@ public final class HistoryGuru {
      */
     private List<Repository> getReposFromString(Collection<String> repositories) {
         ArrayList<Repository> repos = new ArrayList<>();
-        File srcRoot = RuntimeEnvironment.getInstance().getSourceRootFile();
+        File srcRoot = env.getSourceRootFile();
 
         for (String file : repositories) {
             File f = new File(srcRoot, file);
@@ -946,7 +939,8 @@ public final class HistoryGuru {
                 @Override
                 public void run() {
                     try {
-                        Repository r = RepositoryFactory.getRepository(rinfo, interactive);
+                        Repository r = RepositoryFactory.getRepository(env,
+                                rinfo, interactive);
                         if (r == null) {
                             LOGGER.log(Level.WARNING,
                                     "Failed to instantiate internal repository data for {0} in {1}",

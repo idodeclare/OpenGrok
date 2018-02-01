@@ -21,22 +21,14 @@
  * Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
-package org.opengrok.indexer.analysis;
+package org.opengrok.web.api.v1.controller;
 
-import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
- * Represents a container for tests of {@link AnalyzerGuruHelp}.
+ * Represents an abstract base class for OpenGrok v1 controllers.
  */
-public class AnalyzerGuruHelpTest {
-    @Test
-    public void shouldCreateReadableUsage() {
-        String usage = AnalyzerGuruHelp.getUsage(
-                RuntimeEnvironment.getInstance());
-        assertTrue("usage is not empty", !usage.isEmpty());
-        assertTrue("usage contains \"*.\"", usage.contains("*."));
-        assertTrue("usage contains \"#!\"", usage.contains("#!"));
-    }
+public abstract class ControllerBase {
+    protected final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 }

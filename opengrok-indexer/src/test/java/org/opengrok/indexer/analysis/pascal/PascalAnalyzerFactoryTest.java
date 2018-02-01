@@ -58,6 +58,7 @@ import org.opengrok.indexer.util.TestRepository;
 @ConditionalRun(CtagsInstalled.class)
 public class PascalAnalyzerFactoryTest {
     
+    private static RuntimeEnvironment env;
     private static Ctags ctags;
     private static TestRepository repository;
     private static FileAnalyzer analyzer;
@@ -76,18 +77,17 @@ public class PascalAnalyzerFactoryTest {
     
     @BeforeClass
     public static void setUpClass() throws Exception {
-        ctags = new Ctags();
-        ctags.setBinary(RuntimeEnvironment.getInstance().getCtags());        
+        env = RuntimeEnvironment.getInstance();
+        ctags = new Ctags(env);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(PascalAnalyzerFactoryTest.class.getResourceAsStream(
                 "/org/opengrok/indexer/index/source.zip"));
 
-        PascalAnalyzerFactory analyzerFactory = new PascalAnalyzerFactory();
+        PascalAnalyzerFactory analyzerFactory = new PascalAnalyzerFactory(env);
         analyzer = analyzerFactory.getAnalyzer();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (env.validateUniversalCtags()) {
-            analyzer.setCtags(new Ctags());
+            analyzer.setCtags(new Ctags(env));
         }
     }
 

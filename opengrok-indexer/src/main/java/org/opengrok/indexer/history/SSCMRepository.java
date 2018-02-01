@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -39,7 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 
@@ -154,7 +154,8 @@ public class SSCMRepository extends Repository {
             argv.add("-p" + repo);
         }
 
-        return new Executor(argv, new File(getDirectoryName()), sinceRevision != null);
+        return new Executor(argv, new File(getDirectoryName()),
+                sinceRevision != null ? env.getCommandTimeout() : 0);
     }
 
     @Override
@@ -199,7 +200,8 @@ public class SSCMRepository extends Repository {
             argv.add("-q");
             argv.add("-tmodify");
             argv.add("-wreplace");
-            Executor exec = new Executor(argv, directory);
+            Executor exec = new Executor(argv, directory,
+                    env.getCommandTimeout());
             int status = exec.exec();
 
             if (status != 0) {
@@ -295,7 +297,7 @@ public class SSCMRepository extends Repository {
             argv.add("-aV:" + revision);
         }
         Executor exec = new Executor(argv, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         int status = exec.exec();
 
         if (status != 0) {
@@ -359,7 +361,8 @@ public class SSCMRepository extends Repository {
         argv.add("-tmodify");
         argv.add("-wreplace");
 
-        Executor executor = new Executor(argv, directory);
+        Executor executor = new Executor(argv, directory,
+                env.getCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }

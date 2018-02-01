@@ -55,6 +55,15 @@ public class RepositoryInfo implements Serializable {
 
     private static final long serialVersionUID = 3L;
 
+    /**
+     * The following static dependency will be a tough one to unwind, since the
+     * class is serialized, but also needs to access runtime information. The
+     * data and actor parts of the class probably would have to be separated to
+     * get rid of the dependency.
+     */
+    protected static final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
+
     // dummy to avoid storing absolute path in XML encoded configuration
     // Do not use this member.
     private transient String directoryName;
@@ -140,9 +149,8 @@ public class RepositoryInfo implements Serializable {
      * @return the name of the root directory
      */
     public String getDirectoryName() {
-        return Paths.get(RuntimeEnvironment.getInstance().getSourceRootPath(),
+        return Paths.get(env.getSourceRootPath(),
                 directoryNameRelative).toString();
-
     }
 
     /**
@@ -151,7 +159,6 @@ public class RepositoryInfo implements Serializable {
      * @param dir the new root directory
      */
     public void setDirectoryName(File dir) {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String rootPath = env.getSourceRootPath();
         String path;
         String originalPath = dir.getPath();
@@ -277,13 +284,11 @@ public class RepositoryInfo implements Serializable {
      * Fill configurable properties from associated project (if any) or Configuration.
      */
     public void fillFromProject() {
-        Project proj = Project.getProject(getDirectoryNameRelative());
+        Project proj = env.getProject(getDirectoryNameRelative());
         if (proj != null) {
             setHistoryEnabled(proj.isHistoryEnabled());
             setHandleRenamedFiles(proj.isHandleRenamedFiles());
         } else {
-            RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
             setHistoryEnabled(env.isHistoryEnabled());
             setHandleRenamedFiles(env.isHandleHistoryOfRenamedFiles());
         }

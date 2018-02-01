@@ -58,6 +58,7 @@ import org.opengrok.indexer.util.TestRepository;
 @ConditionalRun(CtagsInstalled.class)
 public class IndexDatabaseTest {
 
+    private static RuntimeEnvironment env;
     private static TestRepository repository;
 
     @ClassRule
@@ -65,9 +66,9 @@ public class IndexDatabaseTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+        env = RuntimeEnvironment.getInstance();
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(
                 HistoryGuru.class.getResourceAsStream("repositories.zip"));
 
@@ -85,7 +86,7 @@ public class IndexDatabaseTest {
         indexer.prepareIndexer(
                 env, true, true, new TreeSet<>(Arrays.asList(new String[]{"/c"})),
                 false, false, null, null, new ArrayList<String>(), false);
-        indexer.doIndexerExecution(true, null, null);
+        indexer.doIndexerExecution(env, true, null, null);
     }
 
     @AfterClass
@@ -98,7 +99,7 @@ public class IndexDatabaseTest {
         // Test that we can get definitions for one of the files in the
         // repository.
         File f1 = new File(repository.getSourceRoot() + "/git/main.c");
-        Definitions defs1 = IndexDatabase.getDefinitions(f1);
+        Definitions defs1 = IndexDatabase.getDefinitions(env, f1);
         assertNotNull(defs1);
         assertTrue(defs1.hasSymbol("main"));
         assertTrue(defs1.hasSymbol("argv"));
@@ -107,7 +108,7 @@ public class IndexDatabaseTest {
 
         //same for windows delimiters
         f1 = new File(repository.getSourceRoot() + "\\git\\main.c");
-        defs1 = IndexDatabase.getDefinitions(f1);
+        defs1 = IndexDatabase.getDefinitions(env, f1);
         assertNotNull(defs1);
         assertTrue(defs1.hasSymbol("main"));
         assertTrue(defs1.hasSymbol("argv"));
@@ -117,13 +118,11 @@ public class IndexDatabaseTest {
         // Test that we get null back if we request definitions for a file
         // that's not in the repository.
         File f2 = new File(repository.getSourceRoot() + "/git/foobar.d");
-        Definitions defs2 = IndexDatabase.getDefinitions(f2);
+        Definitions defs2 = IndexDatabase.getDefinitions(env, f2);
         assertNull(defs2);
     }
 
     private void checkDataExistence(String fileName, boolean shouldExist) {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
         for (String dirName : new String[]{"historycache", IndexDatabase.XREF_DIR}) {
             File dataDir = new File(env.getDataRootFile(), dirName);
             File dataFile = new File(dataDir, fileName + ".gz");
@@ -146,13 +145,12 @@ public class IndexDatabaseTest {
      */
     @Test
     public void testCleanupAfterIndexRemoval() throws Exception {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         final int origNumFiles;
 
         String projectName = "git";
         String ppath = "/" + projectName;
         Project project = new Project(projectName, ppath);
-        IndexDatabase idb = new IndexDatabase(project);
+        IndexDatabase idb = new IndexDatabase(env, project);
         assertNotNull(idb);
 
         // Note that the file to remove has to be different than the one used
@@ -186,7 +184,7 @@ public class IndexDatabaseTest {
      */
     @Test
     public void testIndexPath() throws IOException {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         // Use as broad search as possible.
         instance.setFile("c");
         instance.search();

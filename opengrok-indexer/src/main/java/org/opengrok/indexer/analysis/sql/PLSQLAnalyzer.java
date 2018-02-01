@@ -52,6 +52,6 @@ public class PLSQLAnalyzer extends PlainAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PLSQLXref(reader));
+        return new JFlexXref(new PLSQLXref(reader), getFactory().getEnv());
     }
 }

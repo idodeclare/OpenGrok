@@ -20,6 +20,7 @@
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright (c) 2016 Nikolay Denev.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.rust;
@@ -27,6 +28,7 @@ package org.opengrok.indexer.analysis.rust;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -42,10 +44,14 @@ public class RustAnalyzerFactory extends FileAnalyzerFactory {
         "RS"
     };
 
-    public RustAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public RustAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link RustAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new RustAnalyzer(this);

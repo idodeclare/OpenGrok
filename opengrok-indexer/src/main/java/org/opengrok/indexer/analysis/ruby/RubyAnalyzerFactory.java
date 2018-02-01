@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.ruby;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis.ruby;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * Represents an implementation of {@link FileAnalyzerFactory} to produce
@@ -50,9 +51,10 @@ public class RubyAnalyzerFactory extends FileAnalyzerFactory {
 
     /**
      * Creates a new instance of {@link RubyAnalyzerFactory}.
+     * @param env a defined instance
      */
-    public RubyAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN,
+    public RubyAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
             name);
     }
 

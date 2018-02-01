@@ -99,7 +99,7 @@ include file="pageheader.jspf"
 
     JSONArray messages = new JSONArray();
     if (cfg.getProject() != null) {
-        messages = Util.messagesToJson(cfg.getProject(),
+        messages = Util.messagesToJson(cfg.getEnv(), cfg.getProject(),
                     MessagesContainer.MESSAGES_MAIN_PAGE_TAG);
     }
     %>

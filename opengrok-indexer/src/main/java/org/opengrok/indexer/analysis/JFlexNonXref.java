@@ -62,8 +62,9 @@ import org.opengrok.indexer.web.Util;
 public abstract class JFlexNonXref extends JFlexStateStacker
         implements Xrefer {
 
+    protected final RuntimeEnvironment env;
     protected Writer out;
-    protected String urlPrefix = RuntimeEnvironment.getInstance().getUrlPrefix();
+    protected String urlPrefix;
     protected Annotation annotation;
     protected Project project;
     protected Definitions defs;
@@ -107,15 +108,21 @@ public abstract class JFlexNonXref extends JFlexStateStacker
      */
     private String disjointSpanClassName;
 
-    protected JFlexNonXref() {
-        userPageLink = RuntimeEnvironment.getInstance().getUserPage();
+    protected JFlexNonXref(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+
+        userPageLink = env.getUserPage();
         if (userPageLink != null && userPageLink.length() == 0) {
             userPageLink = null;
         }
-        userPageSuffix = RuntimeEnvironment.getInstance().getUserPageSuffix();
+        userPageSuffix = env.getUserPageSuffix();
         if (userPageSuffix != null && userPageSuffix.length() == 0) {
             userPageSuffix = null;
         }
+        urlPrefix = env.getUrlPrefix();
     }
 
     /**
@@ -410,8 +417,8 @@ public abstract class JFlexNonXref extends JFlexStateStacker
             }
         }
 
-        Util.readableLine(line, out, annotation, userPageLink, userPageSuffix,
-                getProjectPostfix(true), skipNl);
+        Util.readableLine(line, out, urlPrefix, annotation, userPageLink,
+                userPageSuffix, getProjectPostfix(true), skipNl);
 
         if (foldingEnabled && scopesEnabled) {
             if (iconId != null) {
@@ -508,6 +515,7 @@ public abstract class JFlexNonXref extends JFlexStateStacker
      * @throws IOException if an error occurs while writing to the stream
      */
     protected void writeEMailAddress(String address) throws IOException {
-        JFlexXrefUtils.writeEMailAddress(out, address);
+        JFlexXrefUtils.writeEMailAddress(out, address,
+                env.isObfuscatingEMailAddresses());
     }
 }

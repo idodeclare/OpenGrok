@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.csharp;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis.csharp;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class CSharpAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -36,8 +37,8 @@ public class CSharpAnalyzerFactory extends FileAnalyzerFactory {
         "CS"
     };
 
-    public CSharpAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public CSharpAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

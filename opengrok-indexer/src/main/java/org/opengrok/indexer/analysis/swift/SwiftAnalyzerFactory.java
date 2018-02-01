@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.swift;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.swift;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class SwiftAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,10 +37,14 @@ public class SwiftAnalyzerFactory extends FileAnalyzerFactory {
         "SWIFT",        
     };
 
-    public SwiftAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public SwiftAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link SwiftAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new SwiftAnalyzer(this);

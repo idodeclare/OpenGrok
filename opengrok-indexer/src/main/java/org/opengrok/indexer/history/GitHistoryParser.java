@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -55,14 +55,18 @@ class GitHistoryParser implements Executor.StreamHandler {
 
         HEADER, MESSAGE, FILES
     }
+    private final RuntimeEnvironment env;
     private String myDir;
     private GitRepository repository = new GitRepository();
     private List<HistoryEntry> entries = new ArrayList<>();
-
     private final boolean handleRenamedFiles;
-    
-    GitHistoryParser(boolean flag) {
-        handleRenamedFiles = flag;
+
+    public GitHistoryParser(RuntimeEnvironment env, boolean flag) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+        this.handleRenamedFiles = flag;
     }
     
     /**
@@ -81,7 +85,6 @@ class GitHistoryParser implements Executor.StreamHandler {
     
     private void process(BufferedReader in) throws IOException {
         DateFormat df = repository.getDateFormat();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         entries = new ArrayList<>();
         HistoryEntry entry = null;
         ParseState state = ParseState.HEADER;
@@ -211,7 +214,7 @@ class GitHistoryParser implements Executor.StreamHandler {
      * @throws IOException if we fail to parse the buffer
      */
     History parse(String buffer) throws IOException {
-        myDir = RuntimeEnvironment.getInstance().getSourceRootPath();
+        myDir = env.getSourceRootPath();
         processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
         return new History(entries);
     }
@@ -264,8 +267,6 @@ class GitHistoryParser implements Executor.StreamHandler {
              * A foo2.f
              * A main.c
              */
-            RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
             try (BufferedReader in = new BufferedReader(new InputStreamReader(input))) {
                 String line;
                 Pattern pattern = Pattern.compile("^R\\d+\\s.*");

@@ -69,6 +69,6 @@ public class PowershellAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PoshXref(reader));
+        return new JFlexXref(new PoshXref(reader), getFactory().getEnv());
     }
 }

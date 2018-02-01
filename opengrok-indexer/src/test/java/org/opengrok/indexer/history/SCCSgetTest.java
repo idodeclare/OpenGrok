@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -35,7 +36,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Test the SCCSget class
@@ -44,6 +48,7 @@ import static org.junit.Assert.*;
 public class SCCSgetTest {
 
     private static boolean haveSccs = true;
+    private static RuntimeEnvironment env;
     private File sccsfile;
     private File sccsdir;
 
@@ -52,6 +57,7 @@ public class SCCSgetTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
         // Check to see if we have sccs..
         Process p = null;
         try {
@@ -161,7 +167,8 @@ public class SCCSgetTest {
 
         while ((entry = zstream.getNextEntry()) != null) {
             String expected = readInput(zstream);
-            InputStream sccs = SCCSget.getRevision("sccs",sccsfile, entry.getName());
+            InputStream sccs = SCCSget.getRevision(env, "sccs",sccsfile,
+                    entry.getName());
             String got = readInput(sccs);
             sccs.close();
             zstream.closeEntry();

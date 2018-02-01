@@ -64,6 +64,6 @@ public class RubyAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new RubyXref(reader));
+        return new JFlexXref(new RubyXref(reader), getFactory().getEnv());
     }
 }

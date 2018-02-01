@@ -23,18 +23,13 @@
  */
 package org.opengrok.indexer.configuration;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.ClassUtil;
-import org.opengrok.indexer.util.ForbiddenSymlinkException;
 import org.opengrok.indexer.web.Util;
 
 /**
@@ -289,7 +284,8 @@ public class Project implements Comparable<Project>, Nameable, Serializable {
      */
     final public void completeWithDefaults() {
         Configuration defaultCfg = new Configuration();
-        final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+        final RuntimeEnvironment env =
+                RuntimeEnvironment.getInstance(); // Irksome static dependency
 
         /**
          * Choosing strategy for properties (tabSize used as example here):
@@ -322,80 +318,6 @@ public class Project implements Comparable<Project>, Nameable, Serializable {
         if (navigateWindowEnabled == null) {
             setNavigateWindowEnabled(env.isNavigateWindowEnabled());
         }
-    }
-
-    /**
-     * Get the project for a specific file
-     *
-     * @param path the file to lookup (relative to source root)
-     * @return the project that this file belongs to (or null if the file
-     * doesn't belong to a project)
-     */
-    public static Project getProject(String path) {
-        // Try to match each project path as prefix of the given path.
-        final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        if (env.hasProjects()) {
-            final String lpath = Util.fixPathIfWindows(path);
-            for (Project p : env.getProjectList()) {
-                String projectPath = p.getPath();
-                if (projectPath == null) {
-                    LOGGER.log(Level.WARNING, "Path of project {0} is not set", p.getName());
-                    return null;
-                }
-
-                // Check if the project's path is a prefix of the given
-                // path. It has to be an exact match, or the project's path
-                // must be immediately followed by a separator. "/foo" is
-                // a prefix for "/foo" and "/foo/bar", but not for "/foof".
-                if (lpath.startsWith(projectPath)
-                        && (projectPath.length() == lpath.length()
-                        || lpath.charAt(projectPath.length()) == '/')) {
-                    return p;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get the project for a specific file
-     *
-     * @param file the file to lookup
-     * @return the project that this file belongs to (or null if the file
-     * doesn't belong to a project)
-     */
-    public static Project getProject(File file) {
-        Project ret = null;
-        try {
-            ret = getProject(RuntimeEnvironment.getInstance().getPathRelativeToSourceRoot(file));
-        } catch (FileNotFoundException e) { // NOPMD
-            // ignore if not under source root
-        } catch (ForbiddenSymlinkException e) {
-            LOGGER.log(Level.FINER, e.getMessage());
-            // ignore
-        } catch (IOException e) { // NOPMD
-            // problem has already been logged, just return null
-        }
-        return ret;
-    }
-
-    /**
-     * Returns project object by its name, used in webapp to figure out which
-     * project is to be searched
-     *
-     * @param name name of the project
-     * @return project that fits the name
-     */
-    public static Project getByName(String name) {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        if (env.hasProjects()) {
-            Project proj;
-            if ((proj = env.getProjects().get(name)) != null) {
-                return (proj);
-            }
-        }
-        return null;
     }
 
     @Override

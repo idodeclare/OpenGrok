@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.util;
@@ -188,6 +188,7 @@ public class PathUtils {
      * substring operation, except we need to support symlinks outside the
      * source root.
      *
+     * @param env a defined instance
      * @param file A file to resolve
      * @param stripCount Number of characters past source root to strip
      * @return Path relative to source root
@@ -197,13 +198,13 @@ public class PathUtils {
      * an ineligible link
      * @throws InvalidPathException if the path cannot be decoded
      */
-    public static String getPathRelativeToSourceRoot(File file, int stripCount)
+    public static String getPathRelativeToSourceRoot(
+            RuntimeEnvironment env, File file, int stripCount)
             throws IOException, ForbiddenSymlinkException, FileNotFoundException,
             InvalidPathException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String sourceRoot = env.getSourceRootPath();
         if (sourceRoot == null) {
-            throw new FileNotFoundException("Source Root Not Found");
+            throw new FileNotFoundException("sourceRootPath is null");
         }
 
         String maybeRelPath = PathUtils.getRelativeToCanonical(file.getPath(),

@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -38,7 +39,8 @@ import java.util.Collections;
 @Path("/system")
 public class SystemController {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Inject
     private SuggesterService suggester;

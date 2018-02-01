@@ -19,13 +19,15 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.document;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
@@ -35,69 +37,59 @@ public class MandocAnalyzerFactory extends FileAnalyzerFactory {
 
     private static final String NAME = "Mandoc";
 
-    public static final Matcher MATCHER = new Matcher() {
+    private final FileAnalyzerFactory self = this;
+
+    /**
+     * "The prologue, which consists of the Dd, Dt, and Os macros in that
+     * order, is required for every document."
+     * </p>
+     * As {@link TroffXref} does not present mdoc(5) documents well, even
+     * if no mandoc binary is configured, then we want a
+     * {@link MandocAnalyzer} that presents a plain-text cross-referencing.
+     */
+    private final DocumentMatcher MDOCMATCHER = new DocumentMatcher(
+            self, new String[] {".Dd", ".Dt", ".Os"});
+
+    /**
+     * As with {@code MDOCMATCHER} except that when a mandoc binary is
+     * configured, then man(5) documents with a .TH also will use the
+     * {@link MandocAnalyzer}.
+     */
+    private final DocumentMatcher MENMATCHER = new DocumentMatcher(
+            self, new String[] {".Dd", ".Dt", ".Os", ".TH"});
+
+    public final Matcher MATCHER = new Matcher() {
         @Override
         public FileAnalyzerFactory isMagic(byte[] contents, InputStream in)
                 throws IOException {
-            return RuntimeEnvironment.getInstance().getMandoc() != null ?
-                getTrueMenMatcher().isMagic(contents, in) :
-                getTrueMdocMatcher().isMagic(contents, in);
+            return env.getMandoc() != null ? MENMATCHER.isMagic(contents, in) :
+                MDOCMATCHER.isMagic(contents, in);
         }
 
         @Override
         public FileAnalyzerFactory forFactory() {
-            return getTrueMenMatcher().forFactory();
+            return self;
         }
     };
 
-    public static final MandocAnalyzerFactory DEFAULT_INSTANCE =
-        new MandocAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    protected MandocAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, NAME);
+    public MandocAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, null, null, "text/plain", Genre.PLAIN, NAME);
     }
 
     @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link MandocAnalyzer}.
+     * @return a defined instance
+     */
+    @Override
     protected FileAnalyzer newAnalyzer() {
         return new MandocAnalyzer(this);
-    }
-
-    // Because DEFAULT_INSTANCE during its initialization uses the MATCHER,
-    // while at the same time the DocumentMatcher in its initialization takes
-    // a FileAnalyzerFactory, and because we want the instances to be the same
-    // instance, then defer initialization of the DocumentMatcher using the
-    // "16.6 Lazy initialization holder class idiom," written by Brian Goetz
-    // and Tim Peierls with assistance from members of JCP JSR-166 Expert Group
-    // and released to the public domain, as explained at
-    // http://creativecommons.org/licenses/publicdomain .
-    private static class TrueMatcherHolder {
-        /**
-         * "The prologue, which consists of the Dd, Dt, and Os macros in that
-         * order, is required for every document."
-         * </p>
-         * As {@link TroffXref} does not present mdoc(5) documents well, even
-         * if no mandoc binary is configured, then we want a
-         * {@link MandocAnalyzer} that presents a plain-text cross-referencing.
-         */
-        public static final DocumentMatcher MDOCMATCHER = new DocumentMatcher(
-            DEFAULT_INSTANCE, new String[] {".Dd", ".Dt", ".Os"});
-
-        /**
-         * As with {@code MDOCMATCHER} except that when a mandoc binary is
-         * configured, then man(5) documents with a .TH also will use the
-         * {@link MandocAnalyzer}.
-         */
-        public static final DocumentMatcher MENMATCHER = new DocumentMatcher(
-            DEFAULT_INSTANCE, new String[] {".Dd", ".Dt", ".Os", ".TH"});
-    }
-
-    /** Gets a matcher that is mdoc(5)-specific. */
-    private static DocumentMatcher getTrueMdocMatcher() {
-        return TrueMatcherHolder.MDOCMATCHER;
-    }
-
-    /** Gets a matcher that matches mdoc(5) and man(5). */
-    private static DocumentMatcher getTrueMenMatcher() {
-        return TrueMatcherHolder.MENMATCHER;
     }
 }

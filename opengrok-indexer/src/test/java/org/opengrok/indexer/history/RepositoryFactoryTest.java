@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -28,6 +29,7 @@ import org.junit.AfterClass;
 import static org.junit.Assert.assertFalse;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.TestRepository;
 
 /**
@@ -36,11 +38,13 @@ import org.opengrok.indexer.util.TestRepository;
  * @author Vladimir Kotal
  */
 public class RepositoryFactoryTest {
+    private static RuntimeEnvironment env;
     private static TestRepository repository;
     
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(RepositoryFactory.class.getResourceAsStream("repositories.zip"));
     }
     
@@ -53,7 +57,7 @@ public class RepositoryFactoryTest {
     }
     
     /*
-     * There is no conditonal run based on whether given repository is installed because
+     * There is no conditional run based on whether given repository is installed because
      * this test is not supposed to have working Mercurial anyway.
      */
     private void testNotWorkingRepository(String repoPath, String propName) 
@@ -61,7 +65,7 @@ public class RepositoryFactoryTest {
         
         String origPropValue = System.setProperty(propName, "/foo/bar/nonexistent");
         File root = new File(repository.getSourceRoot(), repoPath);
-        Repository repo = RepositoryFactory.getRepository(root);
+        Repository repo = RepositoryFactory.getRepository(env, root);
         if (origPropValue != null) {
             System.setProperty(propName, origPropValue);
         }

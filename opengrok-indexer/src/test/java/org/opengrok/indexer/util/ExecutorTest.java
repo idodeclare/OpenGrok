@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.util;
 
@@ -29,10 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -40,11 +45,14 @@ import static org.junit.Assert.*;
  */
 public class ExecutorTest {
 
+    private static RuntimeEnvironment env;
+
     public ExecutorTest() {
     }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @AfterClass
@@ -64,7 +72,7 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opengrok.indexer.util.Executor");
-        Executor instance = new Executor(cmdList);
+        Executor instance = new Executor(cmdList, env.getCommandTimeout());
         assertEquals(0, instance.exec());
         assertTrue(instance.getOutputString().startsWith("testing org.opengrok.indexer.util.Executor"));
         String err = instance.getErrorString();
@@ -76,7 +84,7 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opengrok.indexer.util.Executor");
-        Executor instance = new Executor(cmdList);
+        Executor instance = new Executor(cmdList, env.getCommandTimeout());
         assertEquals(0, instance.exec());
         BufferedReader in = new BufferedReader(instance.getOutputReader());
         assertEquals("testing org.opengrok.indexer.util.Executor", in.readLine());
@@ -91,7 +99,8 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opengrok.indexer.util.Executor");
-        Executor instance = new Executor(cmdList, new File("."));
+        Executor instance = new Executor(cmdList, new File("."),
+                env.getCommandTimeout());
         assertEquals(0, instance.exec());
         assertNotNull(instance.getOutputStream());
         assertNotNull(instance.getErrorStream());

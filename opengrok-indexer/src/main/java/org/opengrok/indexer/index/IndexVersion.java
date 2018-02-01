@@ -61,8 +61,8 @@ public class IndexVersion {
      * @param subFilesList list of paths. If non-empty, only projects matching these paths will be checked.
      * @throws Exception otherwise
      */
-    public static void check(List<String> subFilesList) throws Exception {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    public static void check(RuntimeEnvironment env, List<String> subFilesList)
+            throws Exception {
         File indexRoot = new File(env.getDataRootPath(), IndexDatabase.INDEX_DIR);
         LOGGER.log(Level.FINE, "Checking for Lucene index version mismatch in {0}",
                 indexRoot);

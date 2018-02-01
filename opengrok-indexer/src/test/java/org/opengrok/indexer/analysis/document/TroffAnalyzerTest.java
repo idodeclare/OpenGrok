@@ -20,6 +20,7 @@
 /*
  * Copyright (c) 2009, 2018, Oracle and/or its affiliates. All rights reserved.
  * Portions copyright 2009 - 2011 Jens Elkner. 
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.document;
 
@@ -41,6 +42,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.TestRepository;
 import org.opengrok.indexer.web.Util;
 
@@ -50,6 +52,7 @@ import org.opengrok.indexer.web.Util;
  */
 public class TroffAnalyzerTest {
 
+    private static RuntimeEnvironment env;
     private static TroffAnalyzerFactory factory;
     private static TroffAnalyzer analyzer;
     private static String content;
@@ -63,11 +66,12 @@ public class TroffAnalyzerTest {
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        factory = new TroffAnalyzerFactory();
+        env = RuntimeEnvironment.getInstance();
+        factory = new TroffAnalyzerFactory(env);
         assertNotNull(factory);
         analyzer = new TroffAnalyzer(factory);
         assertNotNull(analyzer);
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(TroffAnalyzerTest.class.getResourceAsStream(
                 "/org/opengrok/indexer/index/source.zip"));
 

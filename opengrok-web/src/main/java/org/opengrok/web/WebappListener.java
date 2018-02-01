@@ -37,12 +37,10 @@ import org.opengrok.indexer.Info;
 import org.opengrok.indexer.authorization.AuthorizationFramework;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
+import org.opengrok.indexer.util.StatisticsUtils;
 import org.opengrok.indexer.web.PageConfig;
 import org.opengrok.indexer.web.SearchHelper;
 import org.opengrok.web.api.v1.suggester.provider.service.SuggesterServiceFactory;
-
-import static org.opengrok.indexer.util.StatisticsUtils.loadStatistics;
-import static org.opengrok.indexer.util.StatisticsUtils.saveStatistics;
 
 /**
  * Initialize webapp context
@@ -54,13 +52,17 @@ public final class WebappListener
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebappListener.class);
 
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
+
+    private final StatisticsUtils statsUtils = new StatisticsUtils(env);
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void contextInitialized(final ServletContextEvent servletContextEvent) {
         ServletContext context = servletContextEvent.getServletContext();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
         LOGGER.log(Level.INFO, "Starting webapp with version {0} ({1})",
                     new Object[]{Info.getVersion(), Info.getRevision()});
@@ -81,11 +83,12 @@ public final class WebappListener
          * (reading the configuration) failed then the plugin directory is
          * possibly {@code null} causing the framework to allow every request.
          */
-        env.setAuthorizationFramework(new AuthorizationFramework(env.getPluginDirectory(), env.getPluginStack()));
-        env.getAuthorizationFramework().reload();
+        env.setAuthorizationFramework(new AuthorizationFramework(
+                env.getPluginDirectory(), env.getPluginStack()));
+        env.getAuthorizationFramework().reload(env);
 
         try {
-            loadStatistics();
+            statsUtils.loadStatistics();
         } catch (IOException ex) {
             LOGGER.log(Level.INFO, "Could not load statistics from a file.", ex);
         } catch (ParseException ex) {
@@ -94,13 +97,13 @@ public final class WebappListener
 
         String pluginDirectory = env.getPluginDirectory();
         if (pluginDirectory != null && env.isAuthorizationWatchdog()) {
-            RuntimeEnvironment.getInstance().watchDog.start(new File(pluginDirectory));
+            env.watchDog.start(new File(pluginDirectory));
         }
 
         env.startExpirationTimer();
 
         try {
-            loadStatistics();
+            statsUtils.loadStatistics();
         } catch (IOException ex) {
             LOGGER.log(Level.INFO, "Could not load statistics from a file.", ex);
         } catch (ParseException ex) {
@@ -113,12 +116,11 @@ public final class WebappListener
      */
     @Override
     public void contextDestroyed(final ServletContextEvent servletContextEvent) {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.getIndexerParallelizer().bounce();
         env.watchDog.stop();
         env.stopExpirationTimer();
         try {
-            saveStatistics();
+            statsUtils.saveStatistics();
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Could not save statistics into a file.", ex);
         }
