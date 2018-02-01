@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.logger.LoggerFactory;
 
@@ -98,7 +97,7 @@ public class RCSRepository extends Repository {
         argv.add(file.getName());
 
         Executor executor = new Executor(argv, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
 
         RCSAnnotationParser annotator = new RCSAnnotationParser(file);
         executor.exec(true, annotator);

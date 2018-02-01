@@ -20,23 +20,27 @@
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright 2011 Jens Elkner.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.document;
-import org.opengrok.indexer.analysis.JFlexNonXref;
+
 import java.io.IOException;
 import java.io.Writer;
+import org.opengrok.indexer.analysis.JFlexNonXref;
 import org.opengrok.indexer.analysis.JFlexXrefUtils;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.web.Util;
 %%
 %public
 %class TroffXref
 %extends JFlexNonXref
+%ctorarg RuntimeEnvironment env
 %unicode
 %int
 %char
 %init{
+    super(env);
     yyline = 1;
 %init}
 %include CommonLexer.lexh

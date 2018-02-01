@@ -31,6 +31,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,17 +39,24 @@ import org.opengrok.indexer.condition.DeliberateRuntimeException;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Nameable;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.web.DummyHttpServletRequest;
 
 @RunWith(Parameterized.class)
 public class AuthorizationFrameworkTest {
 
     private static final Random RANDOM = new Random();
+    private static RuntimeEnvironment env;
 
     private final StackSetup setup;
 
     public AuthorizationFrameworkTest(StackSetup setup) {
         this.setup = setup;
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @Parameterized.Parameters
@@ -651,7 +659,7 @@ public class AuthorizationFrameworkTest {
     @Test
     public void testPluginsGeneric() {
         AuthorizationFramework framework = new AuthorizationFramework(null, setup.stack);
-        framework.loadAllPlugins(setup.stack);
+        framework.loadAllPlugins(env, setup.stack);
 
         boolean actual;
         String format = "%s <%s> was <%s> for entity %s";
@@ -736,7 +744,8 @@ public class AuthorizationFrameworkTest {
     static private IAuthorizationPlugin createLoadFailingPlugin() {
         return new TestPlugin() {
             @Override
-            public void load(Map<String, Object> parameters) {
+            public void load(RuntimeEnvironment env,
+                    Map<String, Object> parameters) {
                 throw new DeliberateRuntimeException("This plugin failed while loading.");
             }
 

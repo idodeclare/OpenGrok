@@ -34,7 +34,8 @@ import javax.ws.rs.core.MediaType;
 @Path("/repositories")
 public class RepositoriesController {
 
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @GET
     @Path("/type")

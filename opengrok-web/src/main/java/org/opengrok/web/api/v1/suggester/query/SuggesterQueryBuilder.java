@@ -24,6 +24,7 @@ package org.opengrok.web.api.v1.suggester.query;
 
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.Query;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.suggest.query.SuggesterQuery;
 import org.opengrok.indexer.search.CustomQueryParser;
 import org.opengrok.indexer.search.QueryBuilder;
@@ -43,7 +44,9 @@ public class SuggesterQueryBuilder extends QueryBuilder {
      * @param suggestField field that contain the {@link SuggesterQuery}
      * @param identifier identifier that was inserted into the query to detect the {@link SuggesterQuery}
      */
-    public SuggesterQueryBuilder(final String suggestField, final String identifier) {
+    public SuggesterQueryBuilder(final String suggestField, final String identifier,
+                                 RuntimeEnvironment env) {
+        super(env);
         this.suggestField = suggestField;
         this.identifier = identifier;
     }
@@ -66,10 +69,11 @@ public class SuggesterQueryBuilder extends QueryBuilder {
             throws ParseException {
 
         if (field.equals(suggestField)) {
-            suggesterQueryParser = new SuggesterQueryParser(field, identifier);
+            suggesterQueryParser = new SuggesterQueryParser(field, identifier,
+                    env);
             return suggesterQueryParser.parse(queryText);
         } else {
-            return new CustomQueryParser(field).parse(queryText);
+            return new CustomQueryParser(field, env).parse(queryText);
         }
     }
 

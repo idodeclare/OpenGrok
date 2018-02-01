@@ -61,6 +61,6 @@ public class EiffelAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new EiffelXref(reader));
+        return new JFlexXref(new EiffelXref(reader), getFactory().getEnv());
     }
 }

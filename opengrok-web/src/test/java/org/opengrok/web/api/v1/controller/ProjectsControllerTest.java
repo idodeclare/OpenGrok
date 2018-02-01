@@ -101,7 +101,7 @@ public class ProjectsControllerTest extends JerseyTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
 
         env.setSourceRoot(repository.getSourceRoot());
@@ -191,7 +191,7 @@ public class ProjectsControllerTest extends JerseyTest {
                 collect(Collectors.toSet()).size());
 
         // Check that HistoryGuru now includes the project in its list.
-        Set<String> directoryNames = HistoryGuru.getInstance().
+        Set<String> directoryNames = env.getHistoryGuru().
                 getRepositories().stream().map(ri -> ri.getDirectoryName()).
                 collect(Collectors.toSet());
         assertTrue("though it should contain the top root,",
@@ -213,10 +213,10 @@ public class ProjectsControllerTest extends JerseyTest {
         assertTrue(env.getProjects().containsKey("git"));
         assertTrue(env.getProjects().containsKey("svn"));
 
-        assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+        assertFalse(env.getHistoryGuru().getRepositories().stream().
                 map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                 contains("git"));
-        assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+        assertFalse(env.getHistoryGuru().getRepositories().stream().
                 map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                 contains("svn"));
     }
@@ -237,7 +237,8 @@ public class ProjectsControllerTest extends JerseyTest {
         addProject("mercurial");
 
         assertEquals(2, env.getRepositories().size());
-        assertEquals(2, env.getProjectRepositoriesMap().get(Project.getProject(mercurialRoot)).size());
+        assertEquals(2, env.getProjectRepositoriesMap().get(
+                env.getProject(mercurialRoot)).size());
 
         // Delete the newly added repository to verify it will be removed from
         // configuration after the message is reapplied. This is necessary anyway
@@ -247,7 +248,8 @@ public class ProjectsControllerTest extends JerseyTest {
         addProject("mercurial");
 
         assertEquals(1, env.getRepositories().size());
-        assertEquals(1, env.getProjectRepositoriesMap().get(Project.getProject(mercurialRoot)).size());
+        assertEquals(1, env.getProjectRepositoriesMap().get(
+                env.getProject(mercurialRoot)).size());
     }
 
     /**
@@ -301,7 +303,7 @@ public class ProjectsControllerTest extends JerseyTest {
         // This is necessary so that repositories in HistoryGuru get populated.
         // When 'indexpart' is run, this is called from setConfiguration() because
         // of the -R option is present.
-        HistoryGuru.getInstance().invalidateRepositories(
+        env.getHistoryGuru().invalidateRepositories(
                 env.getRepositories(), null, false);
         env.setHistoryEnabled(true);
         Indexer.getInstance().prepareIndexer(
@@ -315,7 +317,7 @@ public class ProjectsControllerTest extends JerseyTest {
                 repos, // repositories - needed when refreshing history partially
                 new ArrayList<>(), // don't zap cache
                 false); // don't list repos
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         for (String proj : projectsToDelete) {
             delete(proj);
@@ -337,7 +339,7 @@ public class ProjectsControllerTest extends JerseyTest {
 
         // Check that HistoryGuru no longer maintains the removed projects.
         for (String p : projectsToDelete) {
-            assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+            assertFalse(env.getHistoryGuru().getRepositories().stream().
                     map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                     contains(repository.getSourceRoot() + File.separator + p));
         }
@@ -378,7 +380,8 @@ public class ProjectsControllerTest extends JerseyTest {
 
         // copy file from jar to a temp file
         Path temp = Files.createTempFile("opengrok", "temp");
-        Files.copy(HistoryGuru.getInstance().getClass().getResourceAsStream("/history/hg-export-subdir.txt"),
+        Files.copy(env.getHistoryGuru().getClass().getResourceAsStream(
+                "/history/hg-export-subdir.txt"),
                 temp, StandardCopyOption.REPLACE_EXISTING);
 
         MercurialRepositoryTest.runHgCommand(mercurialRoot, "import", temp.toString());
@@ -509,7 +512,7 @@ public class ProjectsControllerTest extends JerseyTest {
             List<RepositoryInfo> riList = env.getProjectRepositoriesMap().get(project);
             assertNotNull(riList);
             for (RepositoryInfo ri : riList) {
-                Repository repo = getRepository(ri, false);
+                Repository repo = getRepository(env, ri, false);
                 assertFalse(repo.isHandleRenamedFiles());
             }
         }

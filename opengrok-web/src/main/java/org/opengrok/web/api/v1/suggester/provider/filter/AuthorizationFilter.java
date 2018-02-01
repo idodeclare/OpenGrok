@@ -42,7 +42,8 @@ public class AuthorizationFilter implements ContainerRequestFilter {
 
     public static final String PROJECTS_PARAM = "projects[]";
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Context
     private HttpServletRequest request;
@@ -62,7 +63,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             String[] projects = request.getParameterValues(PROJECTS_PARAM);
             if (projects != null) {
                 for (String project : projects) {
-                    Project p = Project.getByName(project);
+                    Project p = env.getProjectByName(project);
                     if (!auth.isAllowed(request, p)) {
                         context.abortWith(Response.status(Response.Status.FORBIDDEN).build());
                     }

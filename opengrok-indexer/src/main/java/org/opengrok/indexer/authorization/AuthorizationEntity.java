@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Nameable;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
@@ -161,11 +162,13 @@ public abstract class AuthorizationEntity implements Nameable, Serializable, Clo
     /**
      * Load this entity with given parameters.
      *
+     * @param env a defined instance
      * @param parameters given parameters passed to the plugin's load method
      *
-     * @see IAuthorizationPlugin#load(java.util.Map)
+     * @see IAuthorizationPlugin#load(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.util.Map)
      */
-    abstract public void load(Map<String, Object> parameters);
+    abstract public void load(RuntimeEnvironment env,
+            Map<String, Object> parameters);
 
     /**
      * Unload this entity.
@@ -415,8 +418,9 @@ public abstract class AuthorizationEntity implements Nameable, Serializable, Clo
      * <li>issue a warning for non-existent groups</li>
      * <li>issue a warning for non-existent projects</li>
      * </ul>
+     * @param env a defined instance
      */
-    protected void processTargetGroupsAndProjects() {
+    protected void processTargetGroupsAndProjects(RuntimeEnvironment env) {
         Set<String> groups = new TreeSet<>();
 
         for (String x : forGroups()) {
@@ -429,7 +433,7 @@ public abstract class AuthorizationEntity implements Nameable, Serializable, Clo
              * If the group does not exist then a warning is issued.
              */
             Group g;
-            if ((g = Group.getByName(x)) != null) {
+            if ((g = env.getGroupByName(x)) != null) {
                 forProjects().addAll(g.getAllProjects().stream().map((t) -> t.getName()).collect(Collectors.toSet()));
                 groups.addAll(g.getRelatedGroups().stream().map((t) -> t.getName()).collect(Collectors.toSet()));
                 groups.add(x);
@@ -447,7 +451,7 @@ public abstract class AuthorizationEntity implements Nameable, Serializable, Clo
              * is no such project.
              */
             Project p;
-            if ((p = Project.getByName(t)) == null) {
+            if ((p = env.getProjectByName(t)) == null) {
                 LOGGER.log(Level.WARNING, "Configured project \"{0}\" in forProjects"
                         + " section for name \"{1}\" does not exist",
                         new Object[]{t, getName()});

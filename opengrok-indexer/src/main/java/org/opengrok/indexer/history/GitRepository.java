@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -43,7 +43,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.StringUtils;
@@ -136,7 +135,8 @@ public class GitRepository extends Repository {
             cmd.add(filename);
         }
 
-        return new Executor(cmd, new File(getDirectoryName()), sinceRevision != null);
+        return new Executor(cmd, new File(getDirectoryName()),
+                sinceRevision != null ? env.getCommandTimeout() : 0);
     }
 
     Executor getRenamedFilesExecutor(final File file, String sinceRevision) throws IOException {
@@ -164,7 +164,8 @@ public class GitRepository extends Repository {
             cmd.add(file.getCanonicalPath().substring(getDirectoryName().length() + 1));
         }
 
-        return new Executor(cmd, new File(getDirectoryName()), sinceRevision != null);
+        return new Executor(cmd, new File(getDirectoryName()),
+                sinceRevision != null ? env.getCommandTimeout() : 0);
     }
 
     /**
@@ -188,7 +189,7 @@ public class GitRepository extends Repository {
             };
             
             Executor executor = new Executor(Arrays.asList(argv), directory,
-                    RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                    env.getInteractiveCommandTimeout());
             int status = executor.exec();
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -321,7 +322,7 @@ public class GitRepository extends Repository {
         };
 
         Executor executor = new Executor(Arrays.asList(argv), new File(getDirectoryName()),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         int status = executor.exec();
 
         String originalFile = null;
@@ -376,7 +377,7 @@ public class GitRepository extends Repository {
         };
 
         Executor executor = new Executor(Arrays.asList(argv), new File(getDirectoryName()),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         int status = executor.exec();
 
         try (BufferedReader in = new BufferedReader(
@@ -431,7 +432,7 @@ public class GitRepository extends Repository {
         cmd.add(getPathRelativeToRepositoryRoot(file.getCanonicalPath()));
 
         Executor exec = new Executor(cmd, new File(getDirectoryName()),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         GitAnnotationParser parser = new GitAnnotationParser(file.getName());
         int status = exec.exec(true, parser);
 
@@ -450,7 +451,7 @@ public class GitRepository extends Repository {
             cmd.add("--");
             cmd.add(findOriginalName(file.getCanonicalPath(), revision));
             exec = new Executor(cmd, new File(getDirectoryName()),
-                    RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                    env.getInteractiveCommandTimeout());
             parser = new GitAnnotationParser(file.getName());
             status = exec.exec(true, parser);
         }
@@ -479,7 +480,8 @@ public class GitRepository extends Repository {
         cmd.add("config");
         cmd.add("--list");
 
-        Executor executor = new Executor(cmd, directory);
+        Executor executor = new Executor(cmd, directory,
+                env.getInteractiveCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }
@@ -541,8 +543,8 @@ public class GitRepository extends Repository {
     @Override
     History getHistory(File file, String sinceRevision)
             throws HistoryException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        History result = new GitHistoryParser(isHandleRenamedFiles()).parse(file, this, sinceRevision);
+        History result = new GitHistoryParser(env, isHandleRenamedFiles()).parse(
+                file, this, sinceRevision);
         // Assign tags to changesets they represent
         // We don't need to check if this repository supports tags,
         // because we know it :-)
@@ -568,8 +570,8 @@ public class GitRepository extends Repository {
         argv.add(tags + "^.." + tags);
         
         Executor executor = new Executor(argv, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         GitTagParser parser = new GitTagParser(tags);
         executor.exec(true, parser);
         return parser.getEntries().first();
@@ -585,8 +587,8 @@ public class GitRepository extends Repository {
         argv.add("tag");
         
         Executor executor = new Executor(argv, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         int status = executor.exec();
 
         try {
@@ -641,8 +643,8 @@ public class GitRepository extends Repository {
         cmd.add("remote");
         cmd.add("-v");
         Executor executor = new Executor(cmd, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         executor.exec();
 
         try (BufferedReader in = new BufferedReader(new InputStreamReader(executor.getOutputStream()))) {
@@ -673,8 +675,8 @@ public class GitRepository extends Repository {
         cmd.add(RepoCommand);
         cmd.add("branch");
         Executor executor = new Executor(cmd, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         executor.exec();
 
         try (BufferedReader in = new BufferedReader(new InputStreamReader(executor.getOutputStream()))) {
@@ -707,7 +709,7 @@ public class GitRepository extends Repository {
         cmd.add(GIT_DATE_OPT);
 
         Executor executor = new Executor(cmd, directory,
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         if (executor.exec(false) != 0) {
             throw new IOException(executor.getErrorString());
         }

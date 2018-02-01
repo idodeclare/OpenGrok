@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -33,7 +34,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.Executor;
 
 /**
@@ -42,6 +43,15 @@ import org.opengrok.indexer.util.Executor;
  * @author Emilio Monti - emilmont@gmail.com
  */
 public class PerforceHistoryParser {
+
+    private final RuntimeEnvironment env;
+
+    public PerforceHistoryParser(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
 
     /**
      * Parse the history for the specified file.
@@ -54,7 +64,7 @@ public class PerforceHistoryParser {
     History parse(File file, Repository repos) throws HistoryException {
         History history;
 
-        if (!PerforceRepository.isInP4Depot(file, false)) {
+        if (!PerforceRepository.isInP4Depot(env, file, false)) {
             return null;
         }
 
@@ -62,7 +72,7 @@ public class PerforceHistoryParser {
             if (file.isDirectory()) {
                 history = parseDirectory(file);
             } else {
-                history = getRevisions(file, null);
+                history = getRevisions(env, file, null);
             }
         } catch (IOException ioe) {
             throw new HistoryException(ioe);
@@ -77,18 +87,21 @@ public class PerforceHistoryParser {
         cmd.add("-t");
         cmd.add("...");
 
-        Executor executor = new Executor(cmd, file.getCanonicalFile());
+        Executor executor = new Executor(cmd, file.getCanonicalFile(),
+                env.getCommandTimeout());
         executor.exec();
         return parseChanges(executor.getOutputReader());
     }
 
-    public static History getRevisions(File file, String rev) throws IOException {
+    public static History getRevisions(RuntimeEnvironment env, File file,
+            String rev) throws IOException {
         ArrayList<String> cmd = new ArrayList<String>();
         cmd.add("p4");
         cmd.add("filelog");
         cmd.add("-lti");
         cmd.add(file.getName() + PerforceRepository.getRevisionCmd(rev));
-        Executor executor = new Executor(cmd, file.getCanonicalFile().getParentFile());
+        Executor executor = new Executor(cmd, file.getCanonicalFile().
+                getParentFile(), env.getCommandTimeout());
         executor.exec();
 
         return parseFileLog(executor.getOutputReader());

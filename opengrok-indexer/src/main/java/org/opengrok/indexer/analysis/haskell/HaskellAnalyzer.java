@@ -64,6 +64,6 @@ public class HaskellAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new HaskellXref(reader));
+        return new JFlexXref(new HaskellXref(reader), getFactory().getEnv());
     }
 }

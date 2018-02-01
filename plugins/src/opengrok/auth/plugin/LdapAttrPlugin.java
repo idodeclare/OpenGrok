@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -34,6 +35,7 @@ import opengrok.auth.entity.LdapUser;
 import opengrok.auth.plugin.entity.User;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * Authorization plug-in to check user's LDAP attribute against whitelist.
@@ -56,8 +58,8 @@ public class LdapAttrPlugin extends AbstractLdapPlugin {
     }
 
     @Override
-    public void load(Map<String, Object> parameters) {
-        super.load(parameters);
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
+        super.load(env, parameters);
         String filePath;
 
         if ((ldapAttr = (String) parameters.get(ATTR_PARAM)) == null) {

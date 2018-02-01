@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -39,6 +40,7 @@ import static org.junit.Assert.*;
  */
 public class BazaarHistoryParserTest {
 
+    private static RuntimeEnvironment env;
     private BazaarHistoryParser instance;
     
     public BazaarHistoryParserTest() {
@@ -46,6 +48,7 @@ public class BazaarHistoryParserTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @AfterClass
@@ -54,13 +57,13 @@ public class BazaarHistoryParserTest {
 
     @Before
     public void setUp() {
-        if (RuntimeEnvironment.getInstance().getSourceRootPath() == null) {
-            RuntimeEnvironment.getInstance().setSourceRoot("");
+        if (env.getSourceRootPath() == null) {
+            env.setSourceRoot("");
         }
         BazaarRepository bzrRepo = new BazaarRepository();
         // BazaarHistoryParser needs to have a valid directory name.
         bzrRepo.setDirectoryNameRelative("bzrRepo");
-        instance = new BazaarHistoryParser(bzrRepo);
+        instance = new BazaarHistoryParser(bzrRepo, env);
     }
 
     @After

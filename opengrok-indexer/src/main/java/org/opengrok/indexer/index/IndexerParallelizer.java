@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.index;
@@ -26,12 +26,11 @@ package org.opengrok.indexer.index;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.logging.Logger;
 import org.opengrok.indexer.analysis.Ctags;
 import org.opengrok.indexer.analysis.CtagsValidator;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.BoundedBlockingObjectPool;
+import org.opengrok.indexer.util.LazilyInstantiate;
 import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
 
@@ -46,12 +45,17 @@ import org.opengrok.indexer.util.ObjectPool;
  */
 public class IndexerParallelizer implements AutoCloseable {
 
-    private static final Logger LOGGER =
-        LoggerFactory.getLogger(IndexerParallelizer.class);
+    private final RuntimeEnvironment env;
+    private final int indexingParallelism;
 
-    private final ExecutorService fixedExecutor;
-    private final ForkJoinPool forkJoinPool;
-    private final ObjectPool<Ctags> ctagsPool;
+    private LazilyInstantiate<ForkJoinPool> lzForkJoinPool;
+    private ForkJoinPool forkJoinPool;
+
+    private LazilyInstantiate<ObjectPool<Ctags>> lzCtagsPool;
+    private ObjectPool<Ctags> ctagsPool;
+
+    private LazilyInstantiate<ExecutorService> lzFixedExecutor;
+    private ExecutorService fixedExecutor;
 
     /**
      * Initializes a new instance using settings from the specified environment
@@ -60,47 +64,109 @@ public class IndexerParallelizer implements AutoCloseable {
      */
     public IndexerParallelizer(RuntimeEnvironment env) {
 
-        int indexingParallelism = env.getIndexingParallelism();
+        this.env = env;
+        /**
+         * Save the following value explicitly because it must not change for
+         * an IndexerParallelizer instance.
+         */
+        this.indexingParallelism = env.getIndexingParallelism();
 
-        // The order of the following is important.
-        this.fixedExecutor = Executors.newFixedThreadPool(indexingParallelism);
-        this.forkJoinPool = new ForkJoinPool(indexingParallelism);
-        this.ctagsPool = new BoundedBlockingObjectPool<>(indexingParallelism,
-            new CtagsValidator(), new CtagsObjectFactory(env));
+        createLazyForkJoinPool();
+        createLazyCtagsPool();
+        createLazyFixedExecutor();
     }
 
     /**
      * @return the fixedExecutor
      */
     public ExecutorService getFixedExecutor() {
-        return fixedExecutor;
+        ExecutorService result = lzFixedExecutor.get();
+        fixedExecutor = result;
+        return result;
     }
 
     /**
      * @return the forkJoinPool
      */
     public ForkJoinPool getForkJoinPool() {
-        return forkJoinPool;
+        ForkJoinPool result = lzForkJoinPool.get();
+        forkJoinPool = result;
+        return result;
     }
 
     /**
      * @return the ctagsPool
      */
     public ObjectPool<Ctags> getCtagsPool() {
-        return ctagsPool;
+        ObjectPool<Ctags> result = lzCtagsPool.get();
+        ctagsPool = result;
+        return result;
     }
 
+    /**
+     * Calls {@link #bounce()}, which prepares for -- but does not start -- new
+     * pools.
+     * @throws Exception
+     */
     @Override
-    public void close() {
-        if (ctagsPool != null) {
-            ctagsPool.shutdown();
+    public void close() throws Exception {
+        bounce();
+    }
+
+    /**
+     * Shuts down the instance's {@link ForkJoinPool}, {@link ObjectPool}, or
+     * {@link ExecutorService} if {@link #getForkJoinPool()},
+     * {@link #getCtagsPool()}, or {@link #getFixedExecutor()} (resp.) were
+     * called; and prepares them to be called again to return new instances.
+     * <p>
+     * N.b. this method is not thread-safe w.r.t. {@link #getForkJoinPool()},
+     * {@link #getCtagsPool()}, or {@link #getFixedExecutor()}, so care must be
+     * taken that any scheduled work has been completed and that no other thread
+     * might call those methods simultaneously with this method.
+     * <p>
+     * The JVM will await any instantiated thread pools until they are
+     * explicitly shut down. The principle intention is to facilitate OpenGrok
+     * test classes that run serially. The non-test process using
+     * {@link IndexerParallelizer} -- i.e. {@code opengrok.jar} indexer -- shuts
+     * down after its run finishes.
+     */
+    public void bounce() {
+        ForkJoinPool formerForkJoinPool = forkJoinPool;
+        if (formerForkJoinPool != null) {
+            forkJoinPool = null;
+            createLazyForkJoinPool();
+            formerForkJoinPool.shutdown();
         }
-        if (forkJoinPool != null) {
-            forkJoinPool.shutdown();
+
+        ExecutorService formerFixedExecutor = fixedExecutor;
+        if (formerFixedExecutor != null) {
+            fixedExecutor = null;
+            createLazyFixedExecutor();
+            formerFixedExecutor.shutdown();
         }
-        if (fixedExecutor != null) {
-            fixedExecutor.shutdown();
+
+        ObjectPool<Ctags> formerCtagsPool = ctagsPool;
+        if (formerCtagsPool != null) {
+            ctagsPool = null;
+            createLazyCtagsPool();
+            formerCtagsPool.shutdown();
         }
+    }
+
+    private void createLazyForkJoinPool() {
+        lzForkJoinPool = LazilyInstantiate.using(() ->
+                new ForkJoinPool(indexingParallelism));
+    }
+
+    private void createLazyCtagsPool() {
+        lzCtagsPool = LazilyInstantiate.using(() ->
+                new BoundedBlockingObjectPool<>(indexingParallelism,
+                        new CtagsValidator(), new CtagsObjectFactory(env)));
+    }
+
+    private void createLazyFixedExecutor() {
+        lzFixedExecutor = LazilyInstantiate.using(() ->
+                Executors.newFixedThreadPool(indexingParallelism));
     }
 
     /**
@@ -111,19 +177,10 @@ public class IndexerParallelizer implements AutoCloseable {
      * setting if a value was not available from {@link RuntimeEnvironment}.
      */
     private static Ctags getNewCtags(RuntimeEnvironment env) {
-        Ctags ctags = new Ctags();
-
-        String ctagsBinary = env.getCtags();
-        if (ctagsBinary == null) {
-            LOGGER.severe("Unable to run ctags!" +
-                " searching definitions will not work!");
-        } else {
-            ctags.setBinary(ctagsBinary);
-
-            String filename = env.getCTagsExtraOptionsFile();
-            if (filename != null) {
-                ctags.setCTagsExtraOptionsFile(filename);
-            }
+        Ctags ctags = new Ctags(env);
+        String filename = env.getCTagsExtraOptionsFile();
+        if (filename != null) {
+            ctags.setCTagsExtraOptionsFile(filename);
         }
         return ctags;
     }

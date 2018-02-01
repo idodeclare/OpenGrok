@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package opengrok.auth.plugin;
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opengrok.indexer.authorization.IAuthorizationPlugin;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * This class is a full example of a working plugin from HTTP Basic tutorial on
@@ -44,6 +46,8 @@ public class HttpBasicAuthorizationPlugin implements IAuthorizationPlugin {
 
     private static final Map<String, Set<String>> USER_PROJECTS = new TreeMap<>();
     private static final Map<String, Set<String>> USER_GROUPS = new TreeMap<>();
+
+    private RuntimeEnvironment env;
 
     static {
         // all have access to "test-project-11" and some to other "test-project-5" or "test-project-8"
@@ -63,18 +67,16 @@ public class HttpBasicAuthorizationPlugin implements IAuthorizationPlugin {
     }
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
+        this.env = env;
     }
 
     @Override
     public void unload() {
+        this.env = null;
     }
 
     private void init(HttpServletRequest request) {
-        Set<String> projects = new TreeSet<>();
-        Set<String> groups = new TreeSet<>();
-        Group g;
-
         for (String group : Arrays.asList(new String[]{"admins", "users", "plugins", "ghost"})) {
             if (!request.isUserInRole(group)) {
                 continue;
@@ -100,7 +102,7 @@ public class HttpBasicAuthorizationPlugin implements IAuthorizationPlugin {
      */
     private void discoverGroup(String group, HttpServletRequest request) {
         Group g;
-        if ((g = Group.getByName(group)) != null) {
+        if (env != null && (g = env.getGroupByName(group)) != null) {
             USER_GROUPS.get(request.getUserPrincipal().getName()).addAll(g.getRelatedGroups().stream().map((t) -> {
                 return t.getName();
             }).collect(Collectors.toSet()));

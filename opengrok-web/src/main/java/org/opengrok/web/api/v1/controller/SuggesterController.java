@@ -82,7 +82,8 @@ public final class SuggesterController {
 
     private static final Logger logger = LoggerFactory.getLogger(SuggesterController.class);
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Inject
     private SuggesterService suggester;
@@ -99,7 +100,8 @@ public final class SuggesterController {
     public Result getSuggestions(@Valid @BeanParam final SuggesterQueryData data) throws ParseException {
         Instant start = Instant.now();
 
-        SuggesterData suggesterData = SuggesterQueryDataParser.parse(data);
+        SuggesterQueryDataParser parser = new SuggesterQueryDataParser(env);
+        SuggesterData suggesterData = parser.parse(data);
         if (suggesterData.getSuggesterQuery() == null) {
             throw new ParseException("Could not determine suggester query");
         }
@@ -211,7 +213,7 @@ public final class SuggesterController {
     }
 
     private Query getQuery(final String field, final String value) throws ParseException {
-        QueryBuilder builder = new QueryBuilder();
+        QueryBuilder builder = new QueryBuilder(env);
 
         switch (field) {
             case "q":

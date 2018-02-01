@@ -50,15 +50,24 @@ import org.opengrok.indexer.web.Util;
 public class DirectoryListing {
 
     protected final static String DIRECTORY_SIZE_PLACEHOLDER = "-";
+    private final RuntimeEnvironment env;
     private final EftarFileReader desc;
     private final long now;
 
-    public DirectoryListing() {
+    public DirectoryListing(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
         desc = null;
         now = System.currentTimeMillis();
     }
 
-    public DirectoryListing(EftarFileReader desc) {
+    public DirectoryListing(RuntimeEnvironment env, EftarFileReader desc) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
         this.desc = desc;
         now = System.currentTimeMillis();
     }
@@ -98,10 +107,11 @@ public class DirectoryListing {
     /**
      * Traverse directory until subdirectory with more than one item
      * (other than directory) or end of path is reached.
+     * @param env a defined instance
      * @param dir directory to traverse
      * @return string representing path with empty directories or the name of the directory
      */
-    private static String getSimplifiedPath(File dir) {
+    private static String getSimplifiedPath(RuntimeEnvironment env, File dir) {
         String[] files = dir.list();
 
         // Permissions can prevent getting list of items in the directory.
@@ -111,10 +121,10 @@ public class DirectoryListing {
 
         if (files.length == 1) {
             File entry = new File(dir, files[0]);
-            IgnoredNames ignoredNames = RuntimeEnvironment.getInstance().getIgnoredNames();
+            IgnoredNames ignoredNames = env.getIgnoredNames();
 
             if (!ignoredNames.ignore(entry) && entry.isDirectory()) {
-                return (dir.getName() + "/" + getSimplifiedPath(entry));
+                return (dir.getName() + "/" + getSimplifiedPath(env, entry));
             }
         }
 
@@ -188,7 +198,6 @@ public class DirectoryListing {
             out.write("<th><samp>Description</samp></th>\n");
         }
         out.write("</tr>\n</thead>\n<tbody>\n");
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         IgnoredNames ignoredNames = env.getIgnoredNames();
 
         Format dateFormatter = new SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault());
@@ -201,8 +210,8 @@ public class DirectoryListing {
             out.write("</tr>\n");
         }
 
-        Map<String, Date> modTimes =
-                HistoryGuru.getInstance().getLastModifiedTimes(dir);
+        Map<String, Date> modTimes = env.getHistoryGuru().getLastModifiedTimes(
+                dir);
 
         if (entries != null) {
             for (DirectoryEntry entry : entries) {
@@ -223,7 +232,7 @@ public class DirectoryListing {
                 out.write("\"/>");
                 out.write("</td><td><a href=\"");
                 if (isDir) {
-                    String longpath = getSimplifiedPath(child);
+                    String longpath = getSimplifiedPath(env, child);
                     out.write(Util.URIEncodePath(longpath));
                     out.write("/\"><b>");
                     int idx;
@@ -243,7 +252,7 @@ public class DirectoryListing {
                     out.write("</a>");
                 }
                 out.write("</td>");
-                Util.writeHAD(out, contextPath, path + filename, isDir);
+                Util.writeHAD(out, env, contextPath, path + filename, isDir);
                 printDateSize(out, child, modTimes.get(filename), dateFormatter);
                 printNumlines(out, entry);
                 printLoc(out, entry);

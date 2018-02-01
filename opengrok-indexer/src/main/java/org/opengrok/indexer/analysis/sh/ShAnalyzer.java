@@ -64,6 +64,6 @@ public class ShAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new ShXref(reader));
+        return new JFlexXref(new ShXref(reader), getFactory().getEnv());
     }
 }

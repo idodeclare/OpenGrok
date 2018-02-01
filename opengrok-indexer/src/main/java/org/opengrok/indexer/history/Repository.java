@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 
@@ -354,7 +353,6 @@ public abstract class Repository extends RepositoryInfo {
         }
 
         // We need to refresh list of tags for incremental reindex.
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (env.isTagsEnabled() && this.hasFileBasedTags()) {
             this.buildTagList(new File(this.getDirectoryName()), false);
         }
@@ -459,8 +457,8 @@ public abstract class Repository extends RepositoryInfo {
         return new RepositoryDateFormat();
     }
 
-    static Boolean checkCmd(String... args) {
-        Executor exec = new Executor(args);
+    Boolean checkCmd(String... args) {
+        Executor exec = new Executor(args, env.getCommandTimeout());
         return exec.exec(false) == 0;
     }
 
@@ -477,8 +475,6 @@ public abstract class Repository extends RepositoryInfo {
      * @see #RepoCommand
      */
     protected String ensureCommand(String propertyKey, String fallbackCommand) {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        
         if (RepoCommand != null) {
             return RepoCommand;
         }

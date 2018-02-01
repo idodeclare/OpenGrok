@@ -39,13 +39,27 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 public class StatisticsUtils {
+
+    private final RuntimeEnvironment env;
+
+    /**
+     * Initializes an instance to use the specified, required environment.
+     * @param env a defined instance
+     */
+    public StatisticsUtils(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
+
     /**
      * Dump statistics in JSON format into the file specified in configuration.
      *
      * @throws IOException
      */
-    public static void saveStatistics() throws IOException {
-        String path = RuntimeEnvironment.getInstance().getStatisticsFilePath();
+    public void saveStatistics() throws IOException {
+        String path = env.getStatisticsFilePath();
         if (path == null) {
             throw new FileNotFoundException("Statistics file is not set (null)");
         }
@@ -58,7 +72,7 @@ public class StatisticsUtils {
      * @param out the output file
      * @throws IOException
      */
-    public static void saveStatistics(File out) throws IOException {
+    public void saveStatistics(File out) throws IOException {
         if (out == null) {
             throw new FileNotFoundException("Statistics file is not set (null)");
         }
@@ -73,8 +87,8 @@ public class StatisticsUtils {
      * @param out the output stream
      * @throws IOException
      */
-    public static void saveStatistics(OutputStream out) throws IOException {
-        out.write(Util.statisticToJson(RuntimeEnvironment.getInstance().getStatistics()).toJSONString().getBytes());
+    public void saveStatistics(OutputStream out) throws IOException {
+        out.write(Util.statisticToJson(env.getStatistics()).toJSONString().getBytes());
     }
 
     /**
@@ -83,8 +97,8 @@ public class StatisticsUtils {
      * @throws IOException
      * @throws ParseException
      */
-    public static void loadStatistics() throws IOException, ParseException {
-        String path = RuntimeEnvironment.getInstance().getStatisticsFilePath();
+    public void loadStatistics() throws IOException, ParseException {
+        String path = env.getStatisticsFilePath();
         if (path == null) {
             throw new FileNotFoundException("Statistics file is not set (null)");
         }
@@ -98,7 +112,7 @@ public class StatisticsUtils {
      * @throws IOException
      * @throws ParseException
      */
-    public static void loadStatistics(File in) throws IOException, ParseException {
+    public void loadStatistics(File in) throws IOException, ParseException {
         if (in == null) {
             throw new FileNotFoundException("Statistics file is not set (null)");
         }
@@ -114,14 +128,10 @@ public class StatisticsUtils {
      * @throws IOException
      * @throws ParseException
      */
-    public static void loadStatistics(InputStream in) throws IOException, ParseException {
+    public void loadStatistics(InputStream in) throws IOException, ParseException {
         try (InputStreamReader iReader = new InputStreamReader(in)) {
             JSONParser jsonParser = new JSONParser();
-            RuntimeEnvironment.getInstance().setStatistics(Util.jsonToStatistics((JSONObject) jsonParser.parse(iReader)));
+            env.setStatistics(Util.jsonToStatistics((JSONObject) jsonParser.parse(iReader)));
         }
-    }
-
-    private StatisticsUtils() {
-        // private to ensure static
     }
 }

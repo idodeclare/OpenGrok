@@ -43,7 +43,8 @@ import java.util.Set;
 @Path("/messages")
 public class MessagesController {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

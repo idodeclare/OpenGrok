@@ -43,9 +43,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class LdapAttrPluginTest {
 
+    private static RuntimeEnvironment env;
     private HttpServletRequest dummyRequest;
     private LdapAttrPlugin plugin;
 
@@ -53,6 +55,7 @@ public class LdapAttrPluginTest {
 
     @BeforeClass
     public static void beforeClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
         whitelistFile = Files.createTempFile("opengrok-auth-", "-check.tmp").toFile();
         try (Writer w = new OutputStreamWriter(new FileOutputStream(whitelistFile))) {
             w.append("james@bond.com\n");
@@ -75,7 +78,7 @@ public class LdapAttrPluginTest {
         parameters.put(LdapAttrPlugin.FILE_PARAM, whitelistFile.getAbsolutePath());
         parameters.put(LdapAttrPlugin.ATTR_PARAM, "mail");
 
-        plugin.load(parameters);
+        plugin.load(env, parameters);
     }
 
     private void prepareRequest(String username, String mail, String... ous) {

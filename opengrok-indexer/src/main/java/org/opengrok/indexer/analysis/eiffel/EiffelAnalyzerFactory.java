@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.eiffel;
@@ -26,6 +26,7 @@ package org.opengrok.indexer.analysis.eiffel;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * Represents a factory to create {@link EiffelAnalyzer} instances.
@@ -40,9 +41,8 @@ public class EiffelAnalyzerFactory extends FileAnalyzerFactory {
      * Initializes a factory instance to associate a file extension ".e" with
      * {@link EiffelAnalyzer}.
      */
-    public EiffelAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN,
-            NAME);
+    public EiffelAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, NAME);
     }
 
     /**

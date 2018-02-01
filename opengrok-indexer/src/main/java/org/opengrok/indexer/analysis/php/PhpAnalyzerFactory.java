@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.php;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis.php;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class PhpAnalyzerFactory extends FileAnalyzerFactory {
 
@@ -46,10 +47,15 @@ public class PhpAnalyzerFactory extends FileAnalyzerFactory {
         "#!php"
     };
 
-    public PhpAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public PhpAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link PhpAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new PhpAnalyzer(this);

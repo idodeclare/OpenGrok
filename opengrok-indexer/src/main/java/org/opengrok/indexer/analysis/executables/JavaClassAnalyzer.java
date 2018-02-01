@@ -60,7 +60,6 @@ import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.OGKTextField;
 import org.opengrok.indexer.analysis.StreamSource;
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
@@ -75,7 +74,7 @@ public class JavaClassAnalyzer extends FileAnalyzer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JavaClassAnalyzer.class);
 
-    private final String urlPrefix = RuntimeEnvironment.getInstance().getUrlPrefix();
+    private final String urlPrefix;
 
     /**
      * Creates a new instance of JavaClassAnalyzer
@@ -84,6 +83,8 @@ public class JavaClassAnalyzer extends FileAnalyzer {
      */
     protected JavaClassAnalyzer(FileAnalyzerFactory factory) {
         super(factory);
+
+        urlPrefix = factory.getEnv().getUrlPrefix();
     }
 
     /**

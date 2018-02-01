@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.php;
 
@@ -35,9 +35,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.JFlexTokenizer;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * Tests the {@link PhpSymbolTokenizer} class.
@@ -46,10 +49,18 @@ import org.opengrok.indexer.analysis.JFlexTokenizer;
  */
 public class PhpSymbolTokenizerTest {    
 
-    private final FileAnalyzer analyzer;
+    private static RuntimeEnvironment env;
 
-    public PhpSymbolTokenizerTest() {
-        PhpAnalyzerFactory analFact = new PhpAnalyzerFactory();
+    private FileAnalyzer analyzer;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
+    @Before
+    public void setUp() {
+        PhpAnalyzerFactory analFact = new PhpAnalyzerFactory(env);
         this.analyzer = analFact.getAnalyzer();
     }
 

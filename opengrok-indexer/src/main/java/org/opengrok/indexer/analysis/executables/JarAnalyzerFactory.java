@@ -24,10 +24,13 @@
 
 package org.opengrok.indexer.analysis.executables;
 
+import java.util.Collections;
+import java.util.List;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.archive.ZipMatcherBase;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public final class JarAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -37,7 +40,9 @@ public final class JarAnalyzerFactory extends FileAnalyzerFactory {
         "JAR", "WAR", "EAR"
     };
 
-    private static final Matcher MATCHER = new ZipMatcherBase() {
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new ZipMatcherBase() {
 
         @Override
         public String description() {
@@ -46,7 +51,7 @@ public final class JarAnalyzerFactory extends FileAnalyzerFactory {
 
         @Override
         public FileAnalyzerFactory forFactory() {
-            return JarAnalyzerFactory.DEFAULT_INSTANCE;
+            return self;
         }
 
         @Override
@@ -60,13 +65,22 @@ public final class JarAnalyzerFactory extends FileAnalyzerFactory {
         }
     };
 
-    public static final JarAnalyzerFactory DEFAULT_INSTANCE =
-            new JarAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    private JarAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, MATCHER, null, Genre.XREFABLE, name);
+    public JarAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, null, Genre.XREFABLE, name);
     }
 
+    @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link JarAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new JarAnalyzer(this);

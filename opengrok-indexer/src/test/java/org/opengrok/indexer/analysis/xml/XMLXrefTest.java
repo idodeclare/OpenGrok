@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.xml;
@@ -37,8 +37,10 @@ import org.opengrok.indexer.analysis.WriteXrefArgs;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opengrok.indexer.analysis.Xrefer;
 import org.opengrok.indexer.analysis.plain.XMLAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import static org.opengrok.indexer.util.CustomAssertions.assertLinesEqual;
 import static org.opengrok.indexer.util.StreamUtils.copyStream;
 
@@ -46,6 +48,13 @@ import static org.opengrok.indexer.util.StreamUtils.copyStream;
  * Tests the {@code XMLXref} class.
  */
 public class XMLXrefTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void sampleTest() throws IOException {
@@ -93,7 +102,7 @@ public class XMLXrefTest {
         oss.print(getHtmlBegin());
 
         Writer sw = new StringWriter();
-        XMLAnalyzerFactory fac = new XMLAnalyzerFactory();
+        XMLAnalyzerFactory fac = new XMLAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.setScopesEnabled(true);
         analyzer.setFoldingEnabled(true);

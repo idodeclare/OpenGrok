@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 
@@ -150,7 +149,8 @@ public class CVSRepository extends RCSRepository {
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         cmd.add(RepoCommand);
         cmd.add("update");
-        Executor executor = new Executor(cmd, directory);
+        Executor executor = new Executor(cmd, directory,
+                env.getCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }
@@ -209,7 +209,8 @@ public class CVSRepository extends RCSRepository {
             cmd.add(filename);
         }
 
-        return new Executor(cmd, new File(getDirectoryName()));
+        return new Executor(cmd, new File(getDirectoryName()),
+                env.getCommandTimeout());
     }
 
     @Override
@@ -226,7 +227,7 @@ public class CVSRepository extends RCSRepository {
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
             String argv[] = {RepoCommand, "up", "-p", "-r", revision, basename};
             Executor executor = new Executor(Arrays.asList(argv), new File(parent),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                    env.getInteractiveCommandTimeout());
             executor.exec();
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -284,7 +285,7 @@ public class CVSRepository extends RCSRepository {
         cmd.add(file.getName());
 
         Executor exec = new Executor(cmd, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         CVSAnnotationParser parser = new CVSAnnotationParser(file.getName());
         int status = exec.exec(true, parser);
 

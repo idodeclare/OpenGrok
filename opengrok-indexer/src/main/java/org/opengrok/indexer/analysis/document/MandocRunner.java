@@ -46,11 +46,19 @@ public class MandocRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(
         MandocRunner.class);
 
+    private final RuntimeEnvironment env;
     private Process mandoc;
     private OutputStreamWriter mandocIn;
     private BufferedReader mandocOut;
     private Thread errThread;
     private String osOverride = "GENERIC SYSTEM";
+
+    public MandocRunner(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
 
     /**
      * Gets the value used for mandoc's setting to "Override the default
@@ -78,7 +86,6 @@ public class MandocRunner {
 
         destroy();
 
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String binary = env.getMandoc();
         if (binary == null) {
             throw new MandocException("no mandoc binary is defined");

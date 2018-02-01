@@ -106,7 +106,7 @@ public class SuggesterControllerTest extends JerseyTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
 
         repository.create(SuggesterControllerTest.class.getResourceAsStream("/org/opengrok/indexer/index/source.zip"));
 
@@ -115,7 +115,7 @@ public class SuggesterControllerTest extends JerseyTest {
         Indexer.getInstance().prepareIndexer(env, true, true,
                 Collections.singleton("__all__"),
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         env.getSuggesterConfig().setRebuildCronConfig(null);
     }

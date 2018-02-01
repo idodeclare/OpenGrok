@@ -23,7 +23,6 @@
 package org.opengrok.web.api.v1.controller;
 
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import org.opengrok.indexer.util.ClassUtil;
 import org.opengrok.web.api.v1.suggester.provider.service.SuggesterService;
 
 import javax.inject.Inject;
@@ -43,7 +42,8 @@ import java.io.IOException;
 @Path("/configuration")
 public class ConfigurationController {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Inject
     private SuggesterService suggesterService;
@@ -89,7 +89,7 @@ public class ConfigurationController {
     @POST
     @Path("/authorization/reload")
     public void reloadAuthorization() {
-        env.getAuthorizationFramework().reload();
+        env.getAuthorizationFramework().reload(env);
     }
 
 }

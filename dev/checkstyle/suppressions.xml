@@ -10,11 +10,11 @@
         |Summary\.java|OGKUnifiedHighlighter\.java|ResponseHeaderFilter\.java|BoundedBlockingObjectPool\.java|
         |ObjectPool\.java|ObjectValidator\.java|ObjectFactory\.java|AbstractObjectPool\.java|
         |BlockingObjectPool\.java|OGKTextVecField\.java|OGKTextField\.java|
-        |TextTrieMap\.java" />
+        |TextTrieMap\.java|LazilyInstantiate\.java" />
 
     <suppress checks="ParameterNumber" files="CtagsReader\.java|Definitions\.java|PerlLexHelper\.java|
         |JFlexXrefUtils\.java|RubyLexHelper\.java|FileAnalyzerFactory\.java|SearchController\.java|
-        |Context\.java|HistoryContext\.java|Indexer\.java" />
+        |Context\.java|HistoryContext\.java|Indexer\.java|Util\.java" />
 
     <suppress checks="MethodLength" files="Indexer\.java" />
 </suppressions>

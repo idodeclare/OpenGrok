@@ -35,11 +35,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.apache.lucene.document.Document;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.plain.PlainAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class TextAnalyzerTest {
 
+    private static RuntimeEnvironment env;
     private String encoding;
     private String contents;
 
@@ -50,6 +53,11 @@ public class TextAnalyzerTest {
                 return new ByteArrayInputStream(bytes);
             }
         };
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @Test
@@ -108,7 +116,7 @@ public class TextAnalyzerTest {
 
         public TestableTextAnalyzer() {
             // Using PlainAnalyzerFactory.DEFAULT_INSTANCE is OK for this test.
-            super(PlainAnalyzerFactory.DEFAULT_INSTANCE);
+            super(new PlainAnalyzerFactory(env));
         }
 
         @Override

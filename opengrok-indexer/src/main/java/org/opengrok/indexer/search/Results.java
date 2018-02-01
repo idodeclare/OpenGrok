@@ -69,8 +69,13 @@ public final class Results {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Results.class);
 
-    private Results() {
-        // Util class, should not be constructed
+    private final RuntimeEnvironment env;
+
+    public Results(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
     }
 
     /**
@@ -161,7 +166,7 @@ public final class Results {
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    public static void prettyPrint(Writer out, SearchHelper sh, int start,
+    public void prettyPrint(Writer out, SearchHelper sh, int start,
             long end)
             throws HistoryException, IOException, ClassNotFoundException {
         Project p;
@@ -170,8 +175,6 @@ public final class Results {
         String morePrefix = sh.contextPath + Prefix.MORE_P;
         String xrefPrefixE = ctxE + Prefix.XREF_P;
         File xrefDataDir = new File(sh.dataRoot, Prefix.XREF_P.toString());
-
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
         boolean evenRow = true;
         out.write("<tbody class=\"search-result\">");
@@ -190,8 +193,9 @@ public final class Results {
                 out.write("</i>");
             }
             JSONArray messages;
-            if ((p = Project.getProject(parent)) != null
-                    && (messages = Util.messagesToJson(p, MESSAGES_MAIN_PAGE_TAG)).size() > 0) {
+            if ((p = env.getProject(parent)) != null
+                    && (messages = Util.messagesToJson(env, p,
+                    MESSAGES_MAIN_PAGE_TAG)).size() > 0) {
                 out.write(" <a href=\"" + xrefPrefix + "/" + p.getName() + "\">");
                 out.write("<span class=\"important-note important-note-rounded\" data-messages='" + messages + "'>!</span>");
                 out.write("</a>");
@@ -212,7 +216,7 @@ public final class Results {
                     out.write("<tr>");
                 }
                 evenRow = !evenRow;
-                Util.writeHAD(out, sh.contextPath, rpathE, false);
+                Util.writeHAD(out, env, sh.contextPath, rpathE, false);
                 out.write("<td class=\"f\"><a href=\"");
                 out.write(xrefPrefixE);
                 out.write(rpathE);
@@ -295,7 +299,7 @@ public final class Results {
             try (Reader r = IOUtils.createBOMStrippedReader(new FileInputStream(
                     new File(fargs.shelp.sourceRoot, rpath)),
                     StandardCharsets.UTF_8.name())) {
-                fargs.shelp.sourceContext.getContext(r, fargs.out,
+                fargs.shelp.sourceContext.getContext(fargs.env, r, fargs.out,
                     fargs.xrefPrefix, fargs.morePrefix, rpath, tags, true,
                     isDefSearch, null, scopes);
             }

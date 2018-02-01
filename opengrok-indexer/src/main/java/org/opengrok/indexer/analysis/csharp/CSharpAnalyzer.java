@@ -59,7 +59,7 @@ public class CSharpAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new CSharpXref(reader));
+        return new JFlexXref(new CSharpXref(reader), getFactory().getEnv());
     }
     
     @Override

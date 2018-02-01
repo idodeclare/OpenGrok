@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.executables;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.executables;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class ELFAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,8 +37,8 @@ public class ELFAnalyzerFactory extends FileAnalyzerFactory {
         "\177ELF"
     };
 
-    public ELFAnalyzerFactory() {
-        super(null, null, null, MAGICS, null, null, Genre.XREFABLE, name);
+    public ELFAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, null, MAGICS, null, Genre.XREFABLE, name);
     }
 
     @Override

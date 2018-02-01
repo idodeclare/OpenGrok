@@ -34,8 +34,11 @@ public class CtagsUtil {
 
     public static final String SYSTEM_CTAGS_PROPERTY = "org.opengrok.indexer.analysis.Ctags";
 
-    public static boolean validate(String ctagsBinary) {
-        Executor executor = new Executor(new String[]{ctagsBinary, "--version"});
+    private static final int CTAGS_TIMEOUT = 15;
+
+    public boolean validate(String ctagsBinary) {
+        Executor executor = new Executor(new String[]{ctagsBinary, "--version"},
+                CTAGS_TIMEOUT);
         executor.exec(false);
         String output = executor.getOutputString();
         boolean isUnivCtags = output != null && output.contains("Universal Ctags");
@@ -53,7 +56,4 @@ public class CtagsUtil {
 
         return true;
     }
-
-    private CtagsUtil() {
-        }
 }

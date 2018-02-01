@@ -76,7 +76,7 @@ public class SearchAndContextFormatterTest {
         env = RuntimeEnvironment.getInstance();
         env.setAllNonWhitespace(true);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream(
             "repositories.zip"));
 
@@ -92,12 +92,11 @@ public class SearchAndContextFormatterTest {
         Indexer.getInstance().prepareIndexer(env, true, true,
                 new TreeSet<>(Collections.singletonList("/c")),
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         configFile = File.createTempFile("configuration", ".xml");
         env.writeConfiguration(configFile);
-        RuntimeEnvironment.getInstance().readConfiguration(new File(
-            configFile.getAbsolutePath()));
+        env.readConfiguration(new File(configFile.getAbsolutePath()));
     }
 
     @AfterClass
@@ -117,7 +116,7 @@ public class SearchAndContextFormatterTest {
 
     @Test
     public void testSearch() throws IOException, InvalidTokenOffsetsException {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         instance.setFreetext("embedded");
         instance.setFile("main.c");
         int noHits = instance.search();
@@ -141,7 +140,7 @@ public class SearchAndContextFormatterTest {
         SearchEngine instance;
         int noHits;
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("<example.cpp>");
         instance.setFile("main.c");
         noHits = instance.search();
@@ -166,8 +165,7 @@ public class SearchAndContextFormatterTest {
          * The following `anz' should go unused, but UnifiedHighlighter demands
          * an analyzer "even if in some circumstances it isn't used."
          */
-        PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
-        FileAnalyzer anz = fac.getAnalyzer();
+        FileAnalyzer anz = env.getAnalyzerGuru().getPlainAnalyzer();
 
         ContextFormatter formatter = new ContextFormatter(args);
         OGKUnifiedHighlighter uhi = new OGKUnifiedHighlighter(env,

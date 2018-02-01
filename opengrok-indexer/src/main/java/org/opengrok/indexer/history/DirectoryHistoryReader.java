@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -89,19 +90,24 @@ public class DirectoryHistoryReader {
      * searching the index to get recently changed files under in the directory
      * tree under @code path and storing their histories in giant @code hash.
      *
+     * @param env a defined instance
      * @param path directory to generate history for
      * @throws IOException when index cannot be accessed
      */
-    public DirectoryHistoryReader(String path) throws IOException {
+    public DirectoryHistoryReader(RuntimeEnvironment env, String path)
+            throws IOException {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
         //TODO can we introduce paging here ???  this class is used just for rss.jsp !
-        int hitsPerPage = RuntimeEnvironment.getInstance().getHitsPerPage();
-        int cachePages = RuntimeEnvironment.getInstance().getCachePages();
+        int hitsPerPage = env.getHitsPerPage();
+        int cachePages = env.getCachePages();
         IndexReader ireader = null;
         IndexSearcher searcher;
         try {
             // Prepare for index search.
-            String src_root = RuntimeEnvironment.getInstance().getSourceRootPath();
-            ireader = IndexDatabase.getIndexReader(path);
+            String src_root = env.getSourceRootPath();
+            ireader = IndexDatabase.getIndexReader(env, path);
             if (ireader == null) {
                 throw new IOException("Could not locate index database");
             }
@@ -147,7 +153,7 @@ public class DirectoryHistoryReader {
                         History hist = null;
                         try {
                             File f = new File(src_root + rparent, rbase);
-                            hist = HistoryGuru.getInstance().getHistory(f);
+                            hist = env.getHistoryGuru().getHistory(f);
                         } catch (HistoryException e) {
                             LOGGER.log(Level.WARNING,
                                     "An error occurred while getting history reader", e);

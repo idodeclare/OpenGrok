@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.search.context;
@@ -36,10 +36,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.lucene.search.Query;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.History;
 import org.opengrok.indexer.history.HistoryEntry;
 import org.opengrok.indexer.history.HistoryException;
-import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.Hit;
 import org.opengrok.indexer.search.QueryBuilder;
@@ -54,6 +54,7 @@ public class HistoryContext {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HistoryContext.class);
 
+    private final RuntimeEnvironment env;
     private final LineMatcher[] m;
     HistoryLineTokenizer tokens;
 
@@ -65,7 +66,12 @@ public class HistoryContext {
     private static final Map<String, Boolean> tokenFields =
             Collections.singletonMap(QueryBuilder.HIST, Boolean.TRUE);
 
-    public HistoryContext(Query query) {
+    public HistoryContext(RuntimeEnvironment env, Query query) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+
         QueryMatchers qm = new QueryMatchers();
         m = qm.getMatchers(query, tokenFields);
         if(m != null) {
@@ -83,9 +89,8 @@ public class HistoryContext {
             return false;
         }
         File f = new File(filename);
-        return getHistoryContext(HistoryGuru.getInstance().getHistory(f),
-                                 path, null, hits,null);
-
+        return getHistoryContext(env.getHistoryGuru().getHistory(f), path, null,
+                hits, null);
     }
 
     public boolean getContext(
@@ -114,7 +119,7 @@ public class HistoryContext {
         if (m == null) {
             return false;
         }
-        History hist = HistoryGuru.getInstance().getHistory(src);
+        History hist = env.getHistoryGuru().getHistory(src);
         return getHistoryContext(hist, path, out, null,context);
     }
 

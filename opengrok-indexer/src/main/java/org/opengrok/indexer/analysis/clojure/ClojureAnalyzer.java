@@ -55,6 +55,6 @@ public class ClojureAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new ClojureXref(reader));
+        return new JFlexXref(new ClojureXref(reader), getFactory().getEnv());
     }
 }

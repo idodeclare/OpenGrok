@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -33,6 +34,7 @@ import opengrok.auth.entity.LdapUser;
 import opengrok.auth.plugin.entity.User;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.StringUtils;
 
 /**
@@ -51,8 +53,8 @@ public class LdapUserPlugin extends AbstractLdapPlugin {
     private final Pattern usernameCnPattern = Pattern.compile("(cn=[a-zA-Z0-9_-]+)");
 
     @Override
-    public void load(Map<String, Object> parameters) {
-        super.load(parameters);
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
+        super.load(env, parameters);
 
         if ((objectClass = (String) parameters.get(OBJECT_CLASS)) == null) {
             throw new NullPointerException("Missing param [" + OBJECT_CLASS +

@@ -46,9 +46,9 @@ public class JFlexXref implements Xrefer, SymbolMatchedListener,
     private final static boolean PRE = true;
 
     private final ScanningSymbolMatcher matcher;
+    private final RuntimeEnvironment env;
     private Writer out;
-    private final String urlPrefix =
-        RuntimeEnvironment.getInstance().getUrlPrefix();
+    private final String urlPrefix;
     private Annotation annotation;
     private Project project;
     private Definitions defs;
@@ -97,24 +97,31 @@ public class JFlexXref implements Xrefer, SymbolMatchedListener,
      * Initialize an instance, passing a {@link ScanningSymbolMatcher} which
      * will be owned by the {@link JFlexXref}.
      * @param matcher a defined instance
+     * @param env a defined instance
      */
-    public JFlexXref(ScanningSymbolMatcher matcher) {
+    public JFlexXref(ScanningSymbolMatcher matcher, RuntimeEnvironment env) {
         if (matcher == null) {
             throw new IllegalArgumentException("`matcher' is null");
         }
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+
         this.matcher = matcher;
+        this.env = env;
         matcher.setSymbolMatchedListener(this);
         matcher.setNonSymbolMatchedListener(this);
         // The xrefer will own the matcher, so we won't have to unsubscribe.
 
-        userPageLink = RuntimeEnvironment.getInstance().getUserPage();
+        userPageLink = env.getUserPage();
         if (userPageLink != null && userPageLink.length() == 0) {
             userPageLink = null;
         }
-        userPageSuffix = RuntimeEnvironment.getInstance().getUserPageSuffix();
+        userPageSuffix = env.getUserPageSuffix();
         if (userPageSuffix != null && userPageSuffix.length() == 0) {
             userPageSuffix = null;
         }
+        urlPrefix = env.getUrlPrefix();
     }
 
     public void setReader(Reader input) {
@@ -563,8 +570,8 @@ public class JFlexXref implements Xrefer, SymbolMatchedListener,
             }
         }
 
-        Util.readableLine(line, out, annotation, userPageLink, userPageSuffix,
-                getProjectPostfix(true), skipNl);
+        Util.readableLine(line, out, urlPrefix, annotation, userPageLink,
+                userPageSuffix, getProjectPostfix(true), skipNl);
 
         if (foldingEnabled && scopesEnabled) {
             if (iconId != null) {
@@ -609,6 +616,7 @@ public class JFlexXref implements Xrefer, SymbolMatchedListener,
      * @throws IOException if an error occurs while writing to the stream
      */
     protected void writeEMailAddress(String address) throws IOException {
-        JFlexXrefUtils.writeEMailAddress(out, address);
+        JFlexXrefUtils.writeEMailAddress(out, address,
+                env.isObfuscatingEMailAddresses());
     }
 }

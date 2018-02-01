@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.plain;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.plain;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 public class XMLAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -41,10 +43,15 @@ public class XMLAnalyzerFactory extends FileAnalyzerFactory {
         "<TIT", "<XML", "<xml", "<HEA", "<hea"
     };
 
-    public XMLAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/html", Genre.PLAIN, name);
+    public XMLAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/html", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link XMLAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new XMLAnalyzer(this);

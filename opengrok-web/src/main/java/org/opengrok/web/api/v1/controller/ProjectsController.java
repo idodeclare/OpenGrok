@@ -68,7 +68,8 @@ public class ProjectsController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectsController.class);
 
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Inject
     private SuggesterService suggester;
@@ -128,7 +129,7 @@ public class ProjectsController {
 
     private List<RepositoryInfo> getRepositoriesInDir(final File projDir) {
 
-        HistoryGuru histGuru = HistoryGuru.getInstance();
+        HistoryGuru histGuru = env.getHistoryGuru();
 
         // There is no need to perform the work of invalidateRepositories(),
         // since addRepositories() calls getRepository() for each of
@@ -176,7 +177,7 @@ public class ProjectsController {
                 logger.log(Level.WARNING, "Could not delete {0}", path.toString());
             }
         }
-        HistoryGuru guru = HistoryGuru.getInstance();
+        HistoryGuru guru = env.getHistoryGuru();
         guru.removeCache(repos.stream().
                 map(x -> {
                     try {
@@ -209,7 +210,7 @@ public class ProjectsController {
             List<RepositoryInfo> riList = env.getProjectRepositoriesMap().get(project);
             if (riList != null) {
                 for (RepositoryInfo ri : riList) {
-                    Repository repo = getRepository(ri, false);
+                    Repository repo = getRepository(env, ri,false);
 
                     if (repo != null && repo.getCurrentVersion() != null && repo.getCurrentVersion().length() > 0) {
                         // getRepository() always creates fresh instance
@@ -247,7 +248,7 @@ public class ProjectsController {
             List<RepositoryInfo> riList = env.getProjectRepositoriesMap().get(project);
             if (riList != null) {
                 for (RepositoryInfo ri : riList) {
-                    Repository repo = getRepository(ri, false);
+                    Repository repo = getRepository(env, ri,false);
 
                     // set the property
                     ClassUtil.setFieldValue(repo, field, value);

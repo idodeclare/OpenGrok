@@ -38,7 +38,8 @@ import java.util.Collections;
 @Path("/system")
 public class SystemController {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Inject
     private SuggesterService suggester;

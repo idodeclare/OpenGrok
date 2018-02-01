@@ -35,7 +35,6 @@ import org.opengrok.suggest.Suggester.NamedIndexDir;
 import org.opengrok.suggest.Suggester.NamedIndexReader;
 import org.opengrok.suggest.Suggester.Suggestions;
 import org.opengrok.suggest.query.SuggesterQuery;
-import org.opengrok.indexer.configuration.Configuration;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.configuration.SuggesterConfig;
@@ -82,7 +81,8 @@ public class SuggesterServiceImpl implements SuggesterService {
 
     private ScheduledFuture<?> future;
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 

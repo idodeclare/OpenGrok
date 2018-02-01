@@ -36,7 +36,8 @@ import javax.ws.rs.ext.Provider;
 @Suggester
 public class SuggestionsEnabledFilter implements ContainerRequestFilter {
 
-    private final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private final RuntimeEnvironment env =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
 
     @Override
     public void filter(final ContainerRequestContext context) {

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2009, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -54,10 +54,20 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
 
     private List<HistoryEntry> entries = new ArrayList<HistoryEntry>(); //NOPMD
     private final MonotoneRepository repository;
+    private final RuntimeEnvironment env;
     private final String mydir;
 
-    MonotoneHistoryParser(MonotoneRepository repository) {
+    MonotoneHistoryParser(MonotoneRepository repository,
+            RuntimeEnvironment env) {
+        if (repository == null) {
+            throw new IllegalArgumentException("repository is null");
+        }
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+
         this.repository = repository;
+        this.env = env;
         mydir = repository.getDirectoryName() + File.separator;
     }
 
@@ -98,7 +108,6 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
      */
     @Override
     public void processStream(InputStream input) throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         DateFormat df = repository.getDateFormat();
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
         String s;

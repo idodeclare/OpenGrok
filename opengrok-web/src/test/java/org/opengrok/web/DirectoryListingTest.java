@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web;
 
@@ -34,7 +34,12 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.After;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.RepositoryFactory;
@@ -42,8 +47,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import static org.junit.Assert.*;
 
 /**
  * JUnit test to test that the DirectoryListing produce the expected result
@@ -60,6 +63,7 @@ public class DirectoryListingTest {
      */
     private static final int INVALID_SIZE = -1;
 
+    private static RuntimeEnvironment env;
     private File directory;
     private FileEntry[] entries;
     private SimpleDateFormat dateFormatter;
@@ -166,6 +170,11 @@ public class DirectoryListingTest {
         }
     }
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Before
     public void setUp() throws Exception {
         directory = Files.createTempDirectory("directory").toFile();
@@ -190,7 +199,6 @@ public class DirectoryListingTest {
         hgtags.create();
 
         // Need to populate list of ignored entries for all repository types.
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         RepositoryFactory.initializeIgnoredNames(env);
     }
 
@@ -339,7 +347,7 @@ public class DirectoryListingTest {
         StringWriter out = new StringWriter();
         out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<start>\n");
 
-        DirectoryListing instance = new DirectoryListing();
+        DirectoryListing instance = new DirectoryListing(env);
         instance.listTo("ctx", directory, out, directory.getPath(),
                 Arrays.asList(directory.list()));
 

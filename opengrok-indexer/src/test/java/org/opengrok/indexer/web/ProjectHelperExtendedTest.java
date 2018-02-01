@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.web;
 
@@ -55,10 +56,10 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
          *     /               \               /       \
          * group_0       allowed_group_3  group_0    allowed_group_3
          */
-        Group.getByName("allowed_group_2").addGroup(Group.getByName("group_0"));
-        Group.getByName("allowed_group_2").addGroup(Group.getByName("allowed_group_3"));
-        Group.getByName("group_1").addGroup(Group.getByName("group_0"));
-        Group.getByName("group_1").addGroup(Group.getByName("allowed_group_3"));
+        env.getGroupByName("allowed_group_2").addGroup(env.getGroupByName("group_0"));
+        env.getGroupByName("allowed_group_2").addGroup(env.getGroupByName("allowed_group_3"));
+        env.getGroupByName("group_1").addGroup(env.getGroupByName("group_0"));
+        env.getGroupByName("group_1").addGroup(env.getGroupByName("allowed_group_3"));
 
         setRepositoriesMap(map);
         env.setProjects(projects);
@@ -85,7 +86,7 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
     }
 
     private Group getAllowedGroupWithSubgroups() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("allowed") && !g.getSubgroups().isEmpty()) {
                 return g;
             }
@@ -94,7 +95,7 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
     }
 
     private Group getAllowedGroupWithoutSubgroups() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("allowed") && g.getSubgroups().isEmpty()) {
                 return g;
             }
@@ -103,7 +104,7 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
     }
 
     private Group getUnAllowedGroupWithSubgroups() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("group") && !g.getSubgroups().isEmpty()) {
                 return g;
             }
@@ -112,7 +113,7 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
     }
 
     private Group getUnAllowedGroupWithoutSubgroups() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("group") && g.getSubgroups().isEmpty()) {
                 return g;
             }
@@ -228,12 +229,12 @@ public class ProjectHelperExtendedTest extends ProjectHelperTestBase {
             false,
             false,};
         Group[] groups = new Group[]{
-            Group.getByName("allowed_group_2"),
-            Group.getByName("allowed_group_2"),
-            Group.getByName("allowed_group_2"),
-            Group.getByName("allowed_group_2"),
-            Group.getByName("group_0"),
-            Group.getByName("group_0"),};
+            env.getGroupByName("allowed_group_2"),
+            env.getGroupByName("allowed_group_2"),
+            env.getGroupByName("allowed_group_2"),
+            env.getGroupByName("allowed_group_2"),
+            env.getGroupByName("group_0"),
+            env.getGroupByName("group_0"),};
 
         Assert.assertTrue(groups.length == exp.length && exp.length == cookie.length);
 

@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +57,6 @@ import org.opengrok.indexer.configuration.LuceneLockName;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.HistoryException;
-import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.history.Repository;
 import org.opengrok.indexer.history.RepositoryFactory;
 import org.opengrok.indexer.history.RepositoryInfo;
@@ -114,7 +114,8 @@ public final class Indexer {
     private static final HashSet<String> allowedSymlinks = new HashSet<>();
     private static final Set<String> defaultProjects = new TreeSet<>();
     private static final ArrayList<String> zapCache = new ArrayList<>();
-    private static RuntimeEnvironment env = null;
+    private static final RuntimeEnvironment oneEnv =
+            RuntimeEnvironment.getInstance(); // Irksome static dependency
     private static String webappURI = null;
 
     private static OptionParser optParser = null;
@@ -147,7 +148,7 @@ public final class Indexer {
                 status = 1;
                 System.err.println(helpUsage);
                 if (helpDetailed) {
-                    System.err.println(AnalyzerGuruHelp.getUsage());
+                    System.err.println(AnalyzerGuruHelp.getUsage(oneEnv));
                     System.err.println(
                         ConfigurationHelp.getSamples());
                 }
@@ -159,8 +160,6 @@ public final class Indexer {
             if (awaitProfiler) {
                 pauseToAwaitProfiler();
             }
-
-            env = RuntimeEnvironment.getInstance();
 
             // Complete the configuration of repository types.
             List<Class<? extends Repository>> repositoryClasses
@@ -223,7 +222,7 @@ public final class Indexer {
             }
 
             // Set updated configuration in RuntimeEnvironment.
-            env.setConfiguration(cfg, subFilesList, false);
+            oneEnv.setConfiguration(cfg, subFilesList, false);
 
             // Check version of index(es) versus current Lucene version and exit
             // with return code upon failure.
@@ -234,7 +233,7 @@ public final class Indexer {
                 }
 
                 try {
-                    IndexVersion.check(subFilesList);
+                    IndexVersion.check(oneEnv, subFilesList);
                 } catch (IndexVersionException e) {
                     System.err.printf("Index version check failed: %s\n", e);
                     System.err.printf("You might want to remove " +
@@ -249,11 +248,11 @@ public final class Indexer {
             // Let repository types to add items to ignoredNames.
             // This changes env so is called after the setConfiguration()
             // call above.
-            RepositoryFactory.initializeIgnoredNames(env);
+            RepositoryFactory.initializeIgnoredNames(oneEnv);
 
             if (noindex) {
-                getInstance().sendToConfigHost(env, webappURI);
-                writeConfigToFile(env, configFilename);
+                getInstance().sendToConfigHost(oneEnv, webappURI);
+                writeConfigToFile(oneEnv, configFilename);
                 System.exit(0);
             }
 
@@ -266,19 +265,19 @@ public final class Indexer {
              * For the check we need to have 'env' already set.
              */
             for (String path : subFilesList) {
-                String srcPath = env.getSourceRootPath();
+                String srcPath = oneEnv.getSourceRootPath();
                 if (srcPath == null) {
                     System.err.println("Error getting source root from environment. Exiting.");
                     System.exit(1);
                 }
 
                 path = path.substring(srcPath.length());
-                if (env.hasProjects()) {
+                if (oneEnv.hasProjects()) {
                     // The paths need to correspond to a project.
                     Project project;
-                    if ((project = Project.getProject(path)) != null) {
+                    if ((project = oneEnv.getProject(path)) != null) {
                         subFiles.add(path);
-                        List<RepositoryInfo> repoList = env.getProjectRepositoriesMap().get(project);
+                        List<RepositoryInfo> repoList = oneEnv.getProjectRepositoriesMap().get(project);
                         if (repoList != null) {
                             repositories.addAll(repoList.
                                     stream().map(x -> x.getDirectoryNameRelative()).collect(Collectors.toSet()));
@@ -315,7 +314,7 @@ public final class Indexer {
                     new Object[]{Info.getVersion(), Info.getRevision()});
             
             // Get history first.
-            getInstance().prepareIndexer(env, searchRepositories, addProjects,
+            getInstance().prepareIndexer(oneEnv, searchRepositories, addProjects,
                     defaultProjects,
                     listFiles, createDict, subFiles, new ArrayList(repositories),
                     zapCache, listRepos);
@@ -324,23 +323,25 @@ public final class Indexer {
             }
 
             // And now index it all.
-            if (runIndex || (optimizedChanged && env.isOptimizeDatabase())) {
+            if (runIndex || (optimizedChanged && oneEnv.isOptimizeDatabase())) {
                 IndexChangedListener progress = new DefaultIndexChangedListener();
-                getInstance().doIndexerExecution(update, subFiles, progress);
+                getInstance().doIndexerExecution(oneEnv, update, subFiles,
+                        progress);
             }
 
-            writeConfigToFile(env, configFilename);
+            writeConfigToFile(oneEnv, configFilename);
 
             // Finally ping webapp to refresh indexes in the case of partial reindex
             // or send new configuration to the web application in the case of full reindex.
             if (webappURI != null) {
                 if (!subFiles.isEmpty()) {
-                    getInstance().refreshSearcherManagers(env, subFiles, webappURI);
+                    getInstance().refreshSearcherManagers(oneEnv, subFiles, webappURI);
                 } else {
-                    getInstance().sendToConfigHost(env, webappURI);
+                    getInstance().sendToConfigHost(oneEnv, webappURI);
                 }
             }
 
+            oneEnv.getIndexerParallelizer().bounce();
         } catch (ParseException e) {
             System.err.println("** " +e.getMessage());
             System.exit(1);
@@ -760,8 +761,7 @@ public final class Indexer {
                         die("URL '" + webappURI + "' is not valid.");
                     }
 
-                    env = RuntimeEnvironment.getInstance();
-                    env.setConfigURI(webappURI);
+                    oneEnv.setConfigURI(webappURI);
                 }
             );
 
@@ -819,9 +819,7 @@ public final class Indexer {
     }
 
     private static void checkConfiguration() {
-        env = RuntimeEnvironment.getInstance();
-
-        if (noindex && (env.getConfigURI() == null || env.getConfigURI().isEmpty())) {
+        if (noindex && (oneEnv.getConfigURI() == null || oneEnv.getConfigURI().isEmpty())) {
             die("Missing webappURI URL");
         }
 
@@ -849,23 +847,20 @@ public final class Indexer {
         }
         fileSpec = fileSpec.toUpperCase(Locale.ROOT);
 
+        AnalyzerGuru guru = oneEnv.getAnalyzerGuru();
         // Disable analyzer?
         if (analyzer.equals("-")) {
             if (prefix) {
-                AnalyzerGuru.addPrefix(fileSpec, null);
+                guru.addPrefix(fileSpec, null);
             } else {
-                AnalyzerGuru.addExtension(fileSpec, null);
+                guru.addExtension(fileSpec, null);
             }
         } else {
             try {
                 if (prefix) {
-                    AnalyzerGuru.addPrefix(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addPrefix(fileSpec, guru.findFactory(analyzer));
                 } else {
-                    AnalyzerGuru.addExtension(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addExtension(fileSpec, guru.findFactory(analyzer));
                 }
 
             } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoSuchMethodException
@@ -1004,7 +999,7 @@ public final class Indexer {
                         }
                     }
                     try {
-                        HistoryGuru.getInstance().removeCache(toZap);
+                        env.getHistoryGuru().removeCache(toZap);
                     } catch (HistoryException e) {
                         LOGGER.log(Level.WARNING, "Clearing history cache failed: {0}",
                                 e.getLocalizedMessage());
@@ -1037,22 +1032,22 @@ public final class Indexer {
         if (repositories != null && !repositories.isEmpty()) {
             LOGGER.log(Level.INFO, "Generating history cache for repositories: " +
                 repositories.stream().collect(Collectors.joining(",")));
-            HistoryGuru.getInstance().createCache(repositories);
+            env.getHistoryGuru().createCache(repositories);
             LOGGER.info("Done...");
           } else {
               LOGGER.log(Level.INFO, "Generating history cache for all repositories ...");
-              HistoryGuru.getInstance().createCache();
+              env.getHistoryGuru().createCache();
               LOGGER.info("Done...");
           }
 
         if (listFiles) {
-            for (String file : IndexDatabase.getAllFiles(subFiles)) {
+            for (String file : IndexDatabase.getAllFiles(env, subFiles)) {
                 LOGGER.fine(file);
             }
         }
 
         if (createDict) {
-            IndexDatabase.listFrequentTokens(subFiles);
+            IndexDatabase.listFrequentTokens(env, subFiles);
         }
     }
 
@@ -1062,39 +1057,41 @@ public final class Indexer {
      * and storing data from the source files in the index (along with history,
      * if any).
      *
+     * @param env a defined instance
      * @param update if set to true, index database is updated, otherwise optimized
      * @param subFiles index just some subdirectories
      * @param progress object to receive notifications as indexer progress is made
      * @throws IOException if I/O exception occurred
      */
-    public void doIndexerExecution(final boolean update, List<String> subFiles,
-        IndexChangedListener progress)
+    public void doIndexerExecution(RuntimeEnvironment env, final boolean update,
+            List<String> subFiles, IndexChangedListener progress)
             throws IOException {
         Statistics elapsed = new Statistics();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         LOGGER.info("Starting indexing");
 
-        IndexerParallelizer parallelizer = new IndexerParallelizer(env);
-
+        IndexerParallelizer parallelizer = env.getIndexerParallelizer();
+        final CountDownLatch latch;
         if (subFiles == null || subFiles.isEmpty()) {
             if (update) {
-                IndexDatabase.updateAll(parallelizer, progress);
+                latch = IndexDatabase.updateAll(env, progress);
             } else if (env.isOptimizeDatabase()) {
-                IndexDatabase.optimizeAll(parallelizer);
+                latch = IndexDatabase.optimizeAll(env);
+            } else {
+                latch = new CountDownLatch(0);
             }
         } else {
             List<IndexDatabase> dbs = new ArrayList<>();
 
             for (String path : subFiles) {
-                Project project = Project.getProject(path);
+                Project project = env.getProject(path);
                 if (project == null && env.hasProjects()) {
                     LOGGER.log(Level.WARNING, "Could not find a project for \"{0}\"", path);
                 } else {
                     IndexDatabase db;
                     if (project == null) {
-                        db = new IndexDatabase();
+                        db = new IndexDatabase(env);
                     } else {
-                        db = new IndexDatabase(project);
+                        db = new IndexDatabase(env, project);
                     }
                     int idx = dbs.indexOf(db);
                     if (idx != -1) {
@@ -1111,6 +1108,7 @@ public final class Indexer {
                 }
             }
 
+            latch = new CountDownLatch(dbs.size());
             for (final IndexDatabase db : dbs) {
                 final boolean optimize = env.isOptimizeDatabase();
                 db.addIndexChangedListener(progress);
@@ -1119,7 +1117,7 @@ public final class Indexer {
                     public void run() {
                         try {
                             if (update) {
-                                db.update(parallelizer);
+                                db.update();
                             } else if (optimize) {
                                 db.optimize();
                             }
@@ -1127,35 +1125,21 @@ public final class Indexer {
                             LOGGER.log(Level.SEVERE, "An error occurred while "
                                     + (update ? "updating" : "optimizing")
                                     + " index", e);
+                        } finally {
+                            latch.countDown();
                         }
                     }
                 });
             }
         }
 
-        parallelizer.getFixedExecutor().shutdown();
-        while (!parallelizer.getFixedExecutor().isTerminated()) {
-            try {
-                // Wait forever
-                parallelizer.getFixedExecutor().awaitTermination(999,
-                    TimeUnit.DAYS);
-            } catch (InterruptedException exp) {
-                LOGGER.log(Level.WARNING, "Received interrupt while waiting for executor to finish", exp);
-            }
-        }
+        // Wait for the executors to finish.
         try {
-            // It can happen that history index is not done in prepareIndexer()
-            // but via db.update() above in which case we must make sure the
-            // thread pool for renamed file handling is destroyed.
-            RuntimeEnvironment.destroyRenamedHistoryExecutor();
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "destroying of renamed thread pool failed", ex);
-        }
-        try {
-            parallelizer.close();
-        } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "parallelizer.close() failed", ex);
+            // Wait for the executors to finish.
+            latch.await(999, TimeUnit.DAYS);
+        } catch (InterruptedException exp) {
+            LOGGER.log(Level.WARNING, "Received interrupt while waiting" +
+                    " for executor to finish", exp);
         }
         elapsed.report(LOGGER, "Done indexing data of all repositories");
     }

@@ -19,6 +19,7 @@
 
  /*
   * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
+  * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
   */
 package org.opengrok.indexer.configuration;
 
@@ -33,10 +34,19 @@ import org.apache.lucene.search.SearcherFactory;
  */
 class ThreadpoolSearcherFactory extends SearcherFactory {
 
+    private final RuntimeEnvironment env;
+
+    public ThreadpoolSearcherFactory(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
+
     @Override
     public SuperIndexSearcher newSearcher(IndexReader r, IndexReader prev) {
         // The previous IndexReader is not used here.
-        return new SuperIndexSearcher(r, RuntimeEnvironment.getInstance().getSearchExecutor());
+        return new SuperIndexSearcher(r, env.getSearchExecutor());
     }
 
 }

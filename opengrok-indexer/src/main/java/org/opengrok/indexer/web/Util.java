@@ -72,7 +72,6 @@ import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.Annotation;
 import org.opengrok.indexer.history.HistoryException;
-import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.web.messages.MessagesContainer.AcceptedMessage;
 
@@ -708,6 +707,7 @@ public final class Util {
      *
      * @param num linenumber to print
      * @param out print destination
+     * @param urlPrefix see {@link RuntimeEnvironment#getUrlPrefix()}
      * @param annotation annotation to use. If {@code null} only the linenumber
      * gets printed.
      * @param userPageLink see {@link RuntimeEnvironment#getUserPage()}
@@ -715,17 +715,16 @@ public final class Util {
      * @param project project that is used
      * @throws IOException depends on the destination (<var>out</var>).
      */
-    public static void readableLine(int num, Writer out, Annotation annotation,
-            String userPageLink, String userPageSuffix, String project)
-            throws IOException
-    {
-        readableLine(num, out, annotation, userPageLink, userPageSuffix, project, false);
+    public static void readableLine(int num, Writer out, String urlPrefix,
+            Annotation annotation, String userPageLink, String userPageSuffix,
+            String project) throws IOException {
+        readableLine(num, out, urlPrefix, annotation, userPageLink,
+                userPageSuffix, project, false);
     }
 
-    public static void readableLine(int num, Writer out, Annotation annotation,
-            String userPageLink, String userPageSuffix, String project, boolean skipNewline)
-            throws IOException
-    {
+    public static void readableLine(int num, Writer out, String urlPrefix,
+            Annotation annotation, String userPageLink, String userPageSuffix,
+            String project, boolean skipNewline) throws IOException {
         // this method should go to JFlexXref
         String snum = String.valueOf(num);
         if (num > 1 && !skipNewline) {
@@ -777,13 +776,11 @@ public final class Util {
             out.write(buf.toString());
             buf.setLength(0);
             if (enabled) {
-                RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
                 out.write(anchorEnd);
 
                 // Write link to search the revision in current project.
                 out.write(anchorClassStart);
-                out.write("search\" href=\"" + env.getUrlPrefix());
+                out.write("search\" href=\"" + urlPrefix);
                 out.write("defs=&amp;refs=&amp;path=");
                 out.write(project);
                 out.write("&amp;hist=&quot;" + URIEncode(r) + "&quot;");
@@ -869,19 +866,20 @@ public final class Util {
      * listings.
      *
      * @param out writer for producing output
+     * @param env a defined instance
      * @param ctxE URI encoded prefix
      * @param entry file/directory name to write
      * @param is_dir is directory
      * @throws IOException depends on the destination (<var>out</var>).
      */
-    public static void writeHAD(Writer out, String ctxE, String entry,
-            boolean is_dir) throws IOException {
+    public static void writeHAD(Writer out, RuntimeEnvironment env, String ctxE,
+            String entry, boolean is_dir) throws IOException {
 
         String downloadPrefixE = ctxE + Prefix.DOWNLOAD_P;
         String xrefPrefixE = ctxE + Prefix.XREF_P;
 
         out.write("<td class=\"q\">");
-        if (RuntimeEnvironment.getInstance().isHistoryEnabled()) {
+        if (env.isHistoryEnabled()) {
             String histPrefixE = ctxE + Prefix.HIST_L;
 
             out.write("<a href=\"");
@@ -1094,15 +1092,15 @@ public final class Util {
      * Dump the configuration as an HTML table.
      *
      * @param out destination for the HTML output
+     * @param env a defined instance
      * @throws IOException if an error happens while writing to {@code out}
      * @throws HistoryException if the history guru cannot be accesses
      */
     @SuppressWarnings("boxing")
-    public static void dumpConfiguration(Appendable out) throws IOException,
-            HistoryException {
+    public static void dumpConfiguration(Appendable out,
+            RuntimeEnvironment env) throws IOException, HistoryException {
         out.append("<table border=\"1\" width=\"100%\">");
         out.append("<tr><th>Variable</th><th>Value</th></tr>");
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         printTableRow(out, "Source root", env.getSourceRootPath());
         printTableRow(out, "Data root", env.getDataRootPath());
         printTableRow(out, "CTags", env.getCtags());
@@ -1119,8 +1117,8 @@ public final class Util {
         printTableRow(out, "lucene RAM_BUFFER_SIZE_MB", env.getRamBufferSize());
         printTableRow(out, "Allow leading wildcard in search",
                 env.isAllowLeadingWildcard());
-        printTableRow(out, "History cache", HistoryGuru.getInstance()
-                .getCacheInfo());
+        printTableRow(out, "History cache", env.getHistoryGuru().
+                getCacheInfo());
         printTableRow(out, "Authorization plugin directory", env.getPluginDirectory());
         printTableRow(out, "Authorization watchdog directory", env.getPluginDirectory());
         printTableRow(out, "Authorization watchdog enabled", env.isAuthorizationWatchdog());
@@ -1326,12 +1324,14 @@ public final class Util {
     /**
      * Print set of messages into json object for given tag.
      *
+     * @param env a defined instance
      * @param tag return messages in json format for the given tag
      * @return json object with 'tag' and 'messages' attribute or null
      */
     @SuppressWarnings("unchecked")
-    public static JSONObject messagesToJsonObject(String tag) {
-        SortedSet<AcceptedMessage> messages = RuntimeEnvironment.getInstance().getMessages(tag);
+    public static JSONObject messagesToJsonObject(RuntimeEnvironment env,
+            String tag) {
+        SortedSet<AcceptedMessage> messages = env.getMessages(tag);
         if (messages.isEmpty()) {
             return null;
         }
@@ -1344,16 +1344,18 @@ public final class Util {
     /**
      * Print messages for given tags into json array
      *
+     * @param env a defined instance
      * @param array the array where the result should be stored
      * @param tags list of tags
      * @return json array of the messages (the same as the parameter)
-     * @see #messagesToJsonObject(String)
+     * @see #messagesToJsonObject(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.lang.String)
      */
     @SuppressWarnings("unchecked")
-    public static JSONArray messagesToJson(JSONArray array, String... tags) {
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            JSONArray array, String... tags) {
         array = array == null ? new JSONArray() : array;
         for (String tag : tags) {
-            JSONObject messages = messagesToJsonObject(tag);
+            JSONObject messages = messagesToJsonObject(env, tag);
             if (messages == null || messages.isEmpty()) {
                 continue;
             }
@@ -1365,26 +1367,30 @@ public final class Util {
     /**
      * Print messages for given tags into json array
      *
+     * @param env a defined instance
      * @param tags list of tags
      * @return json array of the messages
-     * @see #messagesToJson(JSONArray, String...)
-     * @see #messagesToJsonObject(String)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, org.json.simple.JSONArray, java.lang.String...)
+     * @see #messagesToJsonObject(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.lang.String)
      */
-    public static JSONArray messagesToJson(String... tags) {
-        return messagesToJson((JSONArray) null, tags);
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            String... tags) {
+        return messagesToJson(env, (JSONArray) null, tags);
     }
 
     /**
      * Print messages for given tags into json array
      *
+     * @param env a defined instance
      * @param tags list of tags
      * @return json array of the messages
-     * @see #messagesToJson(String...)
-     * @see #messagesToJsonObject(String)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.lang.String...)
+     * @see #messagesToJsonObject(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.lang.String)
      */
-    public static JSONArray messagesToJson(List<String> tags) {
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            List<String> tags) {
         String[] array = new String[tags.size()];
-        return messagesToJson(tags.toArray(array));
+        return messagesToJson(env, tags.toArray(array));
     }
 
     /**
@@ -1392,12 +1398,14 @@ public final class Util {
      * tagged by project description or tagged by any of the project's group
      * name.
      *
+     * @param env a defined instance
      * @param project the project
      * @param additionalTags additional list of tags
      * @return the json array
-     * @see #messagesToJson(String...)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.lang.String...)
      */
-    public static JSONArray messagesToJson(Project project, String... additionalTags) {
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            Project project, String... additionalTags) {
         if (project == null) {
             return new JSONArray();
         }
@@ -1407,7 +1415,7 @@ public final class Util {
         project.getGroups().stream().forEach((Group t) -> {
             tags.add(t.getName());
         });
-        return messagesToJson(tags);
+        return messagesToJson(env, tags);
     }
 
     /**
@@ -1415,38 +1423,44 @@ public final class Util {
      * tagged by project description or tagged by any of the project's group
      * name
      *
+     * @param env a defined instance
      * @param project the project
      * @return the json array
-     * @see #messagesToJson(Project, String...)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, org.opensolaris.opengrok.configuration.Project, java.lang.String...)
      */
-    public static JSONArray messagesToJson(Project project) {
-        return messagesToJson(project, new String[0]);
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            Project project) {
+        return messagesToJson(env, project, new String[0]);
     }
 
     /**
      * Print messages for given group into json array.
      *
+     * @param env a defined instance
      * @param group the group
      * @param additionalTags additional list of tags
      * @return the json array
-     * @see #messagesToJson(java.util.List)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.util.List)
      */
-    public static JSONArray messagesToJson(Group group, String... additionalTags) {
+    public static JSONArray messagesToJson(RuntimeEnvironment env, Group group,
+            String... additionalTags) {
         List<String> tags = new ArrayList<>();
         tags.add(group.getName());
         tags.addAll(Arrays.asList(additionalTags));
-        return messagesToJson(tags);
+        return messagesToJson(env, tags);
     }
 
     /**
      * Print messages for given group into json array.
      *
+     * @param env a defined instance
      * @param group the group
      * @return the json array
-     * @see #messagesToJson(Group, String...)
+     * @see #messagesToJson(org.opensolaris.opengrok.configuration.RuntimeEnvironment, org.opensolaris.opengrok.configuration.Group, java.lang.String...)
      */
-    public static JSONArray messagesToJson(Group group) {
-        return messagesToJson(group, new String[0]);
+    public static JSONArray messagesToJson(RuntimeEnvironment env,
+            Group group) {
+        return messagesToJson(env, group, new String[0]);
     }
 
     /**

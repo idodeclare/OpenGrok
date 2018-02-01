@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -26,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import static org.junit.Assert.assertTrue;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -34,6 +36,7 @@ import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.RepositoryInstalled;
 import org.opengrok.indexer.util.TestRepository;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 import static org.junit.Assert.*;
 
@@ -47,7 +50,9 @@ public class RCSRepositoryTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
-    static private TestRepository repository = new TestRepository();
+    private static TestRepository repository;
+    private static RuntimeEnvironment env;
+    private GitRepository instance;
 
     /**
      * Revision numbers present in the RCS test repository, in the order
@@ -58,6 +63,8 @@ public class RCSRepositoryTest {
 
     @BeforeClass
     public static void setUpClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(RCSRepositoryTest.class.getResourceAsStream("repositories.zip"));
     }
 
@@ -70,14 +77,14 @@ public class RCSRepositoryTest {
     @Test
     public void testRepositoryDetection() throws Exception {
         File root = new File(repository.getSourceRoot(), "rcs_test");
-        Object ret = RepositoryFactory.getRepository(root);
+        Object ret = RepositoryFactory.getRepository(env, root);
         assertTrue(ret instanceof RCSRepository);
     }
 
     @Test
     public void testAnnotation() throws Exception {
         File root = new File(repository.getSourceRoot(), "rcs_test");
-        RCSRepository repo = (RCSRepository) RepositoryFactory.getRepository(root);
+        RCSRepository repo = (RCSRepository) RepositoryFactory.getRepository(env, root);
         File header = new File(root, "header.h");
         Annotation annotation = repo.annotate(header, null);
         if (annotation != null) {
@@ -92,7 +99,7 @@ public class RCSRepositoryTest {
     @Test
     public void testGetHistory() throws Exception {
         File root = new File(repository.getSourceRoot(), "rcs_test");
-        RCSRepository repo = (RCSRepository) RepositoryFactory.getRepository(root);
+        RCSRepository repo = (RCSRepository) RepositoryFactory.getRepository(env, root);
         History hist = repo.getHistory(new File(root, "Makefile"));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(REVISIONS.length, entries.size());

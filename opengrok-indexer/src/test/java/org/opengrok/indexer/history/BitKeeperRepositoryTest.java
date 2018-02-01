@@ -41,11 +41,13 @@ import java.util.TreeSet;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.RepositoryInstalled;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.TestRepository;
 
 /**
@@ -59,6 +61,7 @@ public class BitKeeperRepositoryTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
+    private static RuntimeEnvironment env;
     private TestRepository testRepo;
     private BitKeeperRepository bkRepo;
     private List<String> bkFiles;
@@ -70,13 +73,19 @@ public class BitKeeperRepositoryTest {
         }
     }
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Before
     public void setUp() {
         try {
-            testRepo = new TestRepository();
+            testRepo = new TestRepository(env);
             testRepo.create(getClass().getResourceAsStream("repositories.zip"));
             final File root = new File(testRepo.getSourceRoot(), "bitkeeper");
-            bkRepo = (BitKeeperRepository) RepositoryFactory.getRepository(root);
+            bkRepo = (BitKeeperRepository)RepositoryFactory.getRepository(
+                    env, root);
             bkFiles = Arrays.asList(root.list(new BitKeeperFilenameFilter()));
         } catch (final Exception e) {
             testRepo = null;

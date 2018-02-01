@@ -64,6 +64,6 @@ public class JavaScriptAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new JavaScriptXref(reader));
+        return new JFlexXref(new JavaScriptXref(reader), getFactory().getEnv());
     }
 }

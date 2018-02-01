@@ -42,7 +42,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -64,10 +63,7 @@ public final class HistoryGuru {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HistoryGuru.class);
 
-    /**
-     * The one and only instance of the HistoryGuru
-     */
-    private static final HistoryGuru INSTANCE = new HistoryGuru();
+    private final RuntimeEnvironment env;
 
     /**
      * The history cache to use
@@ -90,14 +86,19 @@ public final class HistoryGuru {
     /**
      * Creates a new instance of HistoryGuru, and try to set the default source
      * control system.
+     * @param env a defined instance
      */
-    private HistoryGuru() {
+    public HistoryGuru(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+
+        this.env = env;
         HistoryCache cache = null;
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         scanningDepth = env.getScanningDepth();
 
         if (env.useHistoryCache()) {
-            cache = new FileHistoryCache();
+            cache = new FileHistoryCache(env);
 
             try {
                 cache.initialize();
@@ -109,15 +110,6 @@ public final class HistoryGuru {
             }
         }
         historyCache = cache;
-    }
-
-    /**
-     * Get the one and only instance of the HistoryGuru
-     *
-     * @return the one and only HistoryGuru instance
-     */
-    public static HistoryGuru getInstance() {
-        return INSTANCE;
     }
 
     /**
@@ -245,7 +237,7 @@ public final class HistoryGuru {
         final File dir = file.isDirectory() ? file : file.getParentFile();
         final Repository repo = getRepository(dir);
 
-        RemoteSCM rscm = RuntimeEnvironment.getInstance().getRemoteScmSupported();
+        RemoteSCM rscm = env.getRemoteScmSupported();
         boolean doRemote = (ui && (rscm == RemoteSCM.UIONLY))
                 || (rscm == RemoteSCM.ON)
                 || (ui || ((rscm == RemoteSCM.DIRBASED) && (repo != null) && repo.hasHistoryForDirectories()));
@@ -301,9 +293,9 @@ public final class HistoryGuru {
 
         // This should return true for Annotate view.
         return repo.isWorking() && repo.fileHasHistory(file)
-                && ((RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.ON)
-                || (RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.UIONLY)
-                || (RuntimeEnvironment.getInstance().getRemoteScmSupported() == RemoteSCM.DIRBASED)
+                && ((env.getRemoteScmSupported() == RemoteSCM.ON)
+                || (env.getRemoteScmSupported() == RemoteSCM.UIONLY)
+                || (env.getRemoteScmSupported() == RemoteSCM.DIRBASED)
                 || !repo.isRemote());
     }
 
@@ -390,7 +382,7 @@ public final class HistoryGuru {
 
                 Repository repository = null;
                 try {
-                    repository = RepositoryFactory.getRepository(file);
+                    repository = RepositoryFactory.getRepository(env, file);
                 } catch (InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                     LOGGER.log(Level.WARNING, "Could not create repository for '"
                             + file + "', could not instantiate the repository.", e);
@@ -589,7 +581,8 @@ public final class HistoryGuru {
 
     private void createCacheReal(Collection<Repository> repositories) {
         Statistics elapsed = new Statistics();
-        ExecutorService executor = RuntimeEnvironment.getHistoryExecutor();
+        ExecutorService executor = env.getIndexerParallelizer().
+                getForkJoinPool();
         // Since we know each repository object from the repositories
         // collection is unique, we can abuse HashMap to create a list of
         // repository,revision tuples with repository as key (as the revision
@@ -643,25 +636,7 @@ public final class HistoryGuru {
         } catch (InterruptedException ex) {
             LOGGER.log(Level.SEVERE,
                     "latch exception{0}", ex);
-        }
-
-        executor.shutdown();
-        while (!executor.isTerminated()) {
-            try {
-                // Wait forever
-                executor.awaitTermination(999, TimeUnit.DAYS);
-            } catch (InterruptedException exp) {
-                LOGGER.log(Level.WARNING,
-                        "Received interrupt while waiting for executor to finish", exp);
-            }
-        }
-        RuntimeEnvironment.freeHistoryExecutor();
-        try {
-            /* Thread pool for handling renamed files needs to be destroyed too. */
-            RuntimeEnvironment.destroyRenamedHistoryExecutor();
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "destroying of renamed thread pool failed", ex);
+            return;
         }
 
         // The cache has been populated. Now, optimize how it is stored on
@@ -769,7 +744,7 @@ public final class HistoryGuru {
      */
     private List<Repository> getReposFromString(Collection<String> repositories) {
         ArrayList<Repository> repos = new ArrayList<>();
-        File srcRoot = RuntimeEnvironment.getInstance().getSourceRootFile();
+        File srcRoot = env.getSourceRootFile();
 
         for (String file : repositories) {
             File f = new File(srcRoot, file);
@@ -946,7 +921,8 @@ public final class HistoryGuru {
                 @Override
                 public void run() {
                     try {
-                        Repository r = RepositoryFactory.getRepository(rinfo, interactive);
+                        Repository r = RepositoryFactory.getRepository(env,
+                                rinfo, interactive);
                         if (r == null) {
                             LOGGER.log(Level.WARNING,
                                     "Failed to instantiate internal repository data for {0} in {1}",

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -52,9 +52,16 @@ class SubversionHistoryParser implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SubversionHistoryParser.class);
 
+    private final RuntimeEnvironment env;
     private SAXParser saxParser = null;
     private Handler handler;
 
+    public SubversionHistoryParser(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
     private static class Handler extends DefaultHandler2 {
 
         final String prefix;
@@ -151,8 +158,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
 
         initSaxParser();
         handler = new Handler(repos.getDirectoryName(), repos.reposPath,
-                RuntimeEnvironment.getInstance().getSourceRootPath().length(),
-                repos.getDateFormat());
+                env.getSourceRootPath().length(), repos.getDateFormat());
 
         Executor executor;
         try {

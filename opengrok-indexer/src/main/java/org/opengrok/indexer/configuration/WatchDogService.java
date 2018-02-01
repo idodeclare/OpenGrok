@@ -48,12 +48,16 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 public class WatchDogService {
     private static final Logger LOGGER = LoggerFactory.getLogger(WatchDogService.class);
 
+    private final RuntimeEnvironment env;
     private Thread watchDogThread;
     private WatchService watchDogWatcher;
     public static final int THREAD_SLEEP_TIME = 2000;
 
-    WatchDogService() {
-
+    WatchDogService(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
     }
 
     /**
@@ -107,7 +111,7 @@ public class WatchDogService {
                     }
                     if (reload) {
                         Thread.sleep(THREAD_SLEEP_TIME); // experimental wait if file is being written right now
-                        RuntimeEnvironment.getInstance().getAuthorizationFramework().reload();
+                        env.getAuthorizationFramework().reload(env);
                     }
                     if (!key.reset()) {
                         break;

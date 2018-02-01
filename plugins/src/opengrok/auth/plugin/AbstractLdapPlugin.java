@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -35,6 +36,7 @@ import opengrok.auth.plugin.ldap.LdapFacade;
 import org.opengrok.indexer.authorization.IAuthorizationPlugin;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  * Abstract class for all plug-ins working with LDAP. Takes care of
@@ -118,7 +120,7 @@ abstract public class AbstractLdapPlugin implements IAuthorizationPlugin {
      * Loads the configuration into memory.
      */
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
         Boolean fake;
         String configurationPath;
 

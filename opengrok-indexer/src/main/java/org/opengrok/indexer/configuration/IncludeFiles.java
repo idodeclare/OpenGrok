@@ -28,6 +28,24 @@ import java.io.File;
 import static org.opengrok.indexer.util.IOUtils.getFileContent;
 
 public class IncludeFiles {
+
+    private final RuntimeEnvironment env;
+    private transient String footer;
+    private transient String header;
+    private transient String body;
+    private transient String eforbidden_content;
+
+    /**
+     * Initializes an instance to use the specified, required environment.
+     * @param env a defined instance
+     */
+    public IncludeFiles(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
+
     /**
      * Reload the content of all include files.
      */
@@ -37,8 +55,6 @@ public class IncludeFiles {
         getFooterIncludeFileContent(true);
         getForbiddenIncludeFileContent(true);
     }
-
-    private transient String footer = null;
 
     /**
      * Get the contents of the footer include file.
@@ -50,13 +66,11 @@ public class IncludeFiles {
      */
     public String getFooterIncludeFileContent(boolean force) {
         if (footer == null || force) {
-            footer = getFileContent(new File(RuntimeEnvironment.getInstance().getIncludeRootPath(),
+            footer = getFileContent(new File(env.getIncludeRootPath(),
                     Configuration.FOOTER_INCLUDE_FILE));
         }
         return footer;
     }
-
-    private transient String header = null;
 
     /**
      * Get the contents of the header include file.
@@ -68,13 +82,11 @@ public class IncludeFiles {
      */
     public String getHeaderIncludeFileContent(boolean force) {
         if (header == null || force) {
-            header = getFileContent(new File(RuntimeEnvironment.getInstance().getIncludeRootPath(),
+            header = getFileContent(new File(env.getIncludeRootPath(),
                     Configuration.HEADER_INCLUDE_FILE));
         }
         return header;
     }
-
-    private transient String body = null;
 
     /**
      * Get the contents of the body include file.
@@ -86,13 +98,11 @@ public class IncludeFiles {
      */
     public String getBodyIncludeFileContent(boolean force) {
         if (body == null || force) {
-            body = getFileContent(new File(RuntimeEnvironment.getInstance().getIncludeRootPath(),
+            body = getFileContent(new File(env.getIncludeRootPath(),
                     Configuration.BODY_INCLUDE_FILE));
         }
         return body;
     }
-
-    private transient String eforbidden_content = null;
 
     /**
      * Get the contents of the page for forbidden error page (403 Forbidden)
@@ -105,7 +115,7 @@ public class IncludeFiles {
      */
     public String getForbiddenIncludeFileContent(boolean force) {
         if (eforbidden_content == null || force) {
-            eforbidden_content = getFileContent(new File(RuntimeEnvironment.getInstance().getIncludeRootPath(),
+            eforbidden_content = getFileContent(new File(env.getIncludeRootPath(),
                     Configuration.E_FORBIDDEN_INCLUDE_FILE));
         }
         return eforbidden_content;

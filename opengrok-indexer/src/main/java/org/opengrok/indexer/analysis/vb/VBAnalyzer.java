@@ -63,6 +63,6 @@ public class VBAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new VBXref(reader));
+        return new JFlexXref(new VBXref(reader), getFactory().getEnv());
     }
 }

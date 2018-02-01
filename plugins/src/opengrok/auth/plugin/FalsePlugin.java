@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -27,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opengrok.indexer.authorization.IAuthorizationPlugin;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -35,7 +37,7 @@ import org.opengrok.indexer.configuration.Project;
 public class FalsePlugin implements IAuthorizationPlugin {
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
     }
 
     @Override

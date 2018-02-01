@@ -23,6 +23,7 @@
 package org.opengrok.web.api.v1.controller;
 
 import org.apache.lucene.search.Query;
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.search.Hit;
 import org.opengrok.indexer.search.SearchEngine;
 import org.opengrok.web.api.v1.suggester.provider.service.SuggesterService;
@@ -95,7 +96,9 @@ public class SearchController {
 
     private static class SearchEngineWrapper implements AutoCloseable {
 
-        private SearchEngine engine = new SearchEngine();
+        private final RuntimeEnvironment env =
+                RuntimeEnvironment.getInstance(); // Irksome static dependency
+        private SearchEngine engine = new SearchEngine(env);
 
         private int numResults;
 
