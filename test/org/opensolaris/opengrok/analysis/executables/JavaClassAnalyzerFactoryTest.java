@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.executables;
@@ -28,14 +28,22 @@ import java.io.InputStream;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensolaris.opengrok.analysis.AnalyzerGuru;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Represents a container for tests of {@link JavaClassAnalyzerFactory}.
  */
 public class JavaClassAnalyzerFactoryTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     /**
      * Tests a Java .class file.
@@ -48,7 +56,7 @@ public class JavaClassAnalyzerFactoryTest {
         assertNotNull("despite inclusion locally,", res);
 
         // assert that it is matched
-        FileAnalyzerFactory fac = AnalyzerGuru.find(res);
+        FileAnalyzerFactory fac = env.getAnalyzerGuru().find(res);
         assertNotNull("javaclass.bin should have factory", fac);
         assertSame("should be JavaClassAnalyzerFactory", fac.getClass(),
             JavaClassAnalyzerFactory.class);
@@ -64,7 +72,7 @@ public class JavaClassAnalyzerFactoryTest {
             "org/opensolaris/opengrok/analysis/executables/fat.dylib");
         assertNotNull("despite inclusion locally,", res);
 
-        FileAnalyzerFactory fac = AnalyzerGuru.find(res);
+        FileAnalyzerFactory fac = env.getAnalyzerGuru().find(res);
         if (fac != null) {
             assertNotSame("should not be JavaClassAnalyzerFactory",
                 fac.getClass(), JavaClassAnalyzerFactory.class);

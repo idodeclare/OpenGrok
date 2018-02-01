@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2007, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.data;
 
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Factory for analyzer that claims to analyze files which are mostly plain
@@ -44,8 +46,8 @@ public class IgnorantAnalyzerFactory extends FileAnalyzerFactory {
         
     };
 
-    public IgnorantAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, null, null, null);
+    public IgnorantAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, null, null, null);
     }
 
     @Override

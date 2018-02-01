@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.authorization;
 
@@ -26,11 +27,12 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class TestPlugin implements IAuthorizationPlugin {
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
     }
 
     @Override

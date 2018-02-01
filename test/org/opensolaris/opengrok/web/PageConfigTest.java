@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
@@ -54,17 +55,19 @@ import static org.junit.Assert.*;
  * Unit tests for the {@code PageConfig} class.
  */
 public class PageConfigTest {
-    private static TestRepository repository = new TestRepository();
+    private static RuntimeEnvironment env;
+    private static TestRepository repository;
 
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(
                 HistoryGuru.class.getResourceAsStream("repositories.zip"));
-        RuntimeEnvironment.getInstance().setRepositories(repository.getSourceRoot());
+        env.setRepositories(repository.getSourceRoot());
     }
 
     @AfterClass
@@ -148,8 +151,6 @@ public class PageConfigTest {
      */
     @Test
     public void testGetResourceFileList() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
         // backup original values
         String oldSourceRootPath = env.getSourceRootPath();
         AuthorizationFramework oldAuthorizationFramework = env.getAuthorizationFramework();
@@ -188,7 +189,7 @@ public class PageConfigTest {
          * </pre>
          */
         env.setAuthorizationFramework(new AuthorizationFramework());
-        env.getAuthorizationFramework().reload();
+        env.getAuthorizationFramework().reload(env);
         env.getAuthorizationFramework().getStack()
                 .add(new AuthorizationPlugin(AuthControlFlag.REQUIRED, new TestPlugin() {
                     @Override
@@ -365,13 +366,13 @@ public class PageConfigTest {
     public void testCheckSourceRootExistence1() throws IOException {
         HttpServletRequest req = new DummyHttpServletRequest();
         PageConfig cfg = PageConfig.get(req);
-        String path = RuntimeEnvironment.getInstance().getSourceRootPath();
+        String path = env.getSourceRootPath();
         System.out.println(path);
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(null);
+        env.getConfiguration().setSourceRoot(null);
         try {
             cfg.checkSourceRootExistence();
         } finally {
-            RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(path);
+            env.getConfiguration().setSourceRoot(path);
             PageConfig.cleanup(req);
         }
     }
@@ -385,12 +386,12 @@ public class PageConfigTest {
     public void testCheckSourceRootExistence2() throws IOException {
         HttpServletRequest req = new DummyHttpServletRequest();
         PageConfig cfg = PageConfig.get(req);
-        String path = RuntimeEnvironment.getInstance().getSourceRootPath();
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot("");
+        String path = env.getSourceRootPath();
+        env.getConfiguration().setSourceRoot("");
         try {
             cfg.checkSourceRootExistence();
         } finally {
-            RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(path);
+            env.getConfiguration().setSourceRoot(path);
             PageConfig.cleanup(req);
         }
     }
@@ -404,16 +405,16 @@ public class PageConfigTest {
     public void testCheckSourceRootExistence3() throws IOException {
         HttpServletRequest req = new DummyHttpServletRequest();
         PageConfig cfg = PageConfig.get(req);
-        String path = RuntimeEnvironment.getInstance().getSourceRootPath();
+        String path = env.getSourceRootPath();
         File temp = File.createTempFile("opengrok", "-test-file.tmp");
         Files.delete(temp.toPath());
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(temp.getAbsolutePath());
+        env.getConfiguration().setSourceRoot(temp.getAbsolutePath());
         try {
             cfg.checkSourceRootExistence();
             fail("This should throw an exception when the file does not exist");
         } catch (IOException ex) {
         }
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(path);
+        env.getConfiguration().setSourceRoot(path);
         PageConfig.cleanup(req);
     }
 
@@ -426,18 +427,18 @@ public class PageConfigTest {
     public void testCheckSourceRootExistence4() throws IOException {
         HttpServletRequest req = new DummyHttpServletRequest();
         PageConfig cfg = PageConfig.get(req);
-        String path = RuntimeEnvironment.getInstance().getSourceRootPath();
+        String path = env.getSourceRootPath();
         File temp = File.createTempFile("opengrok", "-test-file.tmp");
         Files.delete(temp.toPath());
         Files.createDirectories(temp.toPath());
         temp.setReadable(false);
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(temp.getAbsolutePath());
+        env.getConfiguration().setSourceRoot(temp.getAbsolutePath());
         try {
             cfg.checkSourceRootExistence();
             fail("This should throw an exception when the file is not readable");
         } catch (IOException ex) {
         }
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(path);
+        env.getConfiguration().setSourceRoot(path);
 
         PageConfig.cleanup(req);
         temp.deleteOnExit();
@@ -452,13 +453,13 @@ public class PageConfigTest {
     public void testCheckSourceRootExistence5() throws IOException {
         HttpServletRequest req = new DummyHttpServletRequest();
         PageConfig cfg = PageConfig.get(req);
-        String path = RuntimeEnvironment.getInstance().getSourceRootPath();
+        String path = env.getSourceRootPath();
         File temp = File.createTempFile("opengrok", "-test-file.tmp");
         temp.delete();
         temp.mkdirs();
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(temp.getAbsolutePath());
+        env.getConfiguration().setSourceRoot(temp.getAbsolutePath());
         cfg.checkSourceRootExistence();
-        RuntimeEnvironment.getInstance().getConfiguration().setSourceRoot(path);
+        env.getConfiguration().setSourceRoot(path);
         temp.deleteOnExit();
         PageConfig.cleanup(req);
     }

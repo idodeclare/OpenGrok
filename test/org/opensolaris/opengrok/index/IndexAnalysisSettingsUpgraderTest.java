@@ -30,8 +30,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensolaris.opengrok.analysis.AnalyzerGuru;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Represents a test container for {@link IndexAnalysisSettingsUpgrader}.
@@ -41,6 +42,12 @@ public class IndexAnalysisSettingsUpgraderTest {
     private static final String PROJECT_NAME = "foo-1-2-3";
     private static final long ANALYZER_GURU_VERSION = 3;
     private static final int TABSIZE = 17;
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void shouldHandleLatest() throws IOException,
@@ -48,7 +55,7 @@ public class IndexAnalysisSettingsUpgraderTest {
         IndexAnalysisSettings2 obj = new IndexAnalysisSettings2();
         obj.setAnalyzerGuruVersion(ANALYZER_GURU_VERSION);
         Map<String, Long> actAnalyzersVersionNos =
-                AnalyzerGuru.getAnalyzersVersionNos();
+                env.getAnalyzerGuru().getAnalyzersVersionNos();
         obj.setAnalyzersVersions(actAnalyzersVersionNos);
         obj.setProjectName(PROJECT_NAME);
         obj.setTabSize(TABSIZE);

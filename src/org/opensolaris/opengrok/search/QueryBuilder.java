@@ -39,6 +39,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Helper class that builds a Lucene query based on provided search terms for
@@ -75,6 +76,8 @@ public class QueryBuilder {
     /** Used for paths, so SHA-1 is completely sufficient */
     private static final String DIRPATH_HASH_ALGORITHM = "SHA-1";
 
+    private final RuntimeEnvironment env;
+
     /**
      * A map containing the query text for each field. (We use a sorted map here
      * only because we have tests that check the generated query string. If we
@@ -82,6 +85,13 @@ public class QueryBuilder {
      * platforms and it would be harder to test.)
      */
     private final Map<String, String> queries = new TreeMap<>();
+
+    public QueryBuilder(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
 
     /**
      * Sets the instance to the state of {@code other}.
@@ -444,7 +454,7 @@ public class QueryBuilder {
      */
     private Query buildQuery(String field, String queryText)
             throws ParseException {
-        return new CustomQueryParser(field).parse(queryText);
+        return new CustomQueryParser(field, env).parse(queryText);
     }
 
     /**

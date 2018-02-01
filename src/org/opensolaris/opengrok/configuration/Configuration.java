@@ -149,13 +149,14 @@ public final class Configuration {
     private String includeRoot;
     private List<RepositoryInfo> repositories;
     /**
-     * @deprecated This is kept around so not to break object deserialization
+     * @deprecated This is kept around so not to break object de-serialization
      * but it is ignored and cannot be truly set. This should mean that the
      * configuration is written leaving out this deprecated property; so after
      * some time it can be retired with the expectation that zero or a
      * miniscule number of production configurations still have this deprecated
      * property.
      */
+    @Deprecated
     private String urlPrefix;
     private boolean generateHtml;
     /**
@@ -203,7 +204,25 @@ public final class Configuration {
     private boolean indexVersionedFilesOnly;
     private boolean allNonWhitespace;
     private int indexingParallelism;
+    /**
+     * @deprecated This is kept around so not to break object de-serialization
+     * but it is ignored and cannot be truly set. This should mean that the
+     * configuration is written leaving out this deprecated property; so after
+     * some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
     private int historyParallelism;
+    /**
+     * @deprecated This is kept around so not to break object de-serialization
+     * but it is ignored and cannot be truly set. This should mean that the
+     * configuration is written leaving out this deprecated property; so after
+     * some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
     private int historyRenamedParallelism;
     private boolean tagsEnabled;
     private int hitsPerPage;
@@ -1097,20 +1116,24 @@ public final class Configuration {
         this.indexingParallelism = value > 0 ? value : 0;
     }
 
+    @Deprecated
     public int getHistoryParallelism() {
         return historyParallelism;
     }
 
+    @Deprecated
     public void setHistoryParallelism(int value) {
-        this.historyParallelism = value > 0 ? value : 0;
+        // ignored
     }
     
+    @Deprecated
     public int getHistoryRenamedParallelism() {
         return historyRenamedParallelism;
     }
 
+    @Deprecated
     public void setHistoryRenamedParallelism(int value) {
-        this.historyRenamedParallelism = value > 0 ? value : 0;
+        // ignored
     }
     
     public boolean isTagsEnabled() {

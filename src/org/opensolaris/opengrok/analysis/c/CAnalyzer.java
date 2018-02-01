@@ -66,7 +66,7 @@ public class CAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new CXref(reader));
+        return new JFlexXref(new CXref(reader), getFactory().getEnv());
     }
     
     @Override

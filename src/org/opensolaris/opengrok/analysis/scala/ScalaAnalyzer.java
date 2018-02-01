@@ -63,6 +63,6 @@ public class ScalaAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new ScalaXref(reader));
+        return new JFlexXref(new ScalaXref(reader), getFactory().getEnv());
     }
 }

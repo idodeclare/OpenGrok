@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.json;
@@ -27,6 +27,7 @@ package org.opensolaris.opengrok.analysis.json;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class JsonAnalyzerFactory extends FileAnalyzerFactory {
     // TODO add schema support
@@ -36,10 +37,14 @@ public class JsonAnalyzerFactory extends FileAnalyzerFactory {
         "JSON"        
     };
 
-    public JsonAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public JsonAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link JsonAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new JsonAnalyzer(this);

@@ -69,23 +69,22 @@ import org.opensolaris.opengrok.util.IOUtils;
  */
 public class RuntimeEnvironmentTest {
 
+    private static RuntimeEnvironment env;
     private static File originalConfig;
-
-    public RuntimeEnvironmentTest() {
-    }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
         // preserve the original
         originalConfig = File.createTempFile("config", ".xml");
-        RuntimeEnvironment.getInstance().writeConfiguration(originalConfig);
+        env.writeConfiguration(originalConfig);
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
         // restore the configuration
-        RuntimeEnvironment.getInstance().readConfiguration(originalConfig);
-        RuntimeEnvironment.getInstance().register();
+        env.readConfiguration(originalConfig);
+        env.register();
         originalConfig.delete();
     }
 
@@ -93,12 +92,12 @@ public class RuntimeEnvironmentTest {
     public void setUp() {
         // Create a default configuration
         Configuration config = new Configuration();
-        RuntimeEnvironment.getInstance().setConfiguration(config);
+        env.setConfiguration(config);
     }
 
     @Test
     public void testDataRoot() throws IOException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertNull(instance.getDataRootFile());
         assertNull(instance.getDataRootPath());
         File f = File.createTempFile("dataroot", null);
@@ -136,7 +135,7 @@ public class RuntimeEnvironmentTest {
     
     @Test
     public void testSourceRoot() throws IOException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertNull(instance.getSourceRootFile());
         assertNull(instance.getSourceRootPath());
         File f = File.createTempFile("sourceroot", null);
@@ -149,7 +148,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testProjects() throws IOException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         instance.setProjectsEnabled(true);
         assertFalse(instance.hasProjects());
         assertNotNull(instance.getProjects());
@@ -163,14 +162,14 @@ public class RuntimeEnvironmentTest {
         p.setPath("/bar");
         assertEquals("/bar", p.getId());
         instance.getProjects().put(p.getName(), p);
-        assertEquals(p, Project.getProject(file));
+        assertEquals(p, instance.getProject(file));
         instance.setProjects(null);
         assertNull(instance.getProjects());
     }
 
     @Test
     public void testGroups() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertFalse(instance.hasGroups());
         assertNotNull(instance.getGroups());
         assertEquals(0, instance.getGroups().size());
@@ -188,13 +187,13 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testRegister() throws InterruptedException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String path = "/tmp/dataroot";
         instance.setDataRoot(path);
         instance.register();
         Thread t = new Thread(() -> {
             Configuration c = new Configuration();
-            RuntimeEnvironment.getInstance().setConfiguration(c);
+            instance.setConfiguration(c);
         });
         t.start();
         t.join();
@@ -203,13 +202,13 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testUrlPrefix() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals("/source/s?", instance.getUrlPrefix());
     }
 
     @Test
     public void testCtags() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String instanceCtags = instance.getCtags();
         assertNotNull(instanceCtags);
         assertTrue("instance ctags should equals 'ctags' or the sys property",
@@ -228,7 +227,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testHistoryReaderTimeLimit() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals(30, instance.getHistoryReaderTimeLimit());
         instance.setHistoryReaderTimeLimit(50);
         assertEquals(50, instance.getHistoryReaderTimeLimit());
@@ -236,7 +235,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testFetchHistoryWhenNotInCache() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.isFetchHistoryWhenNotInCache());
         instance.setFetchHistoryWhenNotInCache(false);
         assertFalse(instance.isFetchHistoryWhenNotInCache());
@@ -244,7 +243,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testUseHistoryCache() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.useHistoryCache());
         instance.setUseHistoryCache(false);
         assertFalse(instance.useHistoryCache());
@@ -252,7 +251,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testGenerateHtml() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.isGenerateHtml());
         instance.setGenerateHtml(false);
         assertFalse(instance.isGenerateHtml());
@@ -260,7 +259,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testCompressXref() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.isCompressXref());
         instance.setCompressXref(false);
         assertFalse(instance.isCompressXref());
@@ -268,7 +267,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testQuickContextScan() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.isQuickContextScan());
         instance.setQuickContextScan(false);
         assertFalse(instance.isQuickContextScan());
@@ -276,7 +275,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testRepositories() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertNotNull(instance.getRepositories());
         instance.removeRepositories();
         assertNull(instance.getRepositories());
@@ -287,7 +286,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testRamBufferSize() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals(16, instance.getRamBufferSize(), 0);  //default is 16
         instance.setRamBufferSize(256);
         assertEquals(256, instance.getRamBufferSize(), 0);
@@ -295,7 +294,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testVerbose() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertFalse(instance.isVerbose());
         instance.setVerbose(true);
         assertTrue(instance.isVerbose());
@@ -303,7 +302,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testAllowLeadingWildcard() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertFalse(instance.isAllowLeadingWildcard());
         instance.setAllowLeadingWildcard(true);
         assertTrue(instance.isAllowLeadingWildcard());
@@ -311,7 +310,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testIgnoredNames() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertNotNull(instance.getIgnoredNames());
         instance.setIgnoredNames(null);
         assertNull(instance.getIgnoredNames());
@@ -319,7 +318,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testUserPage() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String page = "http://www.myserver.org/viewProfile.jspa?username=";
         assertNull(instance.getUserPage());   // default value is null
         instance.setUserPage(page);
@@ -328,7 +327,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testBugPage() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String page = "http://bugs.myserver.org/bugdatabase/view_bug.do?bug_id=";
         assertNull(instance.getBugPage());   // default value is null
         instance.setBugPage(page);
@@ -337,7 +336,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testBugPattern() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String[] tests = new String[]{
             "\\b([12456789][0-9]{6})\\b",
             "\\b(#\\d+)\\b",
@@ -357,7 +356,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testInvalidBugPattern() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String[] tests = new String[]{
             "\\b([",
             "\\b({,6})\\b",
@@ -377,7 +376,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testReviewPage() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String page = "http://arc.myserver.org/caselog/PSARC/";
         assertNull(instance.getReviewPage());   // default value is null
         instance.setReviewPage(page);
@@ -386,7 +385,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testReviewPattern() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String[] tests = new String[]{
             "\\b(\\d{4}/\\d{3})\\b",
             "\\b(#PSARC\\d+)\\b",
@@ -406,7 +405,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testInvalidReviewPattern() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         String[] tests = new String[]{
             "\\b([",
             "\\b({,6})\\b",
@@ -426,7 +425,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testWebappLAF() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals("default", instance.getWebappLAF());
         instance.setWebappLAF("foo");
         assertEquals("foo", instance.getWebappLAF());
@@ -434,7 +433,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testRemoteScmSupported() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals(Configuration.RemoteSCM.OFF, instance.getRemoteScmSupported());
         instance.setRemoteScmSupported(Configuration.RemoteSCM.ON);
         assertEquals(Configuration.RemoteSCM.ON, instance.getRemoteScmSupported());
@@ -446,7 +445,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testOptimizeDatabase() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertTrue(instance.isOptimizeDatabase());
         instance.setOptimizeDatabase(false);
         assertFalse(instance.isOptimizeDatabase());
@@ -454,13 +453,13 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testUsingLuceneLocking() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertEquals(LuceneLockName.OFF, instance.getLuceneLocking());
     }
 
     @Test
     public void testIndexVersionedFilesOnly() {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         assertFalse(instance.isIndexVersionedFilesOnly());
         instance.setIndexVersionedFilesOnly(true);
         assertTrue(instance.isIndexVersionedFilesOnly());
@@ -795,7 +794,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testBug3095() throws IOException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         File file = new File("foobar");
         assertTrue(file.createNewFile());
         assertFalse(file.isAbsolute());
@@ -809,7 +808,7 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testBug3154() throws IOException {
-        RuntimeEnvironment instance = RuntimeEnvironment.getInstance();
+        RuntimeEnvironment instance = env;
         File file = File.createTempFile("dataroot", null);
         assertTrue(file.delete());
         assertFalse(file.exists());
@@ -822,8 +821,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testObfuscateEMail() throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
         // By default, don't obfuscate.
         assertObfuscated(false, env);
 
@@ -840,7 +837,8 @@ public class RuntimeEnvironmentTest {
 
         String address = "discuss@opengrok.java.net";
 
-        JFlexXref xref = new JFlexXref(new PlainXref(new StringReader(address)));
+        JFlexXref xref = new JFlexXref(new PlainXref(new StringReader(address)),
+                env);
         StringWriter out = new StringWriter();
         xref.write(out);
 
@@ -856,8 +854,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void isChattyStatusPage() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
         // By default, status page should not be chatty.
         assertFalse(env.isChattyStatusPage());
 
@@ -884,7 +880,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testLoadEmptyStatistics() throws IOException, ParseException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String json = "{}";
         try (InputStream in = new StringInputStream(json)) {
             env.loadStatistics(in);
@@ -894,7 +889,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testLoadStatistics() throws IOException, ParseException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String json = "{"
             + "\"requests_per_minute_max\":3,"
             + "\"timing\":{"
@@ -959,7 +953,6 @@ public class RuntimeEnvironmentTest {
 
     @Test(expected = ParseException.class)
     public void testLoadInvalidStatistics() throws ParseException, IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String json = "{ malformed json with missing bracket";
         try (InputStream in = new StringInputStream(json)) {
             env.loadStatistics(in);
@@ -968,7 +961,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testSaveEmptyStatistics() throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.setStatistics(new Statistics());
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             env.saveStatistics(out);
@@ -978,7 +970,6 @@ public class RuntimeEnvironmentTest {
 
     @Test
     public void testSaveStatistics() throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.setStatistics(new Statistics());
         env.getStatistics().addRequest();
         env.getStatistics().addRequest("root");
@@ -993,24 +984,24 @@ public class RuntimeEnvironmentTest {
 
     @Test(expected = IOException.class)
     public void testSaveNullStatistics() throws IOException {
-        RuntimeEnvironment.getInstance().getConfiguration().setStatisticsFilePath(null);
-        RuntimeEnvironment.getInstance().saveStatistics();
+        env.getConfiguration().setStatisticsFilePath(null);
+        env.saveStatistics();
     }
 
     @Test(expected = IOException.class)
     public void testSaveNullStatisticsFile() throws IOException {
-        RuntimeEnvironment.getInstance().saveStatistics((File) null);
+        env.saveStatistics((File) null);
     }
 
     @Test(expected = IOException.class)
     public void testLoadNullStatistics() throws IOException, ParseException {
-        RuntimeEnvironment.getInstance().getConfiguration().setStatisticsFilePath(null);
-        RuntimeEnvironment.getInstance().loadStatistics();
+        env.getConfiguration().setStatisticsFilePath(null);
+        env.loadStatistics();
     }
 
     @Test(expected = IOException.class)
     public void testLoadNullStatisticsFile() throws IOException, ParseException {
-        RuntimeEnvironment.getInstance().loadStatistics((File) null);
+        env.loadStatistics((File) null);
     }
 
     /**
@@ -1022,7 +1013,6 @@ public class RuntimeEnvironmentTest {
     @Test
     public void testGetPathRelativeToSourceRoot() throws IOException,
             ForbiddenSymlinkException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
         // Create and set source root.
         File sourceRoot = Files.createTempDirectory("src").toFile();

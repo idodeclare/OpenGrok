@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.search;
@@ -27,20 +28,29 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Unit test class for QueryBuilder
  * @author Lubos Kosco
  */
 public class QueryBuilderTest {
+
+    private static RuntimeEnvironment env;
        
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     /**
      * Test of setFreetext method, of class QueryBuilder.
      * @throws ParseException parse exception
      */
     @Test
     public void testParsePath() throws ParseException {        
-        QueryBuilder instance = new QueryBuilder();
+        QueryBuilder instance = new QueryBuilder(env);
         String expResult = "+this +is +a +test +path";
         QueryBuilder result = instance.setPath("this/is/a/test/path");
         Query test = result.build();        

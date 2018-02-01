@@ -53,7 +53,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -85,8 +84,11 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import org.opensolaris.opengrok.analysis.AnalyzerGuru;
 import static org.opensolaris.opengrok.configuration.Configuration.makeXMLStringAsConfiguration;
+import org.opensolaris.opengrok.index.IndexerParallelizer;
 import org.opensolaris.opengrok.util.ForbiddenSymlinkException;
+import org.opensolaris.opengrok.util.LazilyInstantiate;
 import org.opensolaris.opengrok.util.PathUtils;
 import org.opensolaris.opengrok.web.Prefix;
 
@@ -107,10 +109,12 @@ public final class RuntimeEnvironment {
 
     private Configuration configuration;
     private final ThreadLocal<Configuration> threadConfig;
+    private final LazilyInstantiate<IndexerParallelizer> lzIndexerParallelizer;
+    private final LazilyInstantiate<AnalyzerGuru> lzAnalyzerGuru;
+    private final LazilyInstantiate<HistoryGuru> lzHistoryGuru;
+    private final LazilyInstantiate<ExecutorService> lzSearchExecutor;
+
     private static final RuntimeEnvironment instance = new RuntimeEnvironment();
-    private static ExecutorService historyExecutor = null;
-    private static ExecutorService historyRenamedExecutor = null;
-    private static ExecutorService searchExecutor = null;
 
     private final Map<Project, List<RepositoryInfo>> repository_map = new ConcurrentHashMap<>();
     private final Map<String, SearcherManager> searcherManagerMap = new ConcurrentHashMap<>();
@@ -141,7 +145,7 @@ public final class RuntimeEnvironment {
      */
     private Boolean allNonWhitespace;
 
-    private static final IndexTimestamp indexTime = new IndexTimestamp();
+    private final IndexTimestamp indexTime = new IndexTimestamp(this);
 
     /**
      * Stores a transient value when
@@ -161,44 +165,13 @@ public final class RuntimeEnvironment {
      */
     private AuthorizationFramework authFramework;
 
-    /* Get thread pool used for top-level repository history generation. */
-    public static synchronized ExecutorService getHistoryExecutor() {
-        if (historyExecutor == null) {
-            historyExecutor = Executors.newFixedThreadPool(getInstance().getHistoryParallelism(),
-                    new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable runnable) {
-                    Thread thread = Executors.defaultThreadFactory().newThread(runnable);
-                    thread.setName("history-handling-" + thread.getId());
-                    return thread;
-                }
-            });
-        }
-
-        return historyExecutor;
-    }
-
-    /* Get thread pool used for history generation of renamed files. */
-    public static synchronized ExecutorService getHistoryRenamedExecutor() {
-        if (historyRenamedExecutor == null) {
-            historyRenamedExecutor = Executors.newFixedThreadPool(getInstance().getHistoryRenamedParallelism(),
-                    new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable runnable) {
-                    Thread thread = Executors.defaultThreadFactory().newThread(runnable);
-                    thread.setName("renamed-handling-" + thread.getId());
-                    return thread;
-                }
-            });
-        }
-
-        return historyRenamedExecutor;
-    }
-
     /* Get thread pool used for multi-project searches. */
-    public synchronized ExecutorService getSearchExecutor() {
-        if (searchExecutor == null) {
-            searchExecutor = Executors.newFixedThreadPool(
+    public ExecutorService getSearchExecutor() {
+        return lzSearchExecutor.get();
+    }
+
+    private ExecutorService newSearchExecutor() {
+        return Executors.newFixedThreadPool(
                 this.getMaxSearchThreadCount(),
                 new ThreadFactory() {
                 @Override
@@ -208,23 +181,6 @@ public final class RuntimeEnvironment {
                     return thread;
                 }
             });
-        }
-
-        return searchExecutor;
-    }
-
-    public static synchronized void freeHistoryExecutor() {
-        historyExecutor = null;
-    }
-
-    public static synchronized void destroyRenamedHistoryExecutor() throws InterruptedException {
-        if (historyRenamedExecutor != null) {
-            historyRenamedExecutor.shutdown();
-            // All the jobs should be completed by now however for testing
-            // we would like to make sure the threads are gone.
-            historyRenamedExecutor.awaitTermination(1, TimeUnit.MINUTES);
-            historyRenamedExecutor = null;
-        }
     }
 
     /**
@@ -248,6 +204,23 @@ public final class RuntimeEnvironment {
                 return configuration;
             }
         };
+        lzIndexerParallelizer = LazilyInstantiate.using(() ->
+                new IndexerParallelizer(this));
+        lzAnalyzerGuru = LazilyInstantiate.using(() -> new AnalyzerGuru(this));
+        lzHistoryGuru = LazilyInstantiate.using(() -> new HistoryGuru(this));
+        lzSearchExecutor = LazilyInstantiate.using(() -> newSearchExecutor());
+    }
+
+    public IndexerParallelizer getIndexerParallelizer() {
+        return lzIndexerParallelizer.get();
+    }
+
+    public AnalyzerGuru getAnalyzerGuru() {
+        return lzAnalyzerGuru.get();
+    }
+
+    public HistoryGuru getHistoryGuru() {
+        return lzHistoryGuru.get();
     }
 
     private String getCanonicalPath(String s) {
@@ -483,6 +456,73 @@ public final class RuntimeEnvironment {
     }
 
     /**
+     * Get the project for a specific file
+     *
+     * @param path the file to lookup (relative to source root)
+     * @return the project that this file belongs to (or null if the file
+     * doesn't belong to a project)
+     */
+    public Project getProject(String path) {
+        // Try to match each project path as prefix of the given path.
+        if (hasProjects()) {
+            final String lpath = path.replace(File.separatorChar, '/');
+            for (Project p : getProjectList()) {
+                String pp = p.getPath();
+                // Check if the project's path is a prefix of the given
+                // path. It has to be an exact match, or the project's path
+                // must be immediately followed by a separator. "/foo" is
+                // a prefix for "/foo" and "/foo/bar", but not for "/foof".
+                if (lpath.startsWith(pp)
+                        && (pp.length() == lpath.length()
+                        || lpath.charAt(pp.length()) == '/')) {
+                    return p;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the project for a specific file
+     *
+     * @param file the file to lookup
+     * @return the project that this file belongs to (or null if the file
+     * doesn't belong to a project)
+     */
+    public Project getProject(File file) {
+        Project ret = null;
+        try {
+            ret = getProject(getPathRelativeToSourceRoot(file));
+        } catch (FileNotFoundException e) { // NOPMD
+            // ignore if not under source root
+        } catch (ForbiddenSymlinkException e) {
+            LOGGER.log(Level.FINER, e.getMessage());
+            // ignore
+        } catch (IOException e) { // NOPMD
+            // problem has already been logged, just return null
+        }
+        return ret;
+    }
+
+    /**
+     * Returns project object by its name, used in webapp to figure out which
+     * project is to be searched
+     *
+     * @param name name of the project
+     * @return project that fits the name
+     */
+    public Project getProjectByName(String name) {
+        if (hasProjects()) {
+            Project proj;
+            if ((proj = getProjects().get(name)) != null) {
+                return (proj);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Do we have groups?
      *
      * @return true if we have groups
@@ -508,6 +548,23 @@ public final class RuntimeEnvironment {
     public void setGroups(Set<Group> groups) {
         populateGroups(groups, new TreeSet<Project>(getProjects().values()));
         threadConfig.get().setGroups(groups);
+    }
+
+    /**
+     * Returns group object by its name
+     * @param name name of a group
+     * @return group that fits the name
+     */
+    public Group getGroupByName(String name) {
+        Group ret = null;
+        if (hasGroups()) {
+            for (Group grp : getGroups()) {
+                if (name.equals(grp.getName())) {
+                    ret = grp;
+                }
+            }
+        }
+        return ret;
     }
 
     /**
@@ -627,7 +684,8 @@ public final class RuntimeEnvironment {
      */
     public boolean validateExuberantCtags() {
         if (exCtagsFound == null) {
-            Executor executor = new Executor(new String[]{getCtags(), "--version"});
+            Executor executor = new Executor(
+                    new String[]{getCtags(), "--version"}, getCommandTimeout());
             executor.exec(false);
             String output = executor.getOutputString();
             boolean isUnivCtags = output != null && output.contains("Universal Ctags");
@@ -657,7 +715,8 @@ public final class RuntimeEnvironment {
     public boolean isUniversalCtags() {
         if (isUniversalCtagsVal == null) {
             isUniversalCtagsVal = false;
-            Executor executor = new Executor(new String[]{getCtags(), "--version"});
+            Executor executor = new Executor(
+                    new String[]{getCtags(), "--version"}, getCommandTimeout());
 
             executor.exec(false);
             String output = executor.getOutputString();
@@ -774,10 +833,10 @@ public final class RuntimeEnvironment {
      * @param dir the root directory to start the search in
      */
     public void setRepositories(String dir) {
-        List<RepositoryInfo> repos = new ArrayList<>(HistoryGuru.getInstance().
-                addRepositories(new File[]{new File(dir)},
-                    RuntimeEnvironment.getInstance().getIgnoredNames()));
-        RuntimeEnvironment.getInstance().setRepositories(repos);
+        List<RepositoryInfo> repos = new ArrayList<>(
+                getHistoryGuru().addRepositories(new File[]{new File(dir)},
+                getIgnoredNames()));
+        setRepositories(repos);
     }
 
     /**
@@ -1102,28 +1161,6 @@ public final class RuntimeEnvironment {
      */
     public int getIndexingParallelism() {
         int parallelism = threadConfig.get().getIndexingParallelism();
-        return parallelism < 1 ? Runtime.getRuntime().availableProcessors() :
-            parallelism;
-    }
-
-    /**
-     * Gets the value of {@link Configuration#getHistoryParallelism()} -- or
-     * if zero, then as a default gets the number of available processors.
-     * @return a natural number &gt;= 1
-     */
-    public int getHistoryParallelism() {
-        int parallelism = threadConfig.get().getHistoryParallelism();
-        return parallelism < 1 ? Runtime.getRuntime().availableProcessors() :
-            parallelism;
-    }
-
-    /**
-     * Gets the value of {@link Configuration#getHistoryRenamedParallelism()} -- or
-     * if zero, then as a default gets the number of available processors.
-     * @return a natural number &gt;= 1
-     */
-    public int getHistoryRenamedParallelism() {
-        int parallelism = threadConfig.get().getHistoryRenamedParallelism();
         return parallelism < 1 ? Runtime.getRuntime().availableProcessors() :
             parallelism;
     }
@@ -1472,7 +1509,7 @@ public final class RuntimeEnvironment {
                 continue;
             }
 
-            if ((proj = Project.getProject(repoPath)) != null) {
+            if ((proj = getProject(repoPath)) != null) {
                 List<RepositoryInfo> values = repository_map.get(proj);
                 if (values == null) {
                     values = new ArrayList<>();
@@ -1542,8 +1579,6 @@ public final class RuntimeEnvironment {
         // Another case where the singleton anti-pattern bites us in the back.
         register();
         
-        HistoryGuru histGuru = HistoryGuru.getInstance();
-        
         try {
             generateProjectRepositoriesMap();
         } catch (IOException ex) {
@@ -1554,16 +1589,16 @@ public final class RuntimeEnvironment {
         
         // Set the working repositories in HistoryGuru.
         if (subFileList != null) {
-            histGuru.invalidateRepositories(
+            getHistoryGuru().invalidateRepositories(
                 configuration.getRepositories(), subFileList, interactive);
         } else {
-            histGuru.invalidateRepositories(configuration.getRepositories(),
-                    interactive);
+            getHistoryGuru().invalidateRepositories(
+                    configuration.getRepositories(), interactive);
         }
         // The invalidation of repositories above might have excluded some
         // repositories in HistoryGuru so the configuration needs to reflect that.
-        configuration.setRepositories(new ArrayList<>(histGuru.getRepositories()));
-        
+        configuration.setRepositories(new ArrayList<>(
+                getHistoryGuru().getRepositories()));
         reloadIncludeFiles(configuration);
     }
 
@@ -1744,7 +1779,7 @@ public final class RuntimeEnvironment {
         // set the new plugin directory and reload the authorization framework
         getAuthorizationFramework().setPluginDirectory(config.getPluginDirectory());
         getAuthorizationFramework().setStack(config.getPluginStack());
-        getAuthorizationFramework().reload();
+        getAuthorizationFramework().reload(this);
 
         messagesContainer.setMessageLimit(config.getMessageLimit());
     }
@@ -1777,6 +1812,7 @@ public final class RuntimeEnvironment {
             LOGGER.log(Level.INFO, "Watch dog cannot be started - invalid directory: {0}", directory);
             return;
         }
+        RuntimeEnvironment self = this;
         LOGGER.log(Level.INFO, "Starting watchdog in: {0}", directory);
         watchDogThread = new Thread(new Runnable() {
             @Override
@@ -1817,7 +1853,7 @@ public final class RuntimeEnvironment {
                         }
                         if (reload) {
                             Thread.sleep(THREAD_SLEEP_TIME); // experimental wait if file is being written right now
-                            getAuthorizationFramework().reload();
+                            getAuthorizationFramework().reload(self);
                         }
                         if (!key.reset()) {
                             break;
@@ -1905,7 +1941,8 @@ public final class RuntimeEnvironment {
 
             try {
                 Directory dir = FSDirectory.open(new File(indexDir, proj).toPath());
-                mgr = new SearcherManager(dir, new ThreadpoolSearcherFactory());
+                mgr = new SearcherManager(dir,
+                        new ThreadpoolSearcherFactory(this));
                 searcherManagerMap.put(proj, mgr);
                 searcher = (SuperIndexSearcher) mgr.acquire();
                 searcher.setSearcherManager(mgr);
@@ -1970,7 +2007,7 @@ public final class RuntimeEnvironment {
         // String , need changes in projects.jspf too
         for (String proj : projects) {
             try {
-                SuperIndexSearcher searcher = RuntimeEnvironment.getInstance().getIndexSearcher(proj);
+                SuperIndexSearcher searcher = getIndexSearcher(proj);
                 subreaders[ii++] = searcher.getIndexReader();
                 searcherList.add(searcher);
             } catch (IOException ex) {

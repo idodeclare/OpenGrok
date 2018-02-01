@@ -64,6 +64,6 @@ public class JsonAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new JsonXref(reader));
+        return new JFlexXref(new JsonXref(reader), getFactory().getEnv());
     }
 }

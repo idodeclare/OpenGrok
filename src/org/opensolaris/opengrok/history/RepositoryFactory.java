@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -79,9 +79,10 @@ public final class RepositoryFactory {
         return list;
     }
 
-    public static Repository getRepository(File file)
-        throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException{
-        return getRepository(file, false);
+    public static Repository getRepository(RuntimeEnvironment env, File file)
+            throws InstantiationException, IllegalAccessException,
+            NoSuchMethodException, InvocationTargetException {
+        return getRepository(env, file, false);
     }
     
     /**
@@ -94,6 +95,7 @@ public final class RepositoryFactory {
      * {@code invalidateRepositories()}) and the commands run within should
      * use interactive command timeout (as specified in {@code Configuration}).
      *
+     * @param env a defined instance
      * @param file File that might contain a repository
      * @param interactive true if running in interactive mode
      * @return Correct repository for the given file
@@ -102,9 +104,9 @@ public final class RepositoryFactory {
      * @throws NoSuchMethodException in case we cannot create the repository object
      * @throws InvocationTargetException in case we cannot create the repository object
      */
-    public static Repository getRepository(File file, boolean interactive)
-            throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    public static Repository getRepository(RuntimeEnvironment env, File file,
+            boolean interactive) throws InstantiationException,
+            IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         Repository repo = null;
 
         for (Repository rep : repositories) {
@@ -174,6 +176,7 @@ public final class RepositoryFactory {
      * Returns a repository for the given file, or null if no repository was
      * found.
      *
+     * @param env a defined instance
      * @param info Information about the repository
      * @param interactive true if used in interactive mode
      * @return Correct repository for the given file
@@ -182,9 +185,11 @@ public final class RepositoryFactory {
      * @throws NoSuchMethodException in case we cannot create the repository object
      * @throws InvocationTargetException in case we cannot create the repository object
      */
-    public static Repository getRepository(RepositoryInfo info, boolean interactive)
-            throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        return getRepository(new File(info.getDirectoryName()), interactive);
+    public static Repository getRepository(RuntimeEnvironment env,
+            RepositoryInfo info, boolean interactive)
+            throws InstantiationException, IllegalAccessException,
+            NoSuchMethodException, InvocationTargetException {
+        return getRepository(env, new File(info.getDirectoryName()));
     }
 
     /**

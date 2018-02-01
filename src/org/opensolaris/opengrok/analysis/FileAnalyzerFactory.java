@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Factory class which creates a {@code FileAnalyzer} object and
@@ -36,6 +37,10 @@ import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
  */
 public class FileAnalyzerFactory {
 
+    private final static List<Matcher> EMPTY_MATCHERS = Collections.emptyList();
+
+    /** the initialized value */
+    protected final RuntimeEnvironment env;
     /** Cached analyzer object for the current thread (analyzer objects can be
      * expensive to allocate). */
     private final ThreadLocal<FileAnalyzer> cachedAnalyzer;
@@ -50,9 +55,6 @@ public class FileAnalyzerFactory {
     /** List of magic strings used to recognize files on which this kind of
      * analyzer should be used. */
     private final List<String> magics;
-    /** List of matchers which delegate files to different types of
-     * analyzers. */
-    private final List<Matcher> matchers;
     /** The content type for the files recognized by this kind of analyzer. */
     private final String contentType;
     /** The genre for files recognized by this kind of analyzer. */
@@ -63,41 +65,50 @@ public class FileAnalyzerFactory {
     /**
      * Create an instance of {@code FileAnalyzerFactory}.
      */
-    FileAnalyzerFactory() {
-        this(null, null, null, null, null, null, null,null);
+    FileAnalyzerFactory(RuntimeEnvironment env) {
+        this(env, null, null, null, null, null, null,null);
     }
 
     /**
      * Construct an instance of {@code FileAnalyzerFactory}. This constructor
      * should be used by subclasses to override default values.
      *
+     * @param env a defined instance
      * @param names list of file names to recognize (possibly {@code null})
      * @param prefixes list of prefixes to recognize (possibly {@code null})
      * @param suffixes list of suffixes to recognize (possibly {@code null})
      * @param magics list of magic strings to recognize (possibly {@code null})
-     * @param matcher a matcher for this analyzer (possibly {@code null})
      * @param contentType content type for this analyzer (possibly {@code null})
      * @param genre the genre for this analyzer (if {@code null}, {@code
      * Genre.DATA} is used)
      * @param name user friendly name of this analyzer (or null if it shouldn't be listed)
      */
-    protected FileAnalyzerFactory(
+    protected FileAnalyzerFactory(RuntimeEnvironment env,
             String[] names, String[] prefixes, String[] suffixes,
-            String[] magics, Matcher matcher, String contentType,
+            String[] magics, String contentType,
             Genre genre, String name) {
+
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+
         cachedAnalyzer = new ThreadLocal<>();
         this.names = asList(names);
         this.prefixes = asList(prefixes);
         this.suffixes = asList(suffixes);
         this.magics = asList(magics);
-        if (matcher == null) {
-            this.matchers = Collections.emptyList();
-        } else {
-            this.matchers = Collections.singletonList(matcher);
-        }
         this.contentType = contentType;
         this.genre = (genre == null) ? Genre.DATA : genre;
         this.name = name;
+    }
+
+    /**
+     * Gets the environment instance from the factory initialization.
+     * @return a defined instance
+     */
+    public RuntimeEnvironment getEnv() {
+        return env;
     }
 
     /**
@@ -155,12 +166,12 @@ public class FileAnalyzerFactory {
 
     /**
      * Get matchers that map file contents to analyzer factories
-     * programmatically.
+     * programmatically. Subclasses can override to return a non-empty list.
      *
-     * @return list of matchers
+     * @return an empty list
      */
-    final List<Matcher> getMatchers() {
-        return matchers;
+    public List<Matcher> getMatchers() {
+        return EMPTY_MATCHERS;
     }
 
     /**

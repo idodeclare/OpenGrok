@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.data;
@@ -26,6 +27,7 @@ package org.opensolaris.opengrok.analysis.data;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Factory for analyzer that tells that image files can be displayed.
@@ -38,8 +40,8 @@ public class ImageAnalyzerFactory extends FileAnalyzerFactory {
         "PNG", "GIF", "JPEG", "JPG", "TIFF", "BMP"
     };
 
-    public ImageAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, null, Genre.IMAGE, name);
+    public ImageAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, null, Genre.IMAGE, name);
     }
 
     @Override

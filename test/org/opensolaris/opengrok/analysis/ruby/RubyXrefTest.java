@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2016, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.ruby;
@@ -37,12 +37,14 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.CtagsReader;
 import org.opensolaris.opengrok.analysis.Definitions;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.JFlexXref;
 import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -50,6 +52,13 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  * Tests the {@link RubyXref} class.
  */
 public class RubyXrefTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void sampleTest() throws IOException {
@@ -79,7 +88,7 @@ public class RubyXrefTest {
         final String RUBY_COLON_QUOTE =
             "\"from #{logfn}:\"\n";
         JFlexXref xref = new JFlexXref(new RubyXref(new StringReader(
-            RUBY_COLON_QUOTE)));
+            RUBY_COLON_QUOTE)), env);
 
         StringWriter out = new StringWriter();
         xref.write(out);
@@ -102,7 +111,7 @@ public class RubyXrefTest {
         oss.print(getHtmlBegin());
 
         Writer sw = new StringWriter();
-        RubyAnalyzerFactory fac = new RubyAnalyzerFactory();
+        RubyAnalyzerFactory fac = new RubyAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs wargs = new WriteXrefArgs(
             new InputStreamReader(iss, "UTF-8"), sw);

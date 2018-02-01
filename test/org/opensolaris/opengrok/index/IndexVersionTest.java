@@ -57,19 +57,19 @@ public class IndexVersionTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
+    private static RuntimeEnvironment env;
     private TestRepository repository;
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
     private Path oldIndexDataDir;
     
     @BeforeClass
     public static void setUpClass() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+        env = RuntimeEnvironment.getInstance();
         RepositoryFactory.initializeIgnoredNames(env);
     }
 
     @Before
     public void setUp() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(IndexerTest.class.
                 getResourceAsStream("/org/opensolaris/opengrok/history/repositories.zip"));
         oldIndexDataDir = null;
@@ -94,7 +94,7 @@ public class IndexVersionTest {
         env.setProjectsEnabled(projectsEnabled);
         Indexer.getInstance().prepareIndexer(env, true, true, null,
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         IndexVersion.check(env.getConfiguration(), subFiles);
     }

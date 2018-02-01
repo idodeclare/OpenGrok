@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.search;
 
@@ -48,14 +49,22 @@ final class Search {
             "\t -f Full text\n" +
             "\t -t Type";
 
+    private final RuntimeEnvironment env;
     private SearchEngine engine;
     final List<Hit> results = new ArrayList<>();
     int totalResults = 0;
     int nhits = 0;
 
+    public Search(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
+
     @SuppressWarnings({"PMD.SwitchStmtsShouldHaveDefault"})
     protected boolean parseCmdLine(String[] argv) {
-        engine = new SearchEngine();
+        engine = new SearchEngine(env);
         Getopt getopt = new Getopt(argv, "R:d:r:p:h:f:t:");
         try {
             getopt.parse();
@@ -70,7 +79,7 @@ final class Search {
             switch (cmd) {
                 case 'R':
                     try {
-                        RuntimeEnvironment.getInstance().readConfiguration(new File(getopt.getOptarg()));
+                        env.readConfiguration(new File(getopt.getOptarg()));
                     } catch (IOException e) {
                         System.err.println("Failed to read config file: ");
                         System.err.println(e.getMessage());
@@ -102,7 +111,7 @@ final class Search {
     }
 
     protected boolean search() {
-        if (RuntimeEnvironment.getInstance().getDataRootPath() == null) {
+        if (env.getDataRootPath() == null) {
             System.err.println("You must specify a configuration file");
             System.err.println(usage);
             return false;
@@ -129,7 +138,7 @@ final class Search {
         if (results.isEmpty()) {
             System.err.println("Your search \"" + engine.getQuery() + "\" did not match any files.");
         } else {
-            String root = RuntimeEnvironment.getInstance().getSourceRootPath();
+            String root = env.getSourceRootPath();
             System.out.println("Printing results 1 - " + nhits +" of " + totalResults + " total matching documents collected.");
             for (Hit hit : results) {
                 File file = new File(root, hit.getPath());
@@ -165,7 +174,8 @@ final class Search {
      * @param argv command line arguments
      */
     public static void main(String[] argv) {
-        Search searcher = new Search();
+        RuntimeEnvironment genv = RuntimeEnvironment.getInstance();
+        Search searcher = new Search(genv);
         boolean success = false;
 
         if (searcher.parseCmdLine(argv) && searcher.search()) {

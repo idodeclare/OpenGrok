@@ -20,6 +20,7 @@
 /*
  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
  * Use is subject to license terms.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.util;
 
@@ -30,10 +31,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -41,11 +46,14 @@ import static org.junit.Assert.*;
  */
 public class ExecutorTest {
 
+    private static RuntimeEnvironment env;
+
     public ExecutorTest() {
     }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @AfterClass
@@ -65,7 +73,7 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opensolaris.opengrok.util.Executor");
-        Executor instance = new Executor(cmdList);
+        Executor instance = new Executor(cmdList, env.getCommandTimeout());
         assertEquals(0, instance.exec());
         assertTrue(instance.getOutputString().startsWith("testing org.opensolaris.opengrok.util.Executor"));
         String err = instance.getErrorString();
@@ -77,7 +85,7 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opensolaris.opengrok.util.Executor");
-        Executor instance = new Executor(cmdList);
+        Executor instance = new Executor(cmdList, env.getCommandTimeout());
         assertEquals(0, instance.exec());
         BufferedReader in = new BufferedReader(instance.getOutputReader());
         assertEquals("testing org.opensolaris.opengrok.util.Executor", in.readLine());
@@ -92,7 +100,8 @@ public class ExecutorTest {
         List<String> cmdList = new ArrayList<String>();
         cmdList.add("echo");
         cmdList.add("testing org.opensolaris.opengrok.util.Executor");
-        Executor instance = new Executor(cmdList, new File("."));
+        Executor instance = new Executor(cmdList, new File("."),
+                env.getCommandTimeout());
         assertEquals(0, instance.exec());
         assertNotNull(instance.getOutputStream());
         assertNotNull(instance.getErrorStream());

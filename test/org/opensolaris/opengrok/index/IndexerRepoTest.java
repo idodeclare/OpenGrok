@@ -42,6 +42,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opensolaris.opengrok.condition.ConditionalRun;
@@ -68,11 +69,17 @@ public class IndexerRepoTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
+    private static RuntimeEnvironment env;
     private TestRepository repository;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Before
     public void setUp() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         // For these tests we need Mercurial repository with renamed files.
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
     }
@@ -150,18 +157,18 @@ public class IndexerRepoTest {
         File fileInRepo = new File(repoRoot, "main.c");
         assertTrue(fileInRepo.exists());
         if (globalOn) {
-            assertNotNull(HistoryGuru.getInstance().getHistory(fileInRepo));
+            assertNotNull(env.getHistoryGuru().getHistory(fileInRepo));
         } else {
-            assertNull(HistoryGuru.getInstance().getHistory(fileInRepo));
+            assertNull(env.getHistoryGuru().getHistory(fileInRepo));
         }
         
         repoRoot = new File(env.getSourceRootFile(), "mercurial");
         fileInRepo = new File(repoRoot, "main.c");
         assertTrue(fileInRepo.exists());
         if (globalOn) {
-            assertNull(HistoryGuru.getInstance().getHistory(fileInRepo));
+            assertNull(env.getHistoryGuru().getHistory(fileInRepo));
         } else {
-            assertNotNull(HistoryGuru.getInstance().getHistory(fileInRepo));
+            assertNotNull(env.getHistoryGuru().getHistory(fileInRepo));
         }
         
         IOUtils.removeRecursive(dataRoot);
@@ -176,7 +183,6 @@ public class IndexerRepoTest {
     public void testSymlinks() throws IndexerException, IOException {
 
         final String SYMLINK = "symlink";
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
         // Set source root to pristine directory so that there is only one
         // repository to deal with (which makes this faster and easier to write)
@@ -226,8 +232,8 @@ public class IndexerRepoTest {
         File repoRoot = new File(env.getSourceRootFile(), SYMLINK);
         File fileInRepo = new File(repoRoot, "main.c");
         assertTrue(fileInRepo.exists());
-        assertTrue(HistoryGuru.getInstance().hasHistory(fileInRepo));
-        assertTrue(HistoryGuru.getInstance().hasCacheForFile(fileInRepo));
+        assertTrue(env.getHistoryGuru().hasHistory(fileInRepo));
+        assertTrue(env.getHistoryGuru().hasCacheForFile(fileInRepo));
 
         // cleanup
         IOUtils.removeRecursive(realSource);
@@ -240,7 +246,6 @@ public class IndexerRepoTest {
     @Test
     public void testMainWithH() {
         System.out.println("Generate index by using command line options with -H");
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String[] argv = {"-S", "-H", "-s", repository.getSourceRoot(),
                 "-d", repository.getDataRoot(), "-v", "-c", env.getCtags()};
         Indexer.main(argv);
@@ -253,7 +258,6 @@ public class IndexerRepoTest {
     @Test
     public void testMainWithoutH() {
         System.out.println("Generate index by using command line options without -H");
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String[] argv = {"-S", "-P", "-s", repository.getSourceRoot(),
                 "-d", repository.getDataRoot(), "-v", "-c", env.getCtags()};
         Indexer.main(argv);

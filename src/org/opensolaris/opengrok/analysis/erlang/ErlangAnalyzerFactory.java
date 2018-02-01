@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.erlang;
@@ -27,6 +27,7 @@ package org.opensolaris.opengrok.analysis.erlang;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class ErlangAnalyzerFactory extends FileAnalyzerFactory {
 
@@ -40,8 +41,9 @@ public class ErlangAnalyzerFactory extends FileAnalyzerFactory {
         "#!escript"
     };
 
-    public ErlangAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public ErlangAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
     @Override

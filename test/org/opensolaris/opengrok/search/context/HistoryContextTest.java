@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.search.context;
@@ -54,6 +54,7 @@ import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
  */
 public class HistoryContextTest {
 
+    private static RuntimeEnvironment env;
     private static TestRepository repositories;
 
     @Rule
@@ -61,10 +62,11 @@ public class HistoryContextTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repositories = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repositories = new TestRepository(env);
         repositories.create(HistoryContextTest.class.getResourceAsStream(
                 "/org/opensolaris/opengrok/history/repositories.zip"));
-        RuntimeEnvironment.getInstance().setRepositories(repositories.getSourceRoot());
+        env.setRepositories(repositories.getSourceRoot());
     }
 
     @AfterClass
@@ -86,11 +88,11 @@ public class HistoryContextTest {
         q5.add(q3, Occur.MUST);
 
         // The queries that don't contain a "hist" term are considered empty.
-        assertTrue(new HistoryContext(q1).isEmpty());
-        assertTrue(new HistoryContext(q2).isEmpty());
-        assertFalse(new HistoryContext(q3).isEmpty());
-        assertTrue(new HistoryContext(q4.build()).isEmpty());
-        assertFalse(new HistoryContext(q5.build()).isEmpty());
+        assertTrue(new HistoryContext(env, q1).isEmpty());
+        assertTrue(new HistoryContext(env, q2).isEmpty());
+        assertFalse(new HistoryContext(env, q3).isEmpty());
+        assertTrue(new HistoryContext(env, q4.build()).isEmpty());
+        assertFalse(new HistoryContext(env, q5.build()).isEmpty());
     }
 
     @Test
@@ -102,7 +104,8 @@ public class HistoryContextTest {
         // Construct a query equivalent to hist:dummy
         TermQuery q1 = new TermQuery(new Term("hist", "dummy"));
         ArrayList<Hit> hits = new ArrayList<>();
-        boolean gotCtx = new HistoryContext(q1).getContext(filename, path, hits);
+        boolean gotCtx = new HistoryContext(env, q1).getContext(filename, path,
+                hits);
         assertTrue(gotCtx);
         assertEquals(1, hits.size());
         assertTrue(hits.get(0).getLine().contains(
@@ -113,7 +116,8 @@ public class HistoryContextTest {
         q2.add(new Term("hist", "dummy"));
         q2.add(new Term("hist", "program"));
         hits.clear();
-        gotCtx = new HistoryContext(q2.build()).getContext(filename, path, hits);
+        gotCtx = new HistoryContext(env, q2.build()).getContext(filename, path,
+                hits);
         assertTrue(gotCtx);
         assertEquals(1, hits.size());
         assertTrue(hits.get(0).getLine().contains(
@@ -122,7 +126,7 @@ public class HistoryContextTest {
         // Search for a term that doesn't exist
         TermQuery q3 = new TermQuery(new Term("hist", "term_does_not_exist"));
         hits.clear();
-        gotCtx = new HistoryContext(q3).getContext(filename, path, hits);
+        gotCtx = new HistoryContext(env, q3).getContext(filename, path, hits);
         assertFalse(gotCtx);
         assertEquals(0, hits.size());
 
@@ -131,7 +135,8 @@ public class HistoryContextTest {
         q4.add(new TermQuery(new Term("hist", "small")), Occur.SHOULD);
         q4.add(new TermQuery(new Term("hist", "target")), Occur.SHOULD);
         hits.clear();
-        gotCtx = new HistoryContext(q4.build()).getContext(filename, path, hits);
+        gotCtx = new HistoryContext(env, q4.build()).getContext(filename, path,
+                hits);
         assertTrue(gotCtx);
         assertEquals(2, hits.size());
         assertTrue(hits.get(0).getLine().contains(
@@ -151,7 +156,8 @@ public class HistoryContextTest {
         // Construct a query equivalent to hist:dummy
         TermQuery q1 = new TermQuery(new Term("hist", "dummy"));
         StringWriter sw = new StringWriter();
-        assertTrue(new HistoryContext(q1).getContext(parent, base, path, sw, null));
+        assertTrue(new HistoryContext(env, q1).getContext(parent, base, path,
+                sw, null));
         assertTrue(sw.toString().contains(
                 "Created a small <b>dummy</b> program"));
 
@@ -160,14 +166,16 @@ public class HistoryContextTest {
         q2.add(new Term("hist", "dummy"));
         q2.add(new Term("hist", "program"));
         sw = new StringWriter();
-        assertTrue(new HistoryContext(q2.build()).getContext(parent, base, path, sw, null));
+        assertTrue(new HistoryContext(env, q2.build()).getContext(parent, base,
+                path, sw, null));
         assertTrue(sw.toString().contains(
                 "Created a small <b>dummy program</b>"));
 
         // Search for a term that doesn't exist
         TermQuery q3 = new TermQuery(new Term("hist", "term_does_not_exist"));
         sw = new StringWriter();
-        assertFalse(new HistoryContext(q3).getContext(parent, base, path, sw, null));
+        assertFalse(new HistoryContext(env, q3).getContext(parent, base, path,
+                sw, null));
         assertEquals("", sw.toString());
 
         // Search for term with multiple hits - hist:small OR hist:target
@@ -175,7 +183,8 @@ public class HistoryContextTest {
         q4.add(new TermQuery(new Term("hist", "small")), Occur.SHOULD);
         q4.add(new TermQuery(new Term("hist", "target")), Occur.SHOULD);
         sw = new StringWriter();
-        assertTrue(new HistoryContext(q4.build()).getContext(parent, base, path, sw, null));
+        assertTrue(new HistoryContext(env, q4.build()).getContext(parent, base,
+                path, sw, null));
         String result = sw.toString();
         assertTrue(result.contains(
                 "Add lint make <b>target</b> and fix lint warnings"));

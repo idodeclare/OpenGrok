@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2007, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.archive;
 
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class BZip2AnalyzerFactory extends FileAnalyzerFactory {
     
@@ -38,10 +40,14 @@ public class BZip2AnalyzerFactory extends FileAnalyzerFactory {
         "BZh"                   // Bzip files
     };
 
-    public BZip2AnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, null, null, name);
+    public BZip2AnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, null, null, name);
     }
 
+    /**
+     * Creates a new instance of {@link BZip2Analyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new BZip2Analyzer(this);

@@ -41,6 +41,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensolaris.opengrok.analysis.StreamSource;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.util.TestRepository;
 import org.opensolaris.opengrok.web.Util;
 
@@ -50,6 +51,7 @@ import org.opensolaris.opengrok.web.Util;
  */
 public class TroffAnalyzerTest {
 
+    private static RuntimeEnvironment env;
     private static TroffAnalyzerFactory factory;
     private static TroffAnalyzer analyzer;
     private static String content;
@@ -63,11 +65,12 @@ public class TroffAnalyzerTest {
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        factory = new TroffAnalyzerFactory();
+        env = RuntimeEnvironment.getInstance();
+        factory = new TroffAnalyzerFactory(env);
         assertNotNull(factory);
         analyzer = new TroffAnalyzer(factory);
         assertNotNull(analyzer);
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(TroffAnalyzerTest.class.getResourceAsStream(
                 "/org/opensolaris/opengrok/index/source.zip"));
 

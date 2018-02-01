@@ -117,7 +117,8 @@ document.pageReady.push(function() { pageReadyList();});
             }
         }
         // requesting a directory listing
-        DirectoryListing dl = new DirectoryListing(cfg.getEftarReader());
+        DirectoryListing dl = new DirectoryListing(cfg.getEnv(),
+                cfg.getEftarReader());
         List<String> files = cfg.getResourceFileList();
         if (!files.isEmpty()) {
             List<FileExtra> extras = null;
@@ -131,7 +132,7 @@ document.pageReady.push(function() { pageReadyList();});
 
                 if (searchHelper.searcher != null) {
                     DirectoryExtraReader extraReader =
-                        new DirectoryExtraReader();
+                            new DirectoryExtraReader(cfg.getEnv());
                     extras = extraReader.search(searchHelper.searcher, path);
                 }
             }
@@ -185,11 +186,12 @@ document.pageReady.push(function() { pageReadyList();});
                 BufferedInputStream bin =
                     new BufferedInputStream(new FileInputStream(resourceFile));
                 try {
-                    FileAnalyzerFactory a = AnalyzerGuru.find(basename);
-                    Genre g = AnalyzerGuru.getGenre(a);
+                    AnalyzerGuru guru = cfg.getEnv().getAnalyzerGuru();
+                    FileAnalyzerFactory a = guru.find(basename);
+                    Genre g = guru.getGenre(a);
                     if (g == null) {
-                        a = AnalyzerGuru.find(bin);
-                        g = AnalyzerGuru.getGenre(a);
+                        a = guru.find(bin);
+                        g = guru.getGenre(a);
                     }
                     if (g == Genre.IMAGE) {
 %>
@@ -210,13 +212,14 @@ document.pageReady.push(function() { pageReadyList();});
     <pre><%
                         // We're generating xref for the latest revision, so we can
                         // find the definitions in the index.
-                        Definitions defs = IndexDatabase.getDefinitions(resourceFile);
+                        Definitions defs = IndexDatabase.getDefinitions(
+                                cfg.getEnv(), resourceFile);
                         Annotation annotation = cfg.getAnnotation();
                         // SRCROOT is read with UTF-8 as a default.
                         r = IOUtils.createBOMStrippedReader(bin,
                             StandardCharsets.UTF_8.name());
-                        AnalyzerGuru.writeDumpedXref(request.getContextPath(), a,
-                                r, out, defs, annotation, project);
+                        guru.writeDumpedXref(request.getContextPath(), a, r,
+                                out, defs, annotation, project);
     %></pre>
 </div><%
                     } else {
@@ -246,14 +249,16 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
             }
         } else {
             // requesting a previous revision
-            FileAnalyzerFactory a = AnalyzerGuru.find(basename);
-            Genre g = AnalyzerGuru.getGenre(a);
+            AnalyzerGuru guru = cfg.getEnv().getAnalyzerGuru();
+            FileAnalyzerFactory a = guru.find(basename);
+            Genre g = guru.getGenre(a);
             String error = null;
             if (g == Genre.PLAIN|| g == Genre.HTML || g == null) {
                 InputStream in = null;
                 try {
-                    in = HistoryGuru.getInstance()
-                        .getRevision(resourceFile.getParent(), basename, rev);
+                    HistoryGuru hguru = cfg.getEnv().getHistoryGuru();
+                    in = hguru.getRevision(resourceFile.getParent(), basename,
+                            rev);
                 } catch (Exception e) {
                     // fall through to error message
                     error = e.getMessage();
@@ -261,8 +266,8 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                 if (in != null) {
                     try {
                         if (g == null) {
-                            a = AnalyzerGuru.find(in);
-                            g = AnalyzerGuru.getGenre(a);
+                            a = guru.find(in);
+                            g = guru.getGenre(a);
                         }
                         if (g == Genre.DATA || g == Genre.XREFABLE
                             || g == null)
@@ -285,7 +290,7 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                                 // SRCROOT is read with UTF-8 as a default.
                                 r = IOUtils.createBOMStrippedReader(in,
                                     StandardCharsets.UTF_8.name());
-                                AnalyzerGuru.writeDumpedXref(
+                                guru.writeDumpedXref(
                                         request.getContextPath(),
                                         a, r, out,
                                         defs, annotation, project);

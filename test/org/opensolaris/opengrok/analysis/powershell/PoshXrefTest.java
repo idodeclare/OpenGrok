@@ -40,7 +40,9 @@ import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -48,6 +50,13 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  * Tests the {@link PoshXref} class.
  */
 public class PoshXrefTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void sampleTest() throws IOException {
@@ -97,7 +106,7 @@ public class PoshXrefTest {
         oss.print(getHtmlBegin());
 
         Writer sw = new StringWriter();
-        PowershellAnalyzerFactory fac = new PowershellAnalyzerFactory();
+        PowershellAnalyzerFactory fac = new PowershellAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.setScopesEnabled(true);
         analyzer.setFoldingEnabled(true);

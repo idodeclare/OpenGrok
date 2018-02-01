@@ -26,16 +26,21 @@ package org.opensolaris.opengrok.analysis.plain;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.util.IOUtils;
 
 public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
 
     private static final String name = "Plain Text";
-    
-    private static final Matcher MATCHER = new Matcher() {
+
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new Matcher() {
             @Override
             public String description() {
                 return "UTF-8, UTF-16BE, or UTF-16LE Byte Order Mark is" +
@@ -47,7 +52,7 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
             public FileAnalyzerFactory isMagic(byte[] content, InputStream in)
                     throws IOException {
                 if (isPlainText(content)) {
-                    return DEFAULT_INSTANCE;
+                    return self;
                 } else {
                     return null;
                 }
@@ -55,7 +60,7 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
 
             @Override
             public FileAnalyzerFactory forFactory() {
-                return DEFAULT_INSTANCE;
+                return self;
             }
 
             /**
@@ -96,13 +101,22 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
             }
         };
 
-    public static final PlainAnalyzerFactory DEFAULT_INSTANCE =
-            new PlainAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    private PlainAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, name);
+    public PlainAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, null, null, "text/plain", Genre.PLAIN, name);
     }
 
+    @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link PlainAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new PlainAnalyzer(this);

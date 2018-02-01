@@ -40,11 +40,10 @@ class CustomQueryParser extends QueryParser {
      *
      * @param field default field for unqualified query terms
      */
-    CustomQueryParser(String field) {
+    CustomQueryParser(String field, RuntimeEnvironment env) {
         super(field, new CompatibleAnalyser());
         setDefaultOperator(AND_OPERATOR);
-        setAllowLeadingWildcard(
-                RuntimeEnvironment.getInstance().isAllowLeadingWildcard());
+        setAllowLeadingWildcard(env.isAllowLeadingWildcard());
         // Convert terms to lower case manually to prevent changing the case
         // if the field is case sensitive.
         // since lucene 7.0.0 below is in place so every class that 

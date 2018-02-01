@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.javascript;
@@ -27,6 +27,7 @@ package org.opensolaris.opengrok.analysis.javascript;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class JavaScriptAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -37,10 +38,14 @@ public class JavaScriptAnalyzerFactory extends FileAnalyzerFactory {
         "TS"
     };
 
-    public JavaScriptAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public JavaScriptAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link JavaScriptAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new JavaScriptAnalyzer(this);

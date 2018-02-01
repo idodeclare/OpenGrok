@@ -17,9 +17,9 @@
  * CDDL HEADER END
  */
 
- /*
+/*
  * Copyright (c) 2007, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.web;
@@ -40,16 +40,19 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Test of the methods in <code>org.opensolaris.opengrok.web.Util</code>.
  */
 public class UtilTest {
 
+    private static RuntimeEnvironment env;
     private static Locale savedLocale;
 
     @BeforeClass
     public static void setUpClass() {
+        env = RuntimeEnvironment.getInstance();
         // Some of the methods have different results in different locales.
         // Set locale to en_US for these tests.
         savedLocale = Locale.getDefault();
@@ -136,12 +139,12 @@ public class UtilTest {
     public void readableLine() throws Exception {
         StringWriter out = new StringWriter();
         // hmmm - where do meaningful tests start?
-        Util.readableLine(42, out, null, null, null, null);
+        Util.readableLine(42, out, "", null, null, null, null);
         assertEquals("\n<a class=\"l\" name=\"42\" href=\"#42\">42</a>",
                 out.toString());
 
         out.getBuffer().setLength(0); // clear buffer
-        Util.readableLine(110, out, null, null, null, null);
+        Util.readableLine(110, out, "", null, null, null, null);
         assertEquals("\n<a class=\"hl\" name=\"110\" href=\"#110\">110</a>",
                 out.toString());
     }
@@ -274,7 +277,7 @@ public class UtilTest {
     @Test
     public void dumpConfiguration() throws Exception {
         StringBuilder out = new StringBuilder();
-        Util.dumpConfiguration(out);
+        Util.dumpConfiguration(out, env);
         String s = out.toString();
 
         // Verify that we got a table.

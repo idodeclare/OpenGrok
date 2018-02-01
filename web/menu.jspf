@@ -19,8 +19,8 @@ information: Portions Copyright [yyyy] [name of copyright owner]
 CDDL HEADER END
 
 Copyright (c) 2007, 2017, Oracle and/or its affiliates. All rights reserved.
-
 Portions Copyright 2011 Jens Elkner.
+Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
 
 --%><%@page import="org.json.simple.JSONArray"%>
 <%@page import="org.opensolaris.opengrok.configuration.RuntimeEnvironment"%>
@@ -108,7 +108,8 @@ org.opensolaris.opengrok.web.Util"
                     if (pRequested.contains(p.getName())) {
                         %> selected="selected"<%
                     }
-                    if (!(messages = Util.messagesToJson(p)).isEmpty()) {
+                    if (!(messages = Util.messagesToJson(cfg.getEnv(),
+                            p)).isEmpty()) {
                     %> data-messages='<%= messages %>' <%
                         }
                     %>><%= Util.formQuoteEscape(p.getName()) %></option><%
@@ -129,7 +130,7 @@ org.opensolaris.opengrok.web.Util"
             if (pRequested.contains(p.getName())) {
                 %> selected="selected"<%
             }
-            if (!(messages = Util.messagesToJson(p)).isEmpty()) {
+            if (!(messages = Util.messagesToJson(cfg.getEnv(), p)).isEmpty()) {
                 %> data-messages='<%= messages %>' <%
             }
             %>><%= Util.formQuoteEscape(p.getName()) %></option><%
@@ -197,7 +198,9 @@ org.opensolaris.opengrok.web.Util"
                 String selection = queryParams.getType();
                 %>
                 <option value="">Any</option><%
-                for (Map.Entry<String, String> d : SearchHelper.getFileTypeDescriptions()) {
+                SearchHelper sh = cfg.prepareInternalSearch();
+                for (Map.Entry<String, String> d :
+                        sh.getFileTypeDescriptions()) {
                     %>
                 <option value="<%= Util.formQuoteEscape(d.getKey()) %>"<%
                     if (d.getKey().equals(selection)) {

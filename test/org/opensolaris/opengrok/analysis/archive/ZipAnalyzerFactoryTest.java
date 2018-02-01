@@ -27,14 +27,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensolaris.opengrok.analysis.AnalyzerGuru;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Represents a container for tests of {@link ZipAnalyzerFactory}.
  */
 public class ZipAnalyzerFactoryTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     /**
      * Tests a ZIP file.
@@ -47,7 +55,7 @@ public class ZipAnalyzerFactoryTest {
         assertNotNull("zip.bin should be available,", res);
 
         // assert that it is matched
-        FileAnalyzerFactory fac = AnalyzerGuru.find(res);
+        FileAnalyzerFactory fac = env.getAnalyzerGuru().find(res);
         assertNotNull("zip.bin should have factory", fac);
         assertSame("should be ZipAnalyzerFactory", fac.getClass(),
             ZipAnalyzerFactory.class);

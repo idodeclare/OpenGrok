@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -50,12 +50,21 @@ class BazaarHistoryParser implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BazaarHistoryParser.class);
 
+    private final BazaarRepository repository;
+    private final RuntimeEnvironment env;
+    private final List<HistoryEntry> entries = new ArrayList<>(); //NOPMD
     private String myDir;
-    private List<HistoryEntry> entries = new ArrayList<HistoryEntry>(); //NOPMD
-    private BazaarRepository repository=new BazaarRepository(); //NOPMD
 
-    BazaarHistoryParser(BazaarRepository repository) {
+    BazaarHistoryParser(BazaarRepository repository, RuntimeEnvironment env) {
+        if (repository == null) {
+            throw new IllegalArgumentException("repository is null");
+        }
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+
         this.repository = repository;
+        this.env = env;
         myDir = repository.getDirectoryName() + File.separator;
     }
 
@@ -94,7 +103,6 @@ class BazaarHistoryParser implements Executor.StreamHandler {
     @Override
     public void processStream(InputStream input) throws IOException {
         DateFormat df = repository.getDateFormat();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
 
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
         String s;

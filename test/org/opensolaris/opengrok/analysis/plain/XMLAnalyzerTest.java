@@ -20,7 +20,7 @@
 /*
  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
  * Use is subject to license terms.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.plain;
@@ -28,12 +28,22 @@ package org.opensolaris.opengrok.analysis.plain;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.WriteXrefArgs;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class XMLAnalyzerTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Test
     public void bug2225() throws IOException {
         String xmlText =
@@ -44,7 +54,7 @@ public class XMLAnalyzerTest {
                 "</foo>";
         StringReader sr = new StringReader(xmlText);
         StringWriter sw = new StringWriter();
-        XMLAnalyzerFactory fac = new XMLAnalyzerFactory();
+        XMLAnalyzerFactory fac = new XMLAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.writeXref(new WriteXrefArgs(sr, sw));
         String[] xref = sw.toString().split("\n");
@@ -70,7 +80,7 @@ public class XMLAnalyzerTest {
                 + "</server>";
         StringReader sr = new StringReader(xmlText);
         StringWriter sw = new StringWriter();
-        XMLAnalyzerFactory fac = new XMLAnalyzerFactory();
+        XMLAnalyzerFactory fac = new XMLAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.writeXref(new WriteXrefArgs(sr, sw));
         String[] xref = sw.toString().split("\n");
@@ -88,7 +98,7 @@ public class XMLAnalyzerTest {
         StringReader input =
                 new StringReader("<foo xyz='<betweensinglequotes>'> </foo>");
         StringWriter output = new StringWriter();
-        XMLAnalyzerFactory fac = new XMLAnalyzerFactory();
+        XMLAnalyzerFactory fac = new XMLAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.writeXref(new WriteXrefArgs(input, output));
         assertTrue(output.toString().contains("&lt;betweensinglequotes&gt;"));

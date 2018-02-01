@@ -97,7 +97,7 @@ public class OGKUnifiedHighlighter extends UnifiedHighlighter {
         if (ftname == null) {
             return indexAnalyzer;
         }
-        Analyzer fa = AnalyzerGuru.getAnalyzer(ftname);
+        Analyzer fa = env.getAnalyzerGuru().getAnalyzer(ftname);
         return fa == null ? indexAnalyzer : fa;
     }
 

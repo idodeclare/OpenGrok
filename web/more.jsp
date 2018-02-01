@@ -54,7 +54,7 @@ file="mast.jsp"
     File resourceFile = cfg.getResourceFile();
     String path = cfg.getPath();
     RuntimeEnvironment env = cfg.getEnv();
-    Project activeProject = Project.getProject(resourceFile);
+    Project activeProject = env.getProject(resourceFile);
 
     QueryBuilder qbuilder = null;
     SearchHelper searchHelper = null;
@@ -105,15 +105,15 @@ file="mast.jsp"
                 try (Reader r = IOUtils.createBOMStrippedReader(
                         new FileInputStream(resourceFile),
                         StandardCharsets.UTF_8.name())) {
-                    sourceContext.getContext(r, out, xrefPrefix, null, path,
-                        null, false, false, null, null);
+                    sourceContext.getContext(env, r, out, xrefPrefix, null,
+                            path, null, false, false, null, null);
                 }
             }
     %></pre>
 </div><%
         }
     } catch (Exception e) {
-        LoggerFactory.getLogger(more_jsp.class).log(Level.WARNING, e.getMessage());
+        LoggerFactory.getLogger(getClass()).log(Level.WARNING, e.getMessage());
     }
 }
 /* ---------------------- more.jsp end --------------------- */

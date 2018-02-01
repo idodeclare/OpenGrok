@@ -66,7 +66,7 @@ public class RustAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new RustXref(reader));
+        return new JFlexXref(new RustXref(reader), getFactory().getEnv());
     }
 
     @Override

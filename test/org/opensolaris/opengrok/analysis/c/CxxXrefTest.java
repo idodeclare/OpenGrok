@@ -35,11 +35,13 @@ import java.io.Writer;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.CtagsReader;
 import org.opensolaris.opengrok.analysis.Definitions;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -47,6 +49,13 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  * Tests the {@link CxxXref} class.
  */
 public class CxxXrefTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void sampleTest() throws IOException {
@@ -77,7 +86,7 @@ public class CxxXrefTest {
         oss.print(getHtmlBegin());
 
         Writer sw = new StringWriter();
-        CxxAnalyzerFactory fac = new CxxAnalyzerFactory();
+        CxxAnalyzerFactory fac = new CxxAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs wargs = new WriteXrefArgs(
             new InputStreamReader(iss, "UTF-8"), sw);

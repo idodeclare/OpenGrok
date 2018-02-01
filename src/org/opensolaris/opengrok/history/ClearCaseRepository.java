@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -58,6 +58,10 @@ public class ClearCaseRepository extends Repository {
      * The command to use to access the repository if none was given explicitly
      */
     public static final String CMD_FALLBACK = "cleartool";
+
+    private static transient final Object VOBS_HOLDER_LOCK = new Object();
+
+    private static transient volatile VobsHolder vobsHolder;
 
     private boolean verbose;
 
@@ -107,7 +111,8 @@ public class ClearCaseRepository extends Repository {
         cmd.add("%e\n%Nd\n%Fu (%u)\n%Vn\n%Nc\n.\n");
         cmd.add(filename);
 
-        return new Executor(cmd, new File(getDirectoryName()));
+        return new Executor(cmd, new File(getDirectoryName()),
+                env.getCommandTimeout());
     }
 
     @Override
@@ -132,7 +137,7 @@ public class ClearCaseRepository extends Repository {
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
             String argv[] = {RepoCommand, "get", "-to", tmpName, decorated};
             Executor executor = new Executor(Arrays.asList(argv), directory,
-                    RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                    env.getInteractiveCommandTimeout());
             int status = executor.exec();
             if (status != 0) {
                 LOGGER.log(Level.SEVERE, "Failed to get history: {0}",
@@ -189,7 +194,7 @@ public class ClearCaseRepository extends Repository {
         argv.add(file.getName());
         
         Executor executor = new Executor(argv, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         ClearCaseAnnotationParser parser = new ClearCaseAnnotationParser(file.getName());
         executor.exec(true, parser);
         
@@ -209,7 +214,8 @@ public class ClearCaseRepository extends Repository {
         // Check if this is a snapshot view
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         String[] argv = {RepoCommand, "catcs"};
-        Executor executor = new Executor(Arrays.asList(argv), directory);
+        Executor executor = new Executor(Arrays.asList(argv), directory,
+                env.getCommandTimeout());
         int status = executor.exec();
         if (status != 0) {
             LOGGER.log(Level.WARNING, "Failed to determine if {0} is snapshot view",
@@ -229,7 +235,8 @@ public class ClearCaseRepository extends Repository {
             // It is a snapshot view, we need to update it manually
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
             argv = new String[]{RepoCommand, "update", "-overwrite", "-f"};
-            executor = new Executor(Arrays.asList(argv), directory);
+            executor = new Executor(Arrays.asList(argv), directory,
+                    env.getCommandTimeout());
             try (BufferedReader in = new BufferedReader(
                     new InputStreamReader(executor.getOutputStream()))) {
                 while ((line = in.readLine()) != null) {
@@ -289,21 +296,34 @@ public class ClearCaseRepository extends Repository {
     }
 
     private static class VobsHolder {
-
-        public static String[] vobs = runLsvob();
+        public final String[] vobs;
+        public VobsHolder(String[] vobs) {
+            this.vobs = vobs;
+        }
     }
 
-    private static String[] getAllVobs() {
-        return VobsHolder.vobs;
+    private String[] getAllVobs() {
+        VobsHolder result = vobsHolder;
+        if (result == null) {
+            synchronized(VOBS_HOLDER_LOCK) {
+                result = vobsHolder;
+                if (result == null) {
+                    result = new VobsHolder(runLsvob(env));
+                    vobsHolder = result;
+                }
+            }
+        }
+        return result.vobs;
     }
 
     private static final ClearCaseRepository testRepo
             = new ClearCaseRepository();
 
-    private static String[] runLsvob() {
+    private static String[] runLsvob(RuntimeEnvironment env) {
         if (testRepo.isWorking()) {
             Executor exec = new Executor(
-                    new String[]{testRepo.RepoCommand, "lsvob", "-s"});
+                    new String[]{testRepo.RepoCommand, "lsvob", "-s"},
+                    env.getCommandTimeout());
             int rc;
             if ((rc = exec.exec(true)) == 0) {
                 String output = exec.getOutputString();

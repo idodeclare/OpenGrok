@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web.api.v1.controller;
 
@@ -27,7 +28,7 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.condition.ConditionalRun;
 import org.opensolaris.opengrok.condition.ConditionalRunRule;
@@ -50,22 +51,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @ConditionalRun(CtagsInstalled.class)
 public class RepositoriesControllerTest extends JerseyTest {
 
-    private RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+    private static RuntimeEnvironment env;
 
     private TestRepository repository;
 
-    @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
-    @Override
-    protected Application configure() {
-        return new ResourceConfig(RepositoriesController.class);
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
 
         env.setSourceRoot(repository.getSourceRoot());

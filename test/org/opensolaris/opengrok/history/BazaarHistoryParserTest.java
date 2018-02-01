@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.history;
@@ -39,6 +40,7 @@ import static org.junit.Assert.*;
  */
 public class BazaarHistoryParserTest {
 
+    private static RuntimeEnvironment env;
     private BazaarHistoryParser instance;
     
     public BazaarHistoryParserTest() {
@@ -46,6 +48,7 @@ public class BazaarHistoryParserTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
     }
 
     @AfterClass
@@ -54,10 +57,10 @@ public class BazaarHistoryParserTest {
 
     @Before
     public void setUp() {
-        if (RuntimeEnvironment.getInstance().getSourceRootPath() == null) {
-            RuntimeEnvironment.getInstance().setSourceRoot("");
+        if (env.getSourceRootPath() == null) {
+            env.setSourceRoot("");
         }
-        instance = new BazaarHistoryParser(new BazaarRepository());
+        instance = new BazaarHistoryParser(new BazaarRepository(), env);
     }
 
     @After

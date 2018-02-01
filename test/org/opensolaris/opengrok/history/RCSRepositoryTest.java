@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
 import java.io.File;
 import java.io.IOException;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,8 +34,7 @@ import org.opensolaris.opengrok.condition.ConditionalRun;
 import org.opensolaris.opengrok.condition.ConditionalRunRule;
 import org.opensolaris.opengrok.condition.RepositoryInstalled;
 import org.opensolaris.opengrok.util.TestRepository;
-
-import static org.junit.Assert.*;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -45,10 +46,14 @@ public class RCSRepositoryTest {
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
-    static private TestRepository repository = new TestRepository();
+    static private TestRepository repository;
+    private static RuntimeEnvironment env;
+    private GitRepository instance;
 
     @BeforeClass
     public static void setUpClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(RCSRepositoryTest.class.getResourceAsStream("repositories.zip"));
     }
 
@@ -61,7 +66,7 @@ public class RCSRepositoryTest {
     @Test
     public void testRepositoryDetection() throws Exception {
         File root = new File(repository.getSourceRoot(), "rcs_test");
-        Object ret = RepositoryFactory.getRepository(root);
+        Object ret = RepositoryFactory.getRepository(env, root);
         assertTrue(ret instanceof RCSRepository);
     }
 }

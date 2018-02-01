@@ -39,11 +39,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opensolaris.opengrok.condition.ConditionalRun;
 import org.opensolaris.opengrok.condition.ConditionalRunRule;
 import org.opensolaris.opengrok.condition.RepositoryInstalled;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.util.Executor;
 import org.opensolaris.opengrok.util.IOUtils;
 import org.opensolaris.opengrok.util.TestRepository;
@@ -55,10 +57,17 @@ import org.opensolaris.opengrok.util.TestRepository;
 @ConditionalRun(RepositoryInstalled.CvsInstalled.class)
 public class CVSRepositoryTest {
 
+    private static RuntimeEnvironment env;
+
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
     CVSRepository instance;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     private TestRepository repository;
 
@@ -67,7 +76,7 @@ public class CVSRepositoryTest {
      * test repository will be destroyed automatically when the test finishes.
      */
     private void setUpTestRepository() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(getClass().getResourceAsStream("repositories.zip"));
 
         // Checkout cvsrepo anew in order to get the CVS/Root files point to
@@ -109,7 +118,8 @@ public class CVSRepositoryTest {
         for (String arg: args) {
             cmdargs.add(arg);
         }
-        Executor exec = new Executor(cmdargs, reposRoot);
+        Executor exec = new Executor(cmdargs, reposRoot,
+                env.getCommandTimeout());
         int exitCode = exec.exec();
         if (exitCode != 0) {
             fail("cvs command '" + cmdargs.toString() + "'failed."
@@ -128,8 +138,8 @@ public class CVSRepositoryTest {
     public void testGetBranchNoBranch() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "cvs_test/cvsrepo");
-        CVSRepository cvsrepo
-                = (CVSRepository) RepositoryFactory.getRepository(root);
+        CVSRepository cvsrepo = (CVSRepository)RepositoryFactory.getRepository(
+                env, root);
         assertEquals(null, cvsrepo.getBranch());
     }
 
@@ -153,8 +163,8 @@ public class CVSRepositoryTest {
 
         // Now the repository object can be instantiated so that determineBranch()
         // will be called.
-        CVSRepository cvsrepo
-            = (CVSRepository) RepositoryFactory.getRepository(root);
+        CVSRepository cvsrepo = (CVSRepository)RepositoryFactory.getRepository(
+                env, root);
 
         assertEquals("mybranch", cvsrepo.getBranch());
 

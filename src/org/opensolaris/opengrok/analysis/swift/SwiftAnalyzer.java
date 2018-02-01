@@ -63,7 +63,7 @@ public class SwiftAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new SwiftXref(reader));
+        return new JFlexXref(new SwiftXref(reader), getFactory().getEnv());
     }
     
     @Override

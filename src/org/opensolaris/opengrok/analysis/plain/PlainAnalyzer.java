@@ -89,7 +89,7 @@ public class PlainAnalyzer extends TextAnalyzer {
      */
     @Override
     protected Xrefer newXref(Reader reader) {
-        return new JFlexXref(new PlainXref(reader));
+        return new JFlexXref(new PlainXref(reader), getFactory().getEnv());
     }
 
     @Override

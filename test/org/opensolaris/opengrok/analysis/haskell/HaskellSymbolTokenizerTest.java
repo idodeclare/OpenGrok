@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.analysis.haskell;
 
@@ -36,9 +36,11 @@ import java.util.LinkedList;
 import java.util.List;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.JFlexTokenizer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertSymbolStream;
 
 /**
@@ -48,10 +50,13 @@ import static org.opensolaris.opengrok.util.CustomAssertions.assertSymbolStream;
  */
 public class HaskellSymbolTokenizerTest {
 
-    private final FileAnalyzer analyzer;
+    private static RuntimeEnvironment env;
+    private static FileAnalyzer analyzer;
 
-    public HaskellSymbolTokenizerTest() {
-        this.analyzer = new HaskellAnalyzerFactory().getAnalyzer();
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+        analyzer = new HaskellAnalyzerFactory(env).getAnalyzer();
     }
 
     private String[] getTermsFor(Reader r) {

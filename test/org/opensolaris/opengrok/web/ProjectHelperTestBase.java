@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
@@ -138,7 +139,7 @@ public class ProjectHelperTestBase {
         try {
             Field field = RuntimeEnvironment.class.getDeclaredField("repository_map");
             field.setAccessible(true);
-            return (Map<Project, List<RepositoryInfo>>) field.get(RuntimeEnvironment.getInstance());
+            return (Map<Project, List<RepositoryInfo>>) field.get(env);
         } catch (Throwable ex) {
             Assert.fail("invoking getRepositoriesMap should not throw an exception");
         }
@@ -149,7 +150,7 @@ public class ProjectHelperTestBase {
         try {
             Field field = RuntimeEnvironment.class.getDeclaredField("repository_map");
             field.setAccessible(true);
-            field.set(RuntimeEnvironment.getInstance(), map);
+            field.set(env, map);
         } catch (Throwable ex) {
             Assert.fail("invoking getRepositoriesMap should not throw an exception");
         }
@@ -267,7 +268,7 @@ public class ProjectHelperTestBase {
         Assert.assertEquals("Repository map should contain 20 project", 20, env.getProjectRepositoriesMap().size());
 
         env.setAuthorizationFramework(new AuthorizationFramework());
-        env.getAuthorizationFramework().reload();
+        env.getAuthorizationFramework().reload(env);
 
         IAuthorizationPlugin plugin = new TestPlugin() {
             @Override

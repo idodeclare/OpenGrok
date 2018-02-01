@@ -66,7 +66,7 @@ internal settings on your OpenGrok server.</p><%
 {
         PageConfig cfg = PageConfig.get(request);
         if (cfg.getEnv().isChattyStatusPage()) {
-            Util.dumpConfiguration(out);
+            Util.dumpConfiguration(out, cfg.getEnv());
         } else {
         %><p>
 For security reasons, printing of internal settings is not enabled by

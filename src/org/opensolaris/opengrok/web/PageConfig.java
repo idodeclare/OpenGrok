@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2011, 2018, Oracle and/or its affiliates. All rights reserved.
  * Portions copyright (c) 2011 Jens Elkner.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
@@ -53,7 +53,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.jrcs.diff.Diff;
 import org.apache.commons.jrcs.diff.DifferentiationFailedException;
-import org.opensolaris.opengrok.analysis.AnalyzerGuru;
 import org.opensolaris.opengrok.analysis.ExpandTabsReader;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.authorization.AuthorizationFramework;
@@ -99,7 +98,7 @@ public final class PageConfig {
     // TODO if still used, get it from the app context
 
     private final AuthorizationFramework authFramework;
-    private RuntimeEnvironment env;
+    private RuntimeEnvironment genv;
     private IgnoredNames ignoredNames;
     private String path;
     private File resourceFile;
@@ -233,7 +232,8 @@ public final class PageConfig {
                     + getUriEncodedPath() + "\">history</a>";
             return data;
         }
-        data.genre = AnalyzerGuru.getGenre(getResourceFile().getName());
+        data.genre = getEnv().getAnalyzerGuru().getGenre(
+                getResourceFile().getName());
 
         if (data.genre == null || txtGenres.contains(data.genre)) {
             InputStream[] in = new InputStream[2];
@@ -241,7 +241,8 @@ public final class PageConfig {
                 // Get input stream for both older and newer file.
                 for (int i = 0; i < 2; i++) {
                     File f = new File(srcRoot + filepath[i]);
-                    in[i] = HistoryGuru.getInstance().getRevision(f.getParent(), f.getName(), data.rev[i]);
+                    in[i] = getEnv().getHistoryGuru().getRevision(f.getParent(),
+                            f.getName(), data.rev[i]);
                     if (in[i] == null) {
                         data.errorMsg = "Unable to get revision "
                                 + Util.htmlize(data.rev[i]) + " for file: "
@@ -257,7 +258,7 @@ public final class PageConfig {
                  */
                 for (int i = 0; i < 2 && data.genre == null; i++) {
                     try {
-                        data.genre = AnalyzerGuru.getGenre(in[i]);
+                        data.genre = getEnv().getAnalyzerGuru().getGenre(in[i]);
                     } catch (IOException e) {
                         data.errorMsg = "Unable to determine the file type: "
                                 + Util.htmlize(e.getMessage());
@@ -403,7 +404,7 @@ public final class PageConfig {
                 dirFileList = Collections.emptyList();
             } else {
                 List<String> listOfFiles;
-                if (env.getListDirsFirst()) {
+                if (getEnv().getListDirsFirst()) {
                     Arrays.sort(files, new Comparator<File>() {
                             @Override
                             public int compare(File f1, File f2) {
@@ -426,7 +427,7 @@ public final class PageConfig {
                 listOfFiles = Arrays.asList(files).stream().
                             map(f -> f.getName()).collect(Collectors.toList());
 
-                if (env.hasProjects() && getPath().isEmpty()) {
+                if (getEnv().hasProjects() && getPath().isEmpty()) {
                     /**
                      * This denotes the source root directory, we need to filter
                      * projects which aren't allowed by the authorization
@@ -583,7 +584,8 @@ public final class PageConfig {
      */
     public QueryBuilder getQueryBuilder() {
         if (queryBuilder == null) {
-            queryBuilder = new QueryBuilder().setFreetext(req.getParameter("q"))
+            queryBuilder = new QueryBuilder(getEnv())
+                    .setFreetext(req.getParameter("q"))
                     .setDefs(req.getParameter(QueryBuilder.DEFS))
                     .setRefs(req.getParameter(QueryBuilder.REFS))
                     .setPath(req.getParameter(QueryBuilder.PATH))
@@ -663,7 +665,8 @@ public final class PageConfig {
      */
     public boolean hasHistory() {
         if (hasHistory == null) {
-            hasHistory = HistoryGuru.getInstance().hasHistory(getResourceFile());
+            hasHistory = getEnv().getHistoryGuru().hasHistory(
+                    getResourceFile());
         }
         return hasHistory;
     }
@@ -675,8 +678,8 @@ public final class PageConfig {
      */
     public boolean hasAnnotations() {
         if (hasAnnotation == null) {
-            hasAnnotation = !isDir()
-                    && HistoryGuru.getInstance().hasHistory(getResourceFile());
+            hasAnnotation = !isDir() && getEnv().getHistoryGuru().hasHistory(
+                    getResourceFile());
         }
         return hasAnnotation;
     }
@@ -709,7 +712,8 @@ public final class PageConfig {
         }
         getRequestedRevision();
         try {
-            annotation = HistoryGuru.getInstance().annotate(resourceFile, rev.isEmpty() ? null : rev);
+            annotation = getEnv().getHistoryGuru().annotate(resourceFile,
+                    rev.isEmpty() ? null : rev);
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to get annotations: ", e);
             /* ignore */
@@ -754,7 +758,7 @@ public final class PageConfig {
      * @return {@code null} if not available, the project otherwise.
      */
     public Project getProject() {
-        return Project.getProject(getResourceFile());
+        return getEnv().getProject(getResourceFile());
     }
 
     /**
@@ -904,7 +908,7 @@ public final class PageConfig {
 
         List<String> vals = getParamVals(paramName);
         for (String s : vals) {
-            Project x = Project.getByName(s);
+            Project x = getEnv().getProjectByName(s);
             if (x != null && authFramework.isAllowed(req, x)) {
                 set.add(s);
             }
@@ -913,7 +917,7 @@ public final class PageConfig {
         if (set.isEmpty()) {
             List<String> cookies = getCookieVals(cookieName);
             for (String s : cookies) {
-                Project x = Project.getByName(s);
+                Project x = getEnv().getProjectByName(s);
                 if (x != null && authFramework.isAllowed(req, x)) {
                     set.add(s);
                 }
@@ -921,7 +925,7 @@ public final class PageConfig {
         }
 
         if (set.isEmpty()) {
-            Set<Project> defaultProjects = env.getDefaultProjects();
+            Set<Project> defaultProjects = getEnv().getDefaultProjects();
             if (defaultProjects != null) {
                 for (Project project : defaultProjects) {
                     if (authFramework.isAllowed(req, project)) {
@@ -977,10 +981,10 @@ public final class PageConfig {
      * @see RuntimeEnvironment#register()
      */
     public RuntimeEnvironment getEnv() {
-        if (env == null) {
-            env = RuntimeEnvironment.getInstance().register();
+        if (genv == null) {
+            genv = RuntimeEnvironment.getInstance().register();
         }
-        return env;
+        return genv;
     }
 
     /**
@@ -1217,7 +1221,7 @@ public final class PageConfig {
      */
     public File findDataFile() {
         return checkFile(new File(getEnv().getDataRootPath() + Prefix.XREF_P),
-                path, env.isCompressXref());
+                path, getEnv().isCompressXref());
     }
 
     protected String getLatestRevision() {
@@ -1227,8 +1231,8 @@ public final class PageConfig {
 
         History hist;
         try {
-            hist = HistoryGuru.getInstance().
-                    getHistory(new File(getEnv().getSourceRootFile(), getPath()));
+            hist = getEnv().getHistoryGuru().getHistory(new File(getEnv().
+                    getSourceRootFile(), getPath()));
         } catch (HistoryException ex) {
             return null;
         }
@@ -1429,7 +1433,7 @@ public final class PageConfig {
      * @return a search helper.
      */
     public SearchHelper prepareInternalSearch() {
-        SearchHelper sh = new SearchHelper();
+        SearchHelper sh = new SearchHelper(getEnv());
         sh.dataRoot = getDataRoot(); // throws Exception if none-existent
         sh.order = SortOrder.RELEVANCY;
         sh.builder = getQueryBuilder();
@@ -1439,7 +1443,7 @@ public final class PageConfig {
         // jel: this should be IMHO a config param since not only core dependend
         sh.parallel = Runtime.getRuntime().availableProcessors() > 1;
         sh.isCrossRefSearch = getPrefix() == Prefix.SEARCH_R;
-        sh.compressed = env.isCompressXref();
+        sh.compressed = getEnv().isCompressXref();
         sh.desc = getEftarReader();
         sh.sourceRoot = new File(getSourceRootPath());
         return sh;
@@ -1466,7 +1470,7 @@ public final class PageConfig {
 
     private PageConfig(HttpServletRequest req) {
         this.req = req;
-        this.authFramework = RuntimeEnvironment.getInstance().getAuthorizationFramework();
+        this.authFramework = getEnv().getAuthorizationFramework();
     }
 
     /**
@@ -1486,7 +1490,7 @@ public final class PageConfig {
         }
         ProjectHelper.cleanup(cfg);
         sr.removeAttribute(ATTR_NAME);
-        cfg.env = null;
+        cfg.genv = null;
         cfg.req = null;
         if (cfg.eftarReader != null) {
             cfg.eftarReader.close();
@@ -1513,11 +1517,11 @@ public final class PageConfig {
 
     
     public SortedSet<AcceptedMessage> getMessages() {
-        return env.getMessages();
+        return getEnv().getMessages();
     }
     
     public SortedSet<AcceptedMessage> getMessages(String tag) {
-        return env.getMessages(tag);
+        return getEnv().getMessages(tag);
     }
 
     /**
@@ -1608,7 +1612,7 @@ public final class PageConfig {
         if (getSourceRootPath() == null || getSourceRootPath().isEmpty()) {
             throw new FileNotFoundException("Unable to determine source root path. Missing configuration?");
         }
-        File sourceRootPathFile = RuntimeEnvironment.getInstance().getSourceRootFile();
+        File sourceRootPathFile = getEnv().getSourceRootFile();
         if (!sourceRootPathFile.exists()) {
             throw new FileNotFoundException(String.format("Source root path \"%s\" does not exist", sourceRootPathFile.getAbsolutePath()));
         }

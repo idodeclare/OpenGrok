@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2016, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.lua;
@@ -40,7 +40,9 @@ import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -48,6 +50,13 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  * Tests the {@link LuaXref} class.
  */
 public class LuaXrefTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Test
     public void sampleTest() throws IOException {
@@ -97,7 +106,7 @@ public class LuaXrefTest {
         oss.print(getHtmlBegin());
 
         Writer sw = new StringWriter();
-        LuaAnalyzerFactory fac = new LuaAnalyzerFactory();
+        LuaAnalyzerFactory fac = new LuaAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         analyzer.setScopesEnabled(true);
         analyzer.setFoldingEnabled(true);

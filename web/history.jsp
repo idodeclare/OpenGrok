@@ -54,7 +54,7 @@ org.opensolaris.opengrok.configuration.RuntimeEnvironment"
         File f = cfg.getResourceFile();
         History hist = null;
         try {
-            hist = HistoryGuru.getInstance().getHistoryUI(f);
+            hist = cfg.getEnv().getHistoryGuru().getHistoryUI(f);
         } catch (Exception e) {
             // should not happen
             response.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());

@@ -63,6 +63,6 @@ public class PythonAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PythonXref(reader));
+        return new JFlexXref(new PythonXref(reader), getFactory().getEnv());
     }
 }

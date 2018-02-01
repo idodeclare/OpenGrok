@@ -17,8 +17,9 @@
  * CDDL HEADER END
  */
 
- /*
+/*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -27,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opensolaris.opengrok.authorization.IAuthorizationPlugin;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -35,7 +37,7 @@ import org.opensolaris.opengrok.configuration.Project;
 public class TruePlugin implements IAuthorizationPlugin {
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
     }
 
     @Override
