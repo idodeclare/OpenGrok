@@ -54,6 +54,7 @@ import org.opensolaris.opengrok.history.RepositoryFactory;
 @ConditionalRun(CtagsInstalled.class)
 public class SearchEngineTest {
 
+    private static RuntimeEnvironment env;
     static TestRepository repository;
     static File configFile;
 
@@ -62,10 +63,10 @@ public class SearchEngineTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
 
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         env.setSourceRoot(repository.getSourceRoot());
         env.setDataRoot(repository.getDataRoot());
         RepositoryFactory.initializeIgnoredNames(env);
@@ -77,12 +78,12 @@ public class SearchEngineTest {
         Indexer.getInstance().prepareIndexer(env, true, true,
                 new TreeSet<>(Collections.singletonList("/c")),
                 false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
 
         configFile = File.createTempFile("configuration", ".xml");
         env.writeConfiguration(configFile);
-        RuntimeEnvironment.getInstance().readConfiguration(new File(configFile.getAbsolutePath()));
+        env.readConfiguration(new File(configFile.getAbsolutePath()));
     }
 
     @AfterClass
@@ -101,7 +102,7 @@ public class SearchEngineTest {
 
     @Test
     public void testIsValidQuery() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertFalse(instance.isValidQuery());
         instance.setFile("foo");
         assertTrue(instance.isValidQuery());
@@ -109,7 +110,7 @@ public class SearchEngineTest {
 
     @Test
     public void testDefinition() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertNull(instance.getDefinition());
         String defs = "This is a definition";
         instance.setDefinition(defs);
@@ -118,7 +119,7 @@ public class SearchEngineTest {
 
     @Test
     public void testFile() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertNull(instance.getFile());
         String file = "This is a File";
         instance.setFile(file);
@@ -127,7 +128,7 @@ public class SearchEngineTest {
 
     @Test
     public void testFreetext() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertNull(instance.getFreetext());
         String freetext = "This is just a piece of text";
         instance.setFreetext(freetext);
@@ -136,7 +137,7 @@ public class SearchEngineTest {
 
     @Test
     public void testHistory() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertNull(instance.getHistory());
         String hist = "This is a piece of history";
         instance.setHistory(hist);
@@ -145,7 +146,7 @@ public class SearchEngineTest {
 
     @Test
     public void testSymbol() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         assertNull(instance.getSymbol());
         String sym = "This is a symbol";
         instance.setSymbol(sym);
@@ -154,7 +155,7 @@ public class SearchEngineTest {
 
     @Test
     public void testGetQuery() throws Exception {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         instance.setHistory("Once upon a time");
         instance.setFile("Makefile");
         instance.setDefinition("\"std::string\"");
@@ -169,7 +170,7 @@ public class SearchEngineTest {
     public void testSearch() {
         List<Hit> hits = new ArrayList<>();
 
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         instance.setHistory("\"Add lint make target and fix lint warnings\"");
         int noHits =  instance.search();
         if (noHits > 0) {
@@ -178,7 +179,7 @@ public class SearchEngineTest {
         }
         instance.destroy();
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setSymbol("printf");
         instance.setFile("main.c");
         noHits = instance.search();
@@ -194,7 +195,7 @@ public class SearchEngineTest {
         assertEquals(8, noHits);
         instance.destroy();
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("arguments");
         instance.setFile("main.c");
         noHits = instance.search();
@@ -209,7 +210,7 @@ public class SearchEngineTest {
         assertEquals(8, noHits);
         instance.destroy();
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setDefinition("main");
         instance.setFile("main.c");
         noHits = instance.search();
@@ -225,7 +226,7 @@ public class SearchEngineTest {
         instance.destroy();
 
         // negative symbol test (comments should be ignored)
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setSymbol("Ordinary"); 
         instance.setFile("\"Main.java\"");
         instance.search();
@@ -235,7 +236,7 @@ public class SearchEngineTest {
         instance.destroy();
         
         // wildcards and case sensitivity of definition search
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setDefinition("Mai*"); // definition is case sensitive
         instance.setFile("\"Main.java\" OR \"main.c\"");
         instance.search();
@@ -248,7 +249,7 @@ public class SearchEngineTest {
         instance.destroy();
 
         // wildcards and case sensitivity of symbol search
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setSymbol("Mai*"); // symbol is case sensitive
         instance.setFile("\"Main.java\" OR \"main.c\"");
         instance.search();
@@ -259,14 +260,14 @@ public class SearchEngineTest {
         instance.destroy();
 
         // wildcards and case insensitivity of freetext search
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("MaI*"); // should match both Main and main
         instance.setFile("\"Main.java\" OR \"main.c\"");
         assertEquals(10, instance.search());
         instance.destroy();
 
         // file name search is case insensitive
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFile("JaVa"); // should match java
         int count=instance.search();
         if (count > 0) {
@@ -276,18 +277,18 @@ public class SearchEngineTest {
         instance.destroy();
         
         //test eol and eof        
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("makeW"); 
         assertEquals(1, instance.search());
         instance.destroy();
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("WeirdEOL");
         assertEquals(1, instance.search());
         instance.destroy();
         
         //test bcel jar parser
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFreetext("InstConstraintVisitor");
         assertEquals(1, instance.search());
         instance.destroy();

@@ -92,6 +92,6 @@ public class MandocAnalyzer extends TextAnalyzer {
      */
     @Override
     protected Xrefer newXref(Reader reader) {
-        return new MandocXref(reader);
+        return new MandocXref(reader, getFactory().getEnv());
     }
 }

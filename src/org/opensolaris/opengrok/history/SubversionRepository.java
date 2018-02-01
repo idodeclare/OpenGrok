@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -33,7 +33,6 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 import org.opensolaris.opengrok.util.Executor;
 import org.w3c.dom.Document;
@@ -114,7 +113,7 @@ public class SubversionRepository extends Repository {
         File directory = new File(getDirectoryName());
 
         Executor executor = new Executor(cmd, directory,
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         if (executor.exec() == 0) {
             try {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -223,10 +222,11 @@ public class SubversionRepository extends Repository {
 
         if (interactive) {
             return new Executor(cmd, new File(getDirectoryName()),
-                    RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                    env.getInteractiveCommandTimeout());
         } else {
             return new Executor(cmd, new File(getDirectoryName()),
-                    sinceRevision != null || numEntries > 0);
+                    sinceRevision != null || numEntries > 0 ?
+                    env.getCommandTimeout() : 0);
         }
     }
 
@@ -257,7 +257,7 @@ public class SubversionRepository extends Repository {
         cmd.add(escapeFileName(filename));
 
         Executor executor = new Executor(cmd, directory,
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         if (executor.exec() == 0) {
             ret = executor.getOutputStream();
         }
@@ -281,9 +281,8 @@ public class SubversionRepository extends Repository {
     }
 
     private History getHistory(File file, String sinceRevision, int numEntries,
-            boolean interactive)
-            throws HistoryException {
-        return new SubversionHistoryParser().parse(file, this, sinceRevision,
+            boolean interactive) throws HistoryException {
+        return new SubversionHistoryParser(env).parse(file, this, sinceRevision,
                 numEntries, interactive);
     }
 
@@ -310,7 +309,7 @@ public class SubversionRepository extends Repository {
         argv.add(escapeFileName(file.getName()));
         
         Executor executor = new Executor(argv, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         SubversionAnnotationParser parser = new SubversionAnnotationParser(file.getName());
         int status = executor.exec(true, parser);
         if (status != 0) {
@@ -346,7 +345,8 @@ public class SubversionRepository extends Repository {
         cmd.add("update");
         cmd.addAll(getAuthCommandLineParams());
         cmd.add("--non-interactive");
-        Executor executor = new Executor(cmd, directory);
+        Executor executor = new Executor(cmd, directory,
+                env.getCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }

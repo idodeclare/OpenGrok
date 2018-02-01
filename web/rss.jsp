@@ -19,8 +19,8 @@ information: Portions Copyright [yyyy] [name of copyright owner]
 CDDL HEADER END
 
 Copyright (c) 2005, 2017, Oracle and/or its affiliates. All rights reserved.
-
 Portions Copyright 2011 Jens Elkner.
+Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
 
 --%><%@page import="
 java.io.File,
@@ -66,11 +66,11 @@ org.opensolaris.opengrok.web.PageConfig"
     <copyright>Copyright 2015</copyright>
     <generator>Java</generator><%
     History hist = null;
-    String newline = System.getProperty("line.separator");
     if(cfg.isDir()) {
-        hist = new DirectoryHistoryReader(cfg.getHistoryDirs()).getHistory();
+        hist = new DirectoryHistoryReader(cfg.getEnv(), cfg.getHistoryDirs()).
+            getHistory();
     } else {
-        hist = HistoryGuru.getInstance().getHistory(cfg.getResourceFile());
+        hist = cfg.getEnv().getHistoryGuru().getHistory(cfg.getResourceFile());
     }
     if (hist != null) {
         int i = 20;

@@ -20,6 +20,7 @@
 /*
  * Copyright 2010 Sun Micosystems.  All rights reserved.
  * Use is subject to license terms.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.search;
@@ -28,11 +29,21 @@ import org.apache.lucene.search.Query;
 import org.junit.Test;
 import org.opensolaris.opengrok.analysis.CompatibleAnalyser;
 import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Unit tests for the Summarizer class.
  */
 public class SummarizerTest {
+
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     /**
      * If the last token in a text fragment is a token we're searching for,
      * and that token is also present earlier in the fragment, getSummary()
@@ -41,7 +52,7 @@ public class SummarizerTest {
      */
     @Test
     public void bug15858() throws Exception {
-        Query query = new QueryBuilder().setFreetext("beta").build();
+        Query query = new QueryBuilder(env).setFreetext("beta").build();
         Summarizer instance = new Summarizer(query, new CompatibleAnalyser());
         // This call used to result in a StringIndexOutOfBoundsException
         assertNotNull(instance.getSummary("alpha beta gamma delta beta"));

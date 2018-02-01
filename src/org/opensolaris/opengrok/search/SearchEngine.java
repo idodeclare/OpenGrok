@@ -44,7 +44,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiReader;
@@ -96,6 +95,9 @@ public class SearchEngine {
      */
     public static final Version LUCENE_VERSION = Version.LATEST;
     public static final String LUCENE_VERSION_HELP = LUCENE_VERSION.major + "_" + LUCENE_VERSION.minor + "_" + LUCENE_VERSION.bugfix;
+
+    private final RuntimeEnvironment env;
+
     /**
      * Holds value of property definition.
      */
@@ -134,8 +136,8 @@ public class SearchEngine {
     private final char[] content = new char[1024 * 8];
     private String source;
     private String data;
-    int hitsPerPage = RuntimeEnvironment.getInstance().getHitsPerPage();
-    int cachePages = RuntimeEnvironment.getInstance().getCachePages();
+    int hitsPerPage;
+    int cachePages;
     int totalHits = 0;
     private ScoreDoc[] hits;
     private TopScoreDocCollector collector;
@@ -145,9 +147,16 @@ public class SearchEngine {
 
     /**
      * Creates a new instance of SearchEngine
+     * @param env a defined instance
      */
-    public SearchEngine() {
+    public SearchEngine(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
         docs = new ArrayList<>();
+        hitsPerPage = env.getHitsPerPage();
+        cachePages = env.getCachePages();
     }
 
     /**
@@ -157,7 +166,7 @@ public class SearchEngine {
      * @return a query builder
      */
     private QueryBuilder createQueryBuilder() {
-        return new QueryBuilder()
+        return new QueryBuilder(env)
                 .setFreetext(freetext)
                 .setDefs(definition)
                 .setRefs(symbol)
@@ -219,8 +228,7 @@ public class SearchEngine {
         // We use MultiReader even for single project. This should
         // not matter given that MultiReader is just a cheap wrapper
         // around set of IndexReader objects.
-        MultiReader searchables = RuntimeEnvironment.getInstance().
-            getMultiReader(projects, searcherList);
+        MultiReader searchables = env.getMultiReader(projects, searcherList);
         searcher = new IndexSearcher(searchables);
         collector = TopScoreDocCollector.create(hitsPerPage * cachePages);
         searcher.search(query, collector);
@@ -299,9 +307,8 @@ public class SearchEngine {
                 }
             }
         }
-        return search(
-                filteredProjects,
-                new File(RuntimeEnvironment.getInstance().getDataRootFile(), IndexDatabase.INDEX_DIR));
+        return search(filteredProjects, new File(env.getDataRootFile(),
+                IndexDatabase.INDEX_DIR));
     }
 
     /**
@@ -322,9 +329,8 @@ public class SearchEngine {
      */
     public int search(HttpServletRequest req) {
         ProjectHelper pHelper = PageConfig.get(req).getProjectHelper();
-        return search(
-                new ArrayList<Project>(pHelper.getAllProjects()),
-                new File(RuntimeEnvironment.getInstance().getDataRootFile(), IndexDatabase.INDEX_DIR));
+        return search(new ArrayList<Project>(pHelper.getAllProjects()),
+                new File(env.getDataRootFile(), IndexDatabase.INDEX_DIR));
     }
 
     /**
@@ -341,10 +347,9 @@ public class SearchEngine {
      * @return The number of hits
      */
     public int search() {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        return search(
-                env.hasProjects() ? env.getProjectList() : new ArrayList<>(),
-                new File(env.getDataRootFile(), IndexDatabase.INDEX_DIR));
+        return search(env.hasProjects() ? env.getProjectList() :
+                new ArrayList<Project>(), new File(env.getDataRootFile(),
+                IndexDatabase.INDEX_DIR));
     }
 
     /**
@@ -359,8 +364,8 @@ public class SearchEngine {
      * @return The number of hits
      */
     private int search(List<Project> projects, File root) {
-        source = RuntimeEnvironment.getInstance().getSourceRootPath();
-        data = RuntimeEnvironment.getInstance().getDataRootPath();
+        source = env.getSourceRootPath();
+        data = env.getDataRootPath();
         docs.clear();
 
         QueryBuilder newBuilder = createQueryBuilder();
@@ -401,7 +406,7 @@ public class SearchEngine {
 
             historyContext = null;
             try {
-                historyContext = new HistoryContext(query);
+                historyContext = new HistoryContext(env, query);
                 if (historyContext.isEmpty()) {
                     historyContext = null;
                 }
@@ -509,7 +514,7 @@ public class SearchEngine {
                     try {
                         if (Genre.PLAIN == genre && (source != null)) {
                             // SRCROOT is read with UTF-8 as a default.
-                            hasContext = sourceContext.getContext(
+                            hasContext = sourceContext.getContext(env,
                                 new InputStreamReader(new FileInputStream(
                                 source + filename), StandardCharsets.UTF_8),
                                 null, null, null, filename, tags, nhits > 100,
@@ -521,7 +526,7 @@ public class SearchEngine {
                              * OpenGrok-produced document using the system
                              * default charset.
                              */
-                            try (Reader r = RuntimeEnvironment.getInstance().isCompressXref()
+                            try (Reader r = env.isCompressXref()
                                     ? new HTMLStripCharFilter(new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(data + Prefix.XREF_P + filename + ".gz")))))
                                     : new HTMLStripCharFilter(new BufferedReader(new FileReader(data + Prefix.XREF_P + filename)))) {
                                 l = r.read(content);

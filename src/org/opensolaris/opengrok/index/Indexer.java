@@ -41,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,7 +56,6 @@ import org.opensolaris.opengrok.configuration.Project;
 import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.configuration.messages.Message;
 import org.opensolaris.opengrok.history.HistoryException;
-import org.opensolaris.opengrok.history.HistoryGuru;
 import org.opensolaris.opengrok.history.Repository;
 import org.opensolaris.opengrok.history.RepositoryFactory;
 import org.opensolaris.opengrok.history.RepositoryInfo;
@@ -103,7 +103,7 @@ public final class Indexer {
     private static final HashSet<String> allowedSymlinks = new HashSet<>();
     private static final Set<String> defaultProjects = new TreeSet<>();
     private static final ArrayList<String> zapCache = new ArrayList<>();
-    private static RuntimeEnvironment env = null;
+    private static RuntimeEnvironment genv;
     private static String host = null;
     private static int port = 0;
 
@@ -131,12 +131,14 @@ public final class Indexer {
         boolean createDict = false;
 
         try {
+            genv = RuntimeEnvironment.getInstance();
+
             argv = parseOptions(argv);
             if (help) {
                 status = 1;
                 System.err.println(helpUsage);
                 if (helpDetailed) {
-                    System.err.println(AnalyzerGuruHelp.getUsage());
+                    System.err.println(AnalyzerGuruHelp.getUsage(genv));
                     System.err.println(
                         ConfigurationHelp.getSamples());
                 }
@@ -144,8 +146,6 @@ public final class Indexer {
             }
             
             if (awaitProfiler) pauseToAwaitProfiler();
-
-            env = RuntimeEnvironment.getInstance();
 
             // Complete the configuration of repository types.
             List<Class<? extends Repository>> repositoryClasses
@@ -222,16 +222,16 @@ public final class Indexer {
             }
 
             // Set updated configuration in RuntimeEnvironment.
-            env.setConfiguration(cfg, subFilesList, false);
+            genv.setConfiguration(cfg, subFilesList, false);
 
             // Let repository types to add items to ignoredNames.
             // This changes env so is called after the setConfiguration()
             // call above.
-            RepositoryFactory.initializeIgnoredNames(env);
+            RepositoryFactory.initializeIgnoredNames(genv);
 
             if (noindex) {
-                getInstance().sendToConfigHost(env, host, port);
-                writeConfigToFile(env, configFilename);
+                getInstance().sendToConfigHost(genv, host, port);
+                writeConfigToFile(genv, configFilename);
                 System.exit(0);
             }
 
@@ -244,16 +244,16 @@ public final class Indexer {
              * For the check we need to have 'env' already set.
              */
             for (String path : subFilesList) {
-                String srcPath = env.getSourceRootPath();
+                String srcPath = genv.getSourceRootPath();
                 if (srcPath == null) {
                     System.err.println("Error getting source root from environment. Exiting.");
                     System.exit(1);
                 }
 
                 path = path.substring(srcPath.length());
-                if (env.hasProjects()) {
+                if (genv.hasProjects()) {
                     // The paths need to correspond to a project.
-                    if (Project.getProject(path) != null) {
+                    if (genv.getProject(path) != null) {
                         subFiles.add(path);
                     } else {
                         System.err.println("The path " + path
@@ -290,7 +290,7 @@ public final class Indexer {
                     new Object[]{ Info.getVersion(), Info.getRevision()});
             
             // Get history first.
-            getInstance().prepareIndexer(env, searchRepositories, addProjects,
+            getInstance().prepareIndexer(genv, searchRepositories, addProjects,
                     defaultProjects,
                     listFiles, createDict, subFiles, repositories,
                     zapCache, listRepos);
@@ -299,23 +299,26 @@ public final class Indexer {
             }
 
             // And now index it all.
-            if (runIndex || (optimizedChanged && env.isOptimizeDatabase())) {
+            if (runIndex || (optimizedChanged && genv.isOptimizeDatabase())) {
                 IndexChangedListener progress = new DefaultIndexChangedListener();
-                getInstance().doIndexerExecution(update, subFiles, progress);
+                getInstance().doIndexerExecution(genv, update, subFiles,
+                        progress);
             }
 
-            writeConfigToFile(env, configFilename);
+            writeConfigToFile(genv, configFilename);
 
             // Finally ping webapp to refresh indexes in the case of partial reindex
             // or send new configuration to the web application in the case of full reindex.
             if (host != null) {
                 if (!subFiles.isEmpty()) {
-                    getInstance().refreshSearcherManagers(env, subFiles, host, port);
+                    getInstance().refreshSearcherManagers(genv, subFiles, host,
+                            port);
                 } else {
-                    getInstance().sendToConfigHost(env, host, port);
+                    getInstance().sendToConfigHost(genv, host, port);
                 }
             }
 
+            genv.getIndexerParallelizer().bounce();
         } catch (ParseException e) {
             System.err.println("** " +e.getMessage());
             System.exit(1);
@@ -736,12 +739,10 @@ public final class Indexer {
                 Do( webAddr -> {
                     WebAddress web = (WebAddress)webAddr;
 
-                    env = RuntimeEnvironment.getInstance();
-
                     host = web.getHost();
                     port = web.getPort();
-                    env.setConfigHost(host);
-                    env.setConfigPort(port);
+                    genv.setConfigHost(host);
+                    genv.setConfigPort(port);
                 }
             );
 
@@ -815,23 +816,20 @@ public final class Indexer {
         }
         fileSpec = fileSpec.toUpperCase(Locale.ROOT);
 
+        AnalyzerGuru guru = genv.getAnalyzerGuru();
         // Disable analyzer?
         if (analyzer.equals("-")) {
             if (prefix) {
-                AnalyzerGuru.addPrefix(fileSpec, null);
+                guru.addPrefix(fileSpec, null);
             } else {
-                AnalyzerGuru.addExtension(fileSpec, null);
+                guru.addExtension(fileSpec, null);
             }
         } else {
             try {
                 if (prefix) {
-                    AnalyzerGuru.addPrefix(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addPrefix(fileSpec, guru.findFactory(analyzer));
                 } else {
-                    AnalyzerGuru.addExtension(
-                        fileSpec,
-                        AnalyzerGuru.findFactory(analyzer));
+                    guru.addExtension(fileSpec, guru.findFactory(analyzer));
                 }
 
             } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoSuchMethodException
@@ -970,7 +968,7 @@ public final class Indexer {
                         }
                     }
                     try {
-                        HistoryGuru.getInstance().removeCache(toZap);
+                        env.getHistoryGuru().removeCache(toZap);
                     } catch (HistoryException e) {
                         LOGGER.log(Level.WARNING, "Clearing history cache failed: {0}",
                                 e.getLocalizedMessage());
@@ -1003,22 +1001,22 @@ public final class Indexer {
         if (repositories != null && !repositories.isEmpty()) {
             LOGGER.log(Level.INFO, "Generating history cache for repositories: " +
                 repositories.stream().collect(Collectors.joining(",")));
-            HistoryGuru.getInstance().createCache(repositories);
+            env.getHistoryGuru().createCache(repositories);
             LOGGER.info("Done...");
           } else {
               LOGGER.log(Level.INFO, "Generating history cache for all repositories ...");
-              HistoryGuru.getInstance().createCache();
+              env.getHistoryGuru().createCache();
               LOGGER.info("Done...");
           }
 
         if (listFiles) {
-            for (String file : IndexDatabase.getAllFiles(subFiles)) {
+            for (String file : IndexDatabase.getAllFiles(env, subFiles)) {
                 LOGGER.fine(file);
             }
         }
 
         if (createDict) {
-            IndexDatabase.listFrequentTokens(subFiles);
+            IndexDatabase.listFrequentTokens(env, subFiles);
         }
     }
 
@@ -1028,39 +1026,42 @@ public final class Indexer {
      * and storing data from the source files in the index (along with history,
      * if any).
      *
+     * @param env a defined instance
      * @param update if set to true, index database is updated, otherwise optimized
      * @param subFiles index just some subdirectories
      * @param progress object to receive notifications as indexer progress is made
      * @throws IOException if I/O exception occurred
      */
-    public void doIndexerExecution(final boolean update, List<String> subFiles,
-        IndexChangedListener progress)
+    public void doIndexerExecution(RuntimeEnvironment env, final boolean update,
+            List<String> subFiles, IndexChangedListener progress)
             throws IOException {
         Statistics elapsed = new Statistics();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance().register();
+        env.register();
         LOGGER.info("Starting indexing");
 
-        IndexerParallelizer parallelizer = new IndexerParallelizer(env);
-
+        IndexerParallelizer parallelizer = env.getIndexerParallelizer();
+        final CountDownLatch latch;
         if (subFiles == null || subFiles.isEmpty()) {
             if (update) {
-                IndexDatabase.updateAll(parallelizer, progress);
+                latch = IndexDatabase.updateAll(env, progress);
             } else if (env.isOptimizeDatabase()) {
-                IndexDatabase.optimizeAll(parallelizer);
+                latch = IndexDatabase.optimizeAll(env);
+            } else {
+                latch = new CountDownLatch(0);
             }
         } else {
             List<IndexDatabase> dbs = new ArrayList<>();
 
             for (String path : subFiles) {
-                Project project = Project.getProject(path);
+                Project project = env.getProject(path);
                 if (project == null && env.hasProjects()) {
                     LOGGER.log(Level.WARNING, "Could not find a project for \"{0}\"", path);
                 } else {
                     IndexDatabase db;
                     if (project == null) {
-                        db = new IndexDatabase();
+                        db = new IndexDatabase(env);
                     } else {
-                        db = new IndexDatabase(project);
+                        db = new IndexDatabase(env, project);
                     }
                     int idx = dbs.indexOf(db);
                     if (idx != -1) {
@@ -1077,6 +1078,7 @@ public final class Indexer {
                 }
             }
 
+            latch = new CountDownLatch(dbs.size());
             for (final IndexDatabase db : dbs) {
                 final boolean optimize = env.isOptimizeDatabase();
                 db.addIndexChangedListener(progress);
@@ -1085,7 +1087,7 @@ public final class Indexer {
                     public void run() {
                         try {
                             if (update) {
-                                db.update(parallelizer);
+                                db.update();
                             } else if (optimize) {
                                 db.optimize();
                             }
@@ -1093,35 +1095,21 @@ public final class Indexer {
                             LOGGER.log(Level.SEVERE, "An error occurred while "
                                     + (update ? "updating" : "optimizing")
                                     + " index", e);
+                        } finally {
+                            latch.countDown();
                         }
                     }
                 });
             }
         }
 
-        parallelizer.getFixedExecutor().shutdown();
-        while (!parallelizer.getFixedExecutor().isTerminated()) {
-            try {
-                // Wait forever
-                parallelizer.getFixedExecutor().awaitTermination(999,
-                    TimeUnit.DAYS);
-            } catch (InterruptedException exp) {
-                LOGGER.log(Level.WARNING, "Received interrupt while waiting for executor to finish", exp);
-            }
-        }
+        // Wait for the executors to finish.
         try {
-            // It can happen that history index is not done in prepareIndexer()
-            // but via db.update() above in which case we must make sure the
-            // thread pool for renamed file handling is destroyed.
-            RuntimeEnvironment.destroyRenamedHistoryExecutor();
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "destroying of renamed thread pool failed", ex);
-        }
-        try {
-            parallelizer.close();
-        } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "parallelizer.close() failed", ex);
+            // Wait for the executors to finish.
+            latch.await(999, TimeUnit.DAYS);
+        } catch (InterruptedException exp) {
+            LOGGER.log(Level.WARNING, "Received interrupt while waiting" +
+                    " for executor to finish", exp);
         }
         elapsed.report(LOGGER, "Done indexing data of all repositories");
     }

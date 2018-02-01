@@ -20,6 +20,7 @@
 /*
  * Copyright (c) 2007, 2015, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2012, 2013 Constantine A. Murenin &lt;C++@Cns.SU&gt;
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.uue;
@@ -27,6 +28,7 @@ package org.opensolaris.opengrok.analysis.uue;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * @author Constantine A. Murenin &lt;http://cnst.su/&gt;
@@ -52,10 +54,15 @@ public class UuencodeAnalyzerFactory extends FileAnalyzerFactory {
         "begin-b" /* XXX: Should be "begin-base64 ", but there is a limit of magics size*/
     };
 
-    public UuencodeAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public UuencodeAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link UuencodeAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new UuencodeAnalyzer(this);

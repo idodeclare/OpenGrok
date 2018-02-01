@@ -25,6 +25,7 @@ package org.opensolaris.opengrok.analysis;
 
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Represents a container for tests of {@link AnalyzerGuruHelp}.
@@ -32,7 +33,8 @@ import org.junit.Test;
 public class AnalyzerGuruHelpTest {
     @Test
     public void shouldCreateReadableUsage() {
-        String usage = AnalyzerGuruHelp.getUsage();
+        String usage = AnalyzerGuruHelp.getUsage(
+                RuntimeEnvironment.getInstance());
         assertTrue("usage is not empty", !usage.isEmpty());
         assertTrue("usage contains \"*.\"", usage.contains("*."));
         assertTrue("usage contains \"#!\"", usage.contains("#!"));

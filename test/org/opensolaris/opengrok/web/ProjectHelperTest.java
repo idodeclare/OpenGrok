@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
@@ -35,7 +35,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.history.RepoRepository;
 import org.opensolaris.opengrok.history.RepositoryInfo;
 
@@ -192,7 +191,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
      */
     @Test
     public void testGetProjectsAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("allowed_group_0")) {
                 Set<Project> result = helper.getProjects(g);
                 Assert.assertEquals(2, result.size());
@@ -209,7 +208,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
      */
     @Test
     public void testGetProjectsUnAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("group_0")) {
                 Assert.assertEquals(0, helper.getProjects(g).size());
                 break;
@@ -223,7 +222,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
      */
     @Test
     public void testGetRepositoriesAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("allowed_group_0")) {
                 Set<Project> result = helper.getRepositories(g);
                 Assert.assertEquals(2, result.size());
@@ -240,7 +239,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
      */
     @Test
     public void testGetRepositoriesUnAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("group_0")) {
                 Assert.assertEquals(0, helper.getRepositories(g).size());
                 break;
@@ -314,7 +313,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
      */
     @Test
     public void testGetAllGroupedAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("allowed_group_0")) {
                 Set<Project> result = helper.getAllGrouped(g);
                 Assert.assertEquals(4, result.size());
@@ -328,7 +327,7 @@ public class ProjectHelperTest extends ProjectHelperTestBase {
 
     @Test
     public void testGetAllGroupedUnAllowedGroup() {
-        for (Group g : RuntimeEnvironment.getInstance().getGroups()) {
+        for (Group g : env.getGroups()) {
             if (g.getName().startsWith("group_0")) {
                 Assert.assertEquals(0, helper.getAllGrouped(g).size());
                 break;

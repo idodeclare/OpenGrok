@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Represents a utility class to show the user details of {@link AnalyzerGuru}.
@@ -39,34 +40,37 @@ public class AnalyzerGuruHelp {
      * {@link AnalyzerGuru#getExtensionsMap()},
      * {@link AnalyzerGuru#getMagicsMap()}, and
      * {@link AnalyzerGuru#getAnalyzerFactoryMatchers()}.
+     * @param env a defined instance
      * @return a defined, multi-line String
      */
-    public static String getUsage() {
+    public static String getUsage(RuntimeEnvironment env) {
+        AnalyzerGuru guru = env.getAnalyzerGuru();
+
         StringBuilder b = new StringBuilder();
         b.append("AnalyzerGuru prefixes:\n");
-        byKey(AnalyzerGuru.getPrefixesMap()).forEach((kv) -> {
+        byKey(guru.getPrefixesMap()).forEach((kv) -> {
             b.append(String.format("%-10s : %s\n", reportable(kv.key + '*'),
                 reportable(kv.fac)));
         });
 
         b.append("\nAnalyzerGuru extensions:\n");
-        byKey(AnalyzerGuru.getExtensionsMap()).forEach((kv) -> {
+        byKey(guru.getExtensionsMap()).forEach((kv) -> {
             b.append(String.format("*.%-7s : %s\n",
                 reportable(kv.key.toLowerCase(Locale.ROOT)),
                 reportable(kv.fac)));
         });
 
         b.append("\nAnalyzerGuru magic strings:\n");
-        byFactory(AnalyzerGuru.getMagicsMap()).forEach((kv) -> {
+        byFactory(guru.getMagicsMap()).forEach((kv) -> {
             b.append(String.format("%-23s : %s\n", reportable(kv.key),
                 reportable(kv.fac)));
         });
 
         b.append("\nAnalyzerGuru magic matchers:\n");
-        AnalyzerGuru.getAnalyzerFactoryMatchers().forEach((m) -> {
+        guru.getAnalyzerFactoryMatchers().forEach((m) -> {
             if (m.getIsPreciseMagic()) b.append(reportable(m));
         });
-        AnalyzerGuru.getAnalyzerFactoryMatchers().forEach((m) -> {
+        guru.getAnalyzerFactoryMatchers().forEach((m) -> {
             if (!m.getIsPreciseMagic()) b.append(reportable(m));
         });
 

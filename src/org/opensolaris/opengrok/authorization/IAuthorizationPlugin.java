@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.authorization;
 
@@ -26,6 +27,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Interface for authorization plug-ins.
@@ -43,9 +45,10 @@ public interface IAuthorizationPlugin {
      * This can be used for establishing database/LDAP connection or perform
      * initialization.
      *
+     * @param env a defined instance
      * @param parameters parameters specified in the configuration
      */
-    void load(Map<String, Object> parameters);
+    void load(RuntimeEnvironment env, Map<String, Object> parameters);
 
     /**
      * Called when the plug-in is about to be deleted from the memory.

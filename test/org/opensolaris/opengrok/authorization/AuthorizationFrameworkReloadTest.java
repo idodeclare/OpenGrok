@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.authorization;
 
@@ -30,6 +31,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.configuration.Project;
 import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
@@ -42,6 +44,8 @@ import org.opensolaris.opengrok.web.Statistics;
  * @author Vladimir Kotal
  */
 public class AuthorizationFrameworkReloadTest {
+
+    private static RuntimeEnvironment env;
     
     private final File pluginDirectory;
     
@@ -52,6 +56,11 @@ public class AuthorizationFrameworkReloadTest {
         pluginDirectory = new File(resource.getFile()).getParentFile();
     }
     
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     /**
      * After {@code reload()} the session attributes should be invalidated.
      * It is assumed that invalidation of HttpSession objects means that all
@@ -62,8 +71,8 @@ public class AuthorizationFrameworkReloadTest {
         DummyHttpServletRequest req = new DummyHttpServletRequest();
         AuthorizationFramework framework = new AuthorizationFramework(pluginDirectory.getPath());
         framework.setLoadClasses(false); // to avoid noise when loading classes of other tests
-        framework.reload();
-        Statistics stats = RuntimeEnvironment.getInstance().getStatistics();
+        framework.reload(env);
+        Statistics stats = env.getStatistics();
         
         // Ensure the framework was setup correctly.
         assertNotNull(framework.getPluginDirectory());
@@ -77,7 +86,7 @@ public class AuthorizationFrameworkReloadTest {
         assertNotNull(session.getAttribute(attrName));
         
         // Reload the framework to increment the plugin generation version.
-        framework.reload();
+        framework.reload(env);
         // Let the framework check the request. This should invalidate the session
         // since the version was incremented. In this test we are not interested
         // in the actual result.
@@ -93,7 +102,7 @@ public class AuthorizationFrameworkReloadTest {
      */
     @Test
     public void testReloadCycle() {
-        Statistics stats = RuntimeEnvironment.getInstance().getStatistics();
+        Statistics stats = env.getStatistics();
         Long reloads;
         String projectName = "project" + Math.random();
         
@@ -107,7 +116,7 @@ public class AuthorizationFrameworkReloadTest {
         AuthorizationFramework framework = 
                 new AuthorizationFramework(pluginDirectory.getPath(), stack);
         framework.setLoadClasses(false); // to avoid noise when loading classes of other tests
-        framework.reload();
+        framework.reload(env);
         
         // Perform simple sanity check before long run is entered. If this fails,
         // it will be waste of time to continue with the test.
@@ -122,7 +131,7 @@ public class AuthorizationFrameworkReloadTest {
             @Override
             public void run() {
                 while (runThread) {
-                    framework.reload();
+                    framework.reload(env);
                     try {
                         Thread.sleep((long) (Math.random() % maxReloadSleep) + 1);
                     } catch (InterruptedException ex) {

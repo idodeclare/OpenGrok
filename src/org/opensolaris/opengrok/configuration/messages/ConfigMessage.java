@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.configuration.messages;
 
@@ -56,7 +57,7 @@ public class ConfigMessage extends Message {
         if (hasTag("getconf")) {
             return env.getConfiguration().getXMLRepresentationAsString().getBytes();
         } else if (hasTag("auth") && "reload".equalsIgnoreCase(getText())) {
-            env.getAuthorizationFramework().reload();
+            env.getAuthorizationFramework().reload(env);
         } else if (hasTag("set")) {
             Matcher matcher = VARIABLE_PATTERN.matcher(getText());
             if (matcher.find()) {

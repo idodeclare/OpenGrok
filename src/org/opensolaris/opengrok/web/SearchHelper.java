@@ -85,6 +85,9 @@ public class SearchHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchHelper.class);
 
     public static final String REQUEST_ATTR = "SearchHelper";
+
+    private final RuntimeEnvironment env;
+
     /**
      * max number of words to suggest for spellcheck
      */
@@ -227,11 +230,18 @@ public class SearchHelper {
      *
      * @return Set of tuples with file type and description.
      */
-    public static Set<Map.Entry<String, String>> getFileTypeDescriptions() {
-        return AnalyzerGuru.getfileTypeDescriptions().entrySet();
+    public Set<Map.Entry<String, String>> getFileTypeDescriptions() {
+        return env.getAnalyzerGuru().getfileTypeDescriptions().entrySet();
     }
 
     File indexDir;
+
+    public SearchHelper(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
 
     /**
      * Create the searcher to use w.r.t. currently set parameters and the given
@@ -281,7 +291,7 @@ public class SearchHelper {
                 // are valid and indexed.
                 closeOnDestroy = false;
                 Set<String> invalidProjects = projects.stream().
-                    filter(proj -> (Project.getByName(proj) == null)).
+                    filter(proj -> (env.getProjectByName(proj) == null)).
                     collect(Collectors.toSet());
                 if (invalidProjects.size() > 0) {
                     errorMsg = "Project list contains invalid projects: " +
@@ -290,7 +300,7 @@ public class SearchHelper {
                 }
                 Set<Project> notIndexedProjects =
                     projects.stream().
-                    map(x -> Project.getByName(x)).
+                    map(x -> env.getProjectByName(x)).
                     filter(proj -> !proj.isIndexed()).
                     collect(Collectors.toSet());
                 if (notIndexedProjects.size() > 0) {
@@ -304,8 +314,7 @@ public class SearchHelper {
                 // We use MultiReader even for single project. This should
                 // not matter given that MultiReader is just a cheap wrapper
                 // around set of IndexReader objects.
-                reader = RuntimeEnvironment.getInstance().getMultiReader(
-                    projects, searcherList);
+                reader = env.getMultiReader(projects, searcherList);
                 if (reader != null) {
                     searcher = new IndexSearcher(reader);
                 } else {
@@ -469,7 +478,7 @@ public class SearchHelper {
             Suggestion s = new Suggestion(proj);
             try {
                 if (!closeOnDestroy) {
-                    SuperIndexSearcher searcher = RuntimeEnvironment.getInstance().getIndexSearcher(proj);
+                    SuperIndexSearcher searcher = env.getIndexSearcher(proj);
                     searcherList.add(searcher);
                     ir = searcher.getIndexReader();
                 } else {
@@ -542,7 +551,7 @@ public class SearchHelper {
             LOGGER.log(Level.WARNING, "Summarizer: {0}", e.getMessage());
         }
         try {
-            historyContext = new HistoryContext(query);
+            historyContext = new HistoryContext(env, query);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "HistoryContext: {0}", e.getMessage());
         }
@@ -577,7 +586,6 @@ public class SearchHelper {
     public int searchSingle(File file) throws IOException,
             ParseException {
 
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String path;
         try {
             path = env.getPathRelativeToSourceRoot(file);
@@ -589,7 +597,7 @@ public class SearchHelper {
         //in order not to conflict with Lucene escape character
         path = path.replace("\\", "/");
 
-        QueryBuilder singleBuilder = new QueryBuilder();
+        QueryBuilder singleBuilder = new QueryBuilder(env);
         if (builder != null) {
             singleBuilder.reset(builder);
         }

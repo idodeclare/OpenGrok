@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.authorization;
 
@@ -382,11 +383,13 @@ public final class AuthorizationFramework {
      * Load all plugins in the stack. If any plugin has not been loaded yet it
      * is marked as failed.
      *
+     * @param env a defined instance
      * @param stack the stack
      */
-    public void loadAllPlugins(AuthorizationStack stack) {
+    public void loadAllPlugins(RuntimeEnvironment env,
+            AuthorizationStack stack) {
         if (stack != null) {
-            stack.load(new TreeMap<>());
+            stack.load(env, new TreeMap<>());
         }
     }
 
@@ -582,12 +585,13 @@ public final class AuthorizationFramework {
      * This method is thread safe with respect to the currently running
      * authorization checks.</p>
      *
-     * @see IAuthorizationPlugin#load(java.util.Map)
+     * @param env a defined instance
+     * @see IAuthorizationPlugin#load(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.util.Map)
      * @see IAuthorizationPlugin#unload()
      * @see Configuration#getPluginDirectory()
      */
     @SuppressWarnings("unchecked")
-    public void reload() {
+    public void reload(RuntimeEnvironment env) {
         if (pluginDirectory == null || !pluginDirectory.isDirectory() || !pluginDirectory.canRead()) {
             LOGGER.log(Level.WARNING, "Plugin directory not found or not readable: {0}. "
                     + "All requests allowed.", pluginDirectory);
@@ -626,7 +630,7 @@ public final class AuthorizationFramework {
         }
 
         // fire load events
-        loadAllPlugins(newLocalStack);
+        loadAllPlugins(env, newLocalStack);
 
         AuthorizationStack oldStack;
         /**
@@ -647,7 +651,7 @@ public final class AuthorizationFramework {
             lock.writeLock().unlock();
         }
 
-        Statistics stats = RuntimeEnvironment.getInstance().getStatistics();
+        Statistics stats = env.getStatistics();
         stats.addRequest("authorization_stack_reload");
         
         // clean the old stack
@@ -753,7 +757,14 @@ public final class AuthorizationFramework {
             return true;
         }
 
-        Statistics stats = RuntimeEnvironment.getInstance().getStatistics();
+        /**
+         * The following static dependency will be a tough one to unwind, since
+         * the class is instantiated from configuration XML so a
+         * RuntimeEnvironment instance cannot be injected and this method
+         * signature is fixed to a framework.
+         */
+        RuntimeEnvironment genv = RuntimeEnvironment.getInstance();
+        Statistics stats = genv.getStatistics();
 
         Boolean val;
         Map<String, Boolean> m = (Map<String, Boolean>) request.getAttribute(cache);

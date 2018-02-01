@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 import org.opensolaris.opengrok.util.Executor;
 
@@ -92,7 +91,8 @@ public class BazaarRepository extends Repository {
             cmd.add(sinceRevision + "..-1");
         }
 
-        return new Executor(cmd, new File(getDirectoryName()), sinceRevision != null);
+        return new Executor(cmd, new File(getDirectoryName()),
+                sinceRevision != null ? env.getCommandTimeout() : 0);
     }
 
     @Override
@@ -162,7 +162,7 @@ public class BazaarRepository extends Repository {
         cmd.add(file.getName());
 
         Executor executor = new Executor(cmd, file.getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         BazaarAnnotationParser parser = new BazaarAnnotationParser(file.getName());
         int status = executor.exec(true, parser);
 
@@ -189,7 +189,8 @@ public class BazaarRepository extends Repository {
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         cmd.add(RepoCommand);
         cmd.add("info");
-        Executor executor = new Executor(cmd, directory);
+        Executor executor = new Executor(cmd, directory,
+                env.getCommandTimeout());
         if (executor.exec() != 0) {
             throw new IOException(executor.getErrorString());
         }
@@ -198,7 +199,8 @@ public class BazaarRepository extends Repository {
             cmd.clear();
             cmd.add(RepoCommand);
             cmd.add("up");
-            executor = new Executor(cmd, directory);
+            executor = new Executor(cmd, directory,
+                    env.getCommandTimeout());
             if (executor.exec() != 0) {
                 throw new IOException(executor.getErrorString());
             }
@@ -239,8 +241,8 @@ public class BazaarRepository extends Repository {
 
     @Override
     History getHistory(File file, String sinceRevision) throws HistoryException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        History result = new BazaarHistoryParser(this).parse(file, sinceRevision);
+        History result = new BazaarHistoryParser(this, env).parse(file,
+                sinceRevision);
         // Assign tags to changesets they represent
         // We don't need to check if this repository supports tags, because we know it:-)
         if (env.isTagsEnabled()) {
@@ -271,8 +273,8 @@ public class BazaarRepository extends Repository {
         argv.add("tags");
         
         Executor executor = new Executor(argv, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         final BazaarTagParser parser = new BazaarTagParser();
         int status = executor.exec(true, parser);
         if (status != 0) {
@@ -294,8 +296,8 @@ public class BazaarRepository extends Repository {
         cmd.add("config");
         cmd.add("parent_location");
         Executor executor = new Executor(cmd, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         if (executor.exec(false) != 0) {
             throw new IOException(executor.getErrorString());
         }

@@ -58,6 +58,7 @@ import static org.opensolaris.opengrok.analysis.AnalyzerGuru.string_ft_nstored_n
 @ConditionalRun(CtagsInstalled.class)
 public class ClojureAnalyzerFactoryTest {
 
+    private static RuntimeEnvironment env;
     private static Ctags ctags;
     private static TestRepository repository;
     private static FileAnalyzer analyzer;
@@ -76,18 +77,17 @@ public class ClojureAnalyzerFactoryTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        ctags = new Ctags();
-        ctags.setBinary(RuntimeEnvironment.getInstance().getCtags());
+        env = RuntimeEnvironment.getInstance();
+        ctags = new Ctags(env);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(ClojureAnalyzerFactoryTest.class.getResourceAsStream(
                 "/org/opensolaris/opengrok/index/source.zip"));
 
-        ClojureAnalyzerFactory analFact = new ClojureAnalyzerFactory();
+        ClojureAnalyzerFactory analFact = new ClojureAnalyzerFactory(env);
         analyzer = analFact.getAnalyzer();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (env.validateExuberantCtags()) {
-            analyzer.setCtags(new Ctags());
+            analyzer.setCtags(new Ctags(env));
         }
     }
 

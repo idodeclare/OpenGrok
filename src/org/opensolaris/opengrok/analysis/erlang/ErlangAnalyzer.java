@@ -60,6 +60,6 @@ public class ErlangAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new ErlangXref(reader));
+        return new JFlexXref(new ErlangXref(reader), getFactory().getEnv());
     }
 }

@@ -74,7 +74,7 @@ public class PlainAnalyzerTest {
         originalAllNonWhitespace = env.isAllNonWhitespace();
         env.setAllNonWhitespace(true);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.createEmpty();
         repository.addAdhocFile(TURKISH_TEST_STRINGS,
             PlainAnalyzerTest.class.getResourceAsStream(TURKISH_TEST_STRINGS),
@@ -90,7 +90,7 @@ public class PlainAnalyzerTest {
         Indexer.getInstance().prepareIndexer(env, true, true,
             new TreeSet<>(Arrays.asList(new String[]{"/c"})),
             false, false, null, null, new ArrayList<>(), false);
-        Indexer.getInstance().doIndexerExecution(true, null, progress);
+        Indexer.getInstance().doIndexerExecution(env, true, null, progress);
 
         configFile = File.createTempFile("configuration", ".xml");
         env.writeConfiguration(configFile);
@@ -114,7 +114,7 @@ public class PlainAnalyzerTest {
         SearchEngine instance;
         int noHits;
 
-        instance = new SearchEngine();
+        instance = new SearchEngine(env);
         instance.setFile(TURKISH_TEST_STRINGS);
         instance.setFreetext("\\%\\@\\\"");
         noHits = instance.search();

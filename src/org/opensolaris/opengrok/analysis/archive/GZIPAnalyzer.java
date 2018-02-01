@@ -85,7 +85,8 @@ public class GZIPAnalyzer extends FileAnalyzer {
             String newname = path.substring(0, path.length() - 3);
             //System.err.println("GZIPPED OF = " + newname);
             try (InputStream gzis = gzSrc.getStream()) {
-                fa = AnalyzerGuru.getAnalyzer(gzis, newname);
+                fa = getFactory().getEnv().getAnalyzerGuru().getAnalyzer(gzis,
+                        newname);
             }
             if (fa == null) {
                 this.g = Genre.DATA;

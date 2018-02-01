@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 import org.opensolaris.opengrok.util.Executor;
 
@@ -354,7 +353,6 @@ public abstract class Repository extends RepositoryInfo {
         }
 
         // We need to refresh list of tags for incremental reindex.
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (env.isTagsEnabled() && this.hasFileBasedTags()) {
             this.buildTagList(new File(this.getDirectoryName()), false);
         }
@@ -522,8 +520,8 @@ public abstract class Repository extends RepositoryInfo {
         };
     }
 
-    static Boolean checkCmd(String... args) {
-        Executor exec = new Executor(args);
+    Boolean checkCmd(String... args) {
+        Executor exec = new Executor(args, env.getCommandTimeout());
         return exec.exec(false) == 0;
     }
 
@@ -543,12 +541,10 @@ public abstract class Repository extends RepositoryInfo {
         if (RepoCommand != null) {
             return RepoCommand;
         }
-        RepoCommand = RuntimeEnvironment.getInstance()
-                .getRepoCmd(this.getClass().getCanonicalName());
+        RepoCommand = env.getRepoCmd(this.getClass().getCanonicalName());
         if (RepoCommand == null) {
             RepoCommand = System.getProperty(propertyKey, fallbackCommand);
-            RuntimeEnvironment.getInstance()
-                    .setRepoCmd(this.getClass().getCanonicalName(), RepoCommand);
+            env.setRepoCmd(this.getClass().getCanonicalName(), RepoCommand);
         }
         return RepoCommand;
     }

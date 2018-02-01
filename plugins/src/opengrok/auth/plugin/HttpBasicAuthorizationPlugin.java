@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package opengrok.auth.plugin;
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.opensolaris.opengrok.authorization.IAuthorizationPlugin;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * This class is a full example of a working plugin from HTTP Basic tutorial on
@@ -63,7 +65,7 @@ public class HttpBasicAuthorizationPlugin implements IAuthorizationPlugin {
     }
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
     }
 
     @Override
@@ -99,8 +101,9 @@ public class HttpBasicAuthorizationPlugin implements IAuthorizationPlugin {
      * @param request the requests containing the user information
      */
     private void discoverGroup(String group, HttpServletRequest request) {
+        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         Group g;
-        if ((g = Group.getByName(group)) != null) {
+        if ((g = env.getGroupByName(group)) != null) {
             USER_GROUPS.get(request.getUserPrincipal().getName()).addAll(g.getRelatedGroups().stream().map((t) -> {
                 return t.getName();
             }).collect(Collectors.toSet()));

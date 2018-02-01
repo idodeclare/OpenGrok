@@ -19,13 +19,14 @@
 
 /*
  * Copyright (c) 2005, 2015, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.analysis.sh;
 
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class ShAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -60,10 +61,15 @@ public class ShAnalyzerFactory extends FileAnalyzerFactory {
         "#!",
     };
 
-    public ShAnalyzerFactory() {
-        super(NAMES, PREFIXES, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public ShAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, NAMES, PREFIXES, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link ShAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new ShAnalyzer(this);

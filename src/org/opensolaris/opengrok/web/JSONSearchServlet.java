@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2014, 2017 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.web;
 
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.tools.ant.util.Base64Converter;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.search.Hit;
 import org.opensolaris.opengrok.search.SearchEngine;
 
@@ -59,12 +61,14 @@ public class JSONSearchServlet extends HttpServlet {
     private static final String ATTRIBUTE_DURATION = "duration";
     private static final String ATTRIBUTE_RESULT_COUNT = "resultcount";
 
+    private final RuntimeEnvironment genv = RuntimeEnvironment.getInstance();
+
     @SuppressWarnings({"unchecked", "deprecation"})
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         JSONObject result = new JSONObject();
-        SearchEngine engine = new SearchEngine();
+        SearchEngine engine = new SearchEngine(genv);
 
         boolean valid = false;
 

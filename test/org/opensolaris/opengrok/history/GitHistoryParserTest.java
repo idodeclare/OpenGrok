@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -34,6 +35,7 @@ import org.junit.Test;
 import org.opensolaris.opengrok.util.TestRepository;
 
 import static org.junit.Assert.*;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -41,16 +43,19 @@ import static org.junit.Assert.*;
  */
 public class GitHistoryParserTest {
 
+    private static RuntimeEnvironment env;
+
     private final String gitISODatePattern = "yyyy-MM-dd'T'HH:mm:ssXXX";
     GitHistoryParser instance;
-    private static TestRepository repository = new TestRepository();
+    private static TestRepository repository;
 
     public GitHistoryParserTest() {
     }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        repository = new TestRepository();
+        env = RuntimeEnvironment.getInstance();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream("repositories.zip"));
     }
 
@@ -60,7 +65,7 @@ public class GitHistoryParserTest {
 
     @Before
     public void setUp() {
-        instance = new GitHistoryParser(false);
+        instance = new GitHistoryParser(env, false);
     }
 
     @After

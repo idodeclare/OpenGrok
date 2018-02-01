@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.analysis.java;
 
@@ -35,9 +35,11 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.JFlexTokenizer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 
 /**
@@ -49,10 +51,13 @@ public class JavaSymbolTokenizerTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JavaSymbolTokenizerTest.class);
 
-    private final FileAnalyzer analyzer;
+    private static RuntimeEnvironment env;
+    private static FileAnalyzer analyzer;
 
-    public JavaSymbolTokenizerTest() {
-        this.analyzer = new JavaAnalyzerFactory().getAnalyzer();
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+        analyzer = new JavaAnalyzerFactory(env).getAnalyzer();
     }
 
     private String[] getTermsFor(Reader r) {

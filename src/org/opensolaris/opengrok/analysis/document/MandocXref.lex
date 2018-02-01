@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2017, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.document;
@@ -36,18 +36,21 @@ import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 %public
 %class MandocXref
 %extends JFlexNonXref
+%ctorarg RuntimeEnvironment env
 %unicode
 %int
 %char
 %init{
+    super(env);
+    mandoc = new MandocRunner(env);
     yyline = 1;
 %init}
 %include CommonLexer.lexh
 // do not include CommonXref.lexh in JFlexNonXref subclasses
 %{
+    protected final MandocRunner mandoc;
     protected boolean didStartTee;
     protected boolean didStartMandoc;
-    protected final MandocRunner mandoc = new MandocRunner();
     protected StringWriter plainbuf;
 
     /**
@@ -65,7 +68,7 @@ import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
         plainbuf = new StringWriter();
 
         didStartMandoc = false;
-        if (RuntimeEnvironment.getInstance().getMandoc() != null) {
+        if (env.getMandoc() != null) {
             try {
                 mandoc.start();
                 didStartMandoc = true;
@@ -102,7 +105,7 @@ import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
         StringReader rdr = new StringReader(plainbuf.toString());
         plainbuf = new StringWriter();
 
-        JFlexXref plainxref = new JFlexXref(new PlainXref(rdr));
+        JFlexXref plainxref = new JFlexXref(new PlainXref(rdr), env);
         plainxref.setProject(this.project);
         plainxref.setAnnotation(this.annotation);
         plainxref.write(plainbuf);

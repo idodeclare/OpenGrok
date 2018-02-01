@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.jrcs.rcs.InvalidVersionNumberException;
 import org.apache.commons.jrcs.rcs.Version;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 import org.opensolaris.opengrok.util.Executor;
 
@@ -99,7 +98,9 @@ public class BitKeeperRepository extends Repository {
     private void ensureVersion() {
         if (working == null) {
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
-            final Executor exec = new Executor(new String[] { RepoCommand, "--version" });
+            final Executor exec = new Executor(
+                    new String[]{ RepoCommand, "--version" },
+                    env.getCommandTimeout());
             if (exec.exec(false) == 0) {
                 working = Boolean.TRUE;
                 final Matcher matcher = VERSION_PATTERN.matcher(exec.getOutputString());
@@ -181,8 +182,8 @@ public class BitKeeperRepository extends Repository {
         argv.add("-1il");
 
         final Executor executor = new Executor(argv, directory, interactive ?
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
-                RuntimeEnvironment.getInstance().getCommandTimeout());
+                env.getInteractiveCommandTimeout() :
+                env.getCommandTimeout());
         final int rc = executor.exec(false);
         final String parent = executor.getOutputString().trim();
         if (rc == 0) {
@@ -232,7 +233,8 @@ public class BitKeeperRepository extends Repository {
         argv.add("files");
         argv.add(basename);
 
-        final Executor executor = new Executor(argv, directory);
+        final Executor executor = new Executor(argv, directory,
+                env.getCommandTimeout());
         if (executor.exec(true) != 0) {
             LOGGER.log(Level.SEVERE, "Failed to check file: {0}", executor.getErrorString());
             return false;
@@ -275,13 +277,13 @@ public class BitKeeperRepository extends Repository {
         argv.add("-d" + LOG_DSPEC);
         argv.add(basename);
 
-        final Executor executor = new Executor(argv, directory);
+        final Executor executor = new Executor(argv, directory,
+                env.getCommandTimeout());
         final BitKeeperHistoryParser parser = new BitKeeperHistoryParser(datePatterns[0]);
         if (executor.exec(true, parser) != 0) {
             throw new HistoryException(executor.getErrorString());
         }
 
-        final RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         final History history = parser.getHistory();
 
         // Assign tags to changesets they represent
@@ -317,7 +319,7 @@ public class BitKeeperRepository extends Repository {
         argv.add(basename);
 
         final Executor executor = new Executor(argv, directory,
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         if (executor.exec(true) != 0) {
             LOGGER.log(Level.SEVERE, "Failed to get history: {0}", executor.getErrorString());
             return null;
@@ -364,7 +366,7 @@ public class BitKeeperRepository extends Repository {
         argv.add(basename);
 
         final Executor executor = new Executor(argv, directory,
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         final BitKeeperAnnotationParser parser = new BitKeeperAnnotationParser(basename);
         int status = executor.exec(true, parser);
         if (status != 0) {
@@ -415,7 +417,6 @@ public class BitKeeperRepository extends Repository {
         argv.add("tags");
         argv.add("-d" + getTagDspec());
 
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         final Executor executor = new Executor(argv, directory,
                 interactive ? env.getInteractiveCommandTimeout() :
                         env.getCommandTimeout());

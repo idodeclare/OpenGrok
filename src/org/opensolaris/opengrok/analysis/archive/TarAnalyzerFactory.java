@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.archive;
@@ -26,6 +27,7 @@ package org.opensolaris.opengrok.analysis.archive;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class TarAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,10 +37,14 @@ public class TarAnalyzerFactory extends FileAnalyzerFactory {
         "TAR"
     };
 
-    public TarAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, null, Genre.XREFABLE, name);
+    public TarAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, null, Genre.XREFABLE, name);
     }
 
+    /**
+     * Creates a new instance of {@link TarAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new TarAnalyzer(this);

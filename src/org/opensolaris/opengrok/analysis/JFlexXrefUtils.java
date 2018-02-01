@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
 import org.opensolaris.opengrok.analysis.Definitions.Tag;
 import org.opensolaris.opengrok.analysis.Scopes.Scope;
 import org.opensolaris.opengrok.configuration.Project;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.util.StringUtils;
 import org.opensolaris.opengrok.web.HtmlConsts;
 import org.opensolaris.opengrok.web.Util;
@@ -207,15 +206,15 @@ public class JFlexXrefUtils {
 
     /**
      * Write an e-mail address. The address will be obfuscated if
-     * {@link RuntimeEnvironment#isObfuscatingEMailAddresses()} returns
-     * {@code true}.
+     * {@code obfuscate} is {@code true}.
      * @param out a defined, target instance
      * @param address the address to write
+     * @param obfuscate a value indicating whether to replace '@' with " (at) "
      * @throws IOException if an error occurs while writing to the stream
      */
-    public static void writeEMailAddress(Writer out, String address)
-            throws IOException {
-        if (RuntimeEnvironment.getInstance().isObfuscatingEMailAddresses()) {
+    public static void writeEMailAddress(Writer out, String address,
+            boolean obfuscate) throws IOException {
+        if (obfuscate) {
             Util.htmlize(address.replace("@", " (at) "), out);
         } else {
             Util.htmlize(address, out);

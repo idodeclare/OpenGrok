@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2016, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.analysis.php;
 
@@ -38,11 +38,13 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.CtagsReader;
 import org.opensolaris.opengrok.analysis.Definitions;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -53,11 +55,18 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  */
 public class PhpXrefTest {
 
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Test
     public void basicTest() throws IOException {
         String s = "<?php foo bar";
         Writer w = new StringWriter();
-        PhpAnalyzerFactory fac = new PhpAnalyzerFactory();
+        PhpAnalyzerFactory fac = new PhpAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs xargs = new WriteXrefArgs(new StringReader(s), w);
         Xrefer xref = analyzer.writeXref(xargs);
@@ -72,7 +81,7 @@ public class PhpXrefTest {
     public void basicSingleQuotedStringTest() throws IOException {
         String s = "<?php define(\"FOO\", 'BAR\\'\"'); $foo='bar'; $hola=\"ls\"; $hola=''; $hola=\"\";";
         Writer w = new StringWriter();
-        PhpAnalyzerFactory fac = new PhpAnalyzerFactory();
+        PhpAnalyzerFactory fac = new PhpAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs xargs = new WriteXrefArgs(new StringReader(s), w);
         Xrefer xref =  analyzer.writeXref(xargs);
@@ -94,7 +103,7 @@ public class PhpXrefTest {
                 + "href=\"http://localhost:8080/source/default/style.css\" /><title>PHP Xref Test</title></head>");
         os.println("<body><div id=\"src\"><pre>");
         Writer w = new StringWriter();
-        PhpAnalyzerFactory fac = new PhpAnalyzerFactory();
+        PhpAnalyzerFactory fac = new PhpAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs wargs = new WriteXrefArgs(
             new InputStreamReader(is, "UTF-8"), w);

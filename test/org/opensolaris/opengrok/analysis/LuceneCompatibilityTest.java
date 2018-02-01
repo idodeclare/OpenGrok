@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.analysis;
 
@@ -32,6 +33,8 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.junit.BeforeClass;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * external tests, need to have test-framework on the path this will do a sanity
@@ -56,6 +59,8 @@ public class LuceneCompatibilityTest extends TestCase {
     private static final String LUCENE_DEP =
             "com.carrotsearch.randomizedtesting.RandomizedTest";
 
+    private static RuntimeEnvironment env;
+
     /**
      * Create a suite of tests to run. If the lucene test-framework classes are
      * not present, skip this test.
@@ -76,12 +81,17 @@ public class LuceneCompatibilityTest extends TestCase {
     Method testM;
     Object testC = null;
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     /**
      * Set up the test environment with repositories and a cache instance.
      */
     @Override
     protected void setUp() throws Exception {
-        guru = new AnalyzerGuru();
+        guru = env.getAnalyzerGuru();
         Class<?> c = Class.forName(LUCENE_TEST_CLASS);
         //testC = c.newInstance(); //this is static call
         Class[] argTypes = new Class[]{TokenStream.class, String[].class, int[].class, int[].class, String[].class, int[].class, int[].class, Integer.class, boolean.class};

@@ -20,6 +20,7 @@
 /*
  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
  * Use is subject to license terms.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -27,12 +28,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.util.Executor;
 
 
 public final class SCCSget {
 
-    public static InputStream getRevision(String command, File file, String revision) throws IOException {
+    public static InputStream getRevision(RuntimeEnvironment env,
+            String command, File file, String revision) throws IOException {
         InputStream ret = null;
         ArrayList<String> argv = new ArrayList<String>();
         argv.add(command);
@@ -43,7 +46,7 @@ public final class SCCSget {
         }
         argv.add(file.getCanonicalPath());
 
-        Executor executor = new Executor(argv);
+        Executor executor = new Executor(argv, env.getCommandTimeout());
         if (executor.exec() == 0) {
             ret = executor.getOutputStream();
         }

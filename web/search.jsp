@@ -218,7 +218,8 @@ include file="menu.jspf"
         }
         %>
         <table><%
-        Results.prettyPrint(out, searchHelper, start, start + thispage);
+        Results results = new Results(cfg.getEnv());
+        results.prettyPrint(out, searchHelper, start, start + thispage);
         %>
         </table>
         <p><b>Completed in <%= System.currentTimeMillis() - starttime

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2009, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -44,6 +44,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.fail;
+import org.junit.BeforeClass;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Tests for MercurialRepository.
@@ -78,14 +80,20 @@ public class MercurialRepositoryTest {
         "5:8706402863c6", "4:e494d67af12f", "3:2058725c1470"
     };
 
+    private static RuntimeEnvironment env;
     private TestRepository repository;
+
+    @BeforeClass
+    public static void setUpClass() throws IOException {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     /**
      * Set up a test repository. Should be called by the tests that need it. The
      * test repository will be destroyed automatically when the test finishes.
      */
     private void setUpTestRepository() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(getClass().getResourceAsStream("repositories.zip"));
     }
 
@@ -101,8 +109,8 @@ public class MercurialRepositoryTest {
     public void testGetHistory() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
         History hist = mr.getHistory(root);
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(REVISIONS.length, entries.size());
@@ -125,8 +133,8 @@ public class MercurialRepositoryTest {
         runHgCommand(root, "import",
             getClass().getResource("hg-export-subdir.txt").getPath());
 
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
         History hist = mr.getHistory(new File(root, "subdir"));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(1, entries.size());
@@ -142,8 +150,8 @@ public class MercurialRepositoryTest {
     public void testGetHistoryPartial() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
         // Get all but the oldest revision.
         History hist = mr.getHistory(root, REVISIONS[REVISIONS.length - 1]);
         List<HistoryEntry> entries = hist.getHistoryEntries();
@@ -171,7 +179,7 @@ public class MercurialRepositoryTest {
         cmdargs.add(repo.getRepoCommand());
         cmdargs.addAll(Arrays.asList(args));
 
-        Executor exec = new Executor(cmdargs, reposRoot);
+        Executor exec = new Executor(cmdargs, reposRoot, 30);
         int exitCode = exec.exec();
         if (exitCode != 0) {
             fail("hg command '" + cmdargs.toString() + "' failed."
@@ -200,8 +208,8 @@ public class MercurialRepositoryTest {
 
         // Since the above hg commands change the active branch the repository
         // needs to be initialized here so that its branch matches.
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
 
         // Get all revisions.
         History hist = mr.getHistory(root);
@@ -240,8 +248,8 @@ public class MercurialRepositoryTest {
     public void testGetHistoryGet() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
         String exp_str = "This will be a first novel of mine.\n"
                 + "\n"
                 + "Chapter 1.\n"
@@ -273,8 +281,8 @@ public class MercurialRepositoryTest {
     public void testgetHistoryGetForAll() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
 
         for (String rev : REVISIONS_novel) {
             InputStream input = mr.getHistoryGet(root.getCanonicalPath(),
@@ -293,8 +301,8 @@ public class MercurialRepositoryTest {
     public void testGetHistoryGetRenamed() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
         String exp_str = "This is totally plaintext file.\n";
         byte[] buffer = new byte[1024];
 
@@ -321,8 +329,8 @@ public class MercurialRepositoryTest {
     public void testGetHistoryWithNoSuchRevision() throws Exception {
         setUpTestRepository();
         File root = new File(repository.getSourceRoot(), "mercurial");
-        MercurialRepository mr
-                = (MercurialRepository) RepositoryFactory.getRepository(root);
+        MercurialRepository mr = (MercurialRepository)
+                RepositoryFactory.getRepository(env, root);
 
         // Get the sequence number and the hash from one of the revisions.
         String[] revisionParts = REVISIONS[1].split(":");

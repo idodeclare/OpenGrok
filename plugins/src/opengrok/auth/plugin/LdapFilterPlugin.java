@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -33,6 +34,7 @@ import opengrok.auth.entity.LdapUser;
 import opengrok.auth.plugin.entity.User;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Authorization plug-in to check if given user matches configured LDAP filter.
@@ -53,8 +55,8 @@ public class LdapFilterPlugin extends AbstractLdapPlugin {
     }
 
     @Override
-    public void load(Map<String, Object> parameters) {
-        super.load(parameters);
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
+        super.load(env, parameters);
 
         if ((ldapFilter = (String) parameters.get(FILTER_PARAM)) == null) {
             throw new NullPointerException("Missing param [" + FILTER_PARAM + "] in the setup");

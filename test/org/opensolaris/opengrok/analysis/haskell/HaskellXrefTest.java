@@ -35,11 +35,13 @@ import java.io.Writer;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.BeforeClass;
 import org.opensolaris.opengrok.analysis.CtagsReader;
 import org.opensolaris.opengrok.analysis.Definitions;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.WriteXrefArgs;
 import org.opensolaris.opengrok.analysis.Xrefer;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import static org.opensolaris.opengrok.util.CustomAssertions.assertLinesEqual;
 import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
 
@@ -50,11 +52,18 @@ import static org.opensolaris.opengrok.util.StreamUtils.copyStream;
  */
 public class HaskellXrefTest {
 
+    private static RuntimeEnvironment env;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Test
     public void basicTest() throws IOException {
         String s = "putStrLn \"Hello, world!\"";
         Writer w = new StringWriter();
-        HaskellAnalyzerFactory fac = new HaskellAnalyzerFactory();
+        HaskellAnalyzerFactory fac = new HaskellAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs xargs = new WriteXrefArgs(new StringReader(s), w);
         Xrefer xref = analyzer.writeXref(xargs);
@@ -74,7 +83,7 @@ public class HaskellXrefTest {
                 + "href=\"http://localhost:8080/source/default/style.css\" /><title>Haskell Xref Test</title></head>");
         os.println("<body><div id=\"src\"><pre>");
         Writer w = new StringWriter();
-        HaskellAnalyzerFactory fac = new HaskellAnalyzerFactory();
+        HaskellAnalyzerFactory fac = new HaskellAnalyzerFactory(env);
         FileAnalyzer analyzer = fac.getAnalyzer();
         WriteXrefArgs args = new WriteXrefArgs(
             new InputStreamReader(is, "UTF-8"), w);

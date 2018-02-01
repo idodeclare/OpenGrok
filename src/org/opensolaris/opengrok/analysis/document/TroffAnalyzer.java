@@ -92,6 +92,6 @@ public class TroffAnalyzer extends TextAnalyzer {
      */
     @Override
     protected Xrefer newXref(Reader reader) {
-        return new TroffXref(reader);
+        return new TroffXref(reader, getFactory().getEnv());
     }
 }

@@ -59,6 +59,6 @@ public class TclAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new TclXref(reader));
+        return new JFlexXref(new TclXref(reader), getFactory().getEnv());
     }
 }

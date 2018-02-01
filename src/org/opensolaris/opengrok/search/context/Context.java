@@ -134,7 +134,7 @@ public class Context {
      * @param morePrefix optional link to more... page
      * @param limit a value indicating if the number of matching lines should be
      * limited. N.b. unlike
-     * {@link #getContext(java.io.Reader, java.io.Writer, java.lang.String, java.lang.String, java.lang.String, org.opensolaris.opengrok.analysis.Definitions, boolean, boolean, java.util.List, org.opensolaris.opengrok.analysis.Scopes)},
+     * {@link #getContext(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.io.Reader, java.io.Writer, java.lang.String, java.lang.String, java.lang.String, org.opensolaris.opengrok.analysis.Definitions, boolean, boolean, java.util.List, org.opensolaris.opengrok.analysis.Scopes)},
      * the {@code limit} argument will not be interpreted w.r.t.
      * {@link RuntimeEnvironment#isQuickContextScan()}.
      * @param tabSize optional positive tab size that must accord with the value
@@ -186,8 +186,7 @@ public class Context {
          * UnifiedHighlighter demands an analyzer "even if in some
          * circumstances it isn't used"; here it is not meant to be used.
          */
-        PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
-        FileAnalyzer anz = fac.getAnalyzer();
+        FileAnalyzer anz = env.getAnalyzerGuru().getPlainAnalyzer();
         anz.setAllNonWhitespace(env.isAllNonWhitespace());
 
         String path = doc.get(QueryBuilder.PATH);
@@ -266,10 +265,11 @@ public class Context {
 
     /**
      * Calls
-     * {@link #getContext(java.io.Reader, java.io.Writer, java.lang.String, java.lang.String, java.lang.String, org.opensolaris.opengrok.analysis.Definitions, boolean, boolean, java.util.List, org.opensolaris.opengrok.analysis.Scopes)}
+     * {@link #getContext(org.opensolaris.opengrok.configuration.RuntimeEnvironment, java.io.Reader, java.io.Writer, java.lang.String, java.lang.String, java.lang.String, org.opensolaris.opengrok.analysis.Definitions, boolean, boolean, java.util.List, org.opensolaris.opengrok.analysis.Scopes)}
      * with {@code in}, {@code out}, {@code urlPrefix}, {@code morePrefix},
      * {@code path}, {@code tags}, {@code limit}, {@code isDefSearch},
      * {@code hits}, and {@code null}.
+     * @param env a required instance
      * @param in required input stream to be matched
      * @param out optional output stream to write
      * @param urlPrefix prefix for links
@@ -282,15 +282,17 @@ public class Context {
      * @param hits optional instance
      * @return Did it get any matching context?
      */
-    public boolean getContext(Reader in, Writer out, String urlPrefix,
-        String morePrefix, String path, Definitions tags,
-        boolean limit, boolean isDefSearch, List<Hit> hits) {
-        return getContext(in, out, urlPrefix, morePrefix, path, tags, limit, isDefSearch, hits, null);
+    public boolean getContext(RuntimeEnvironment env, Reader in, Writer out,
+            String urlPrefix, String morePrefix, String path, Definitions tags,
+            boolean limit, boolean isDefSearch, List<Hit> hits) {
+        return getContext(env, in, out, urlPrefix, morePrefix, path, tags,
+                limit, isDefSearch, hits, null);
     }
 
     /**
      * Look for context for this instance's initialized query in the specified
      * input stream, and output according to the parameters.
+     * @param env a required instance
      * @param in required input stream to be matched (closed on return)
      * @param out optional output stream to write
      * @param urlPrefix prefix for links
@@ -304,8 +306,8 @@ public class Context {
      * @param scopes optional instance to read
      * @return Did it get any matching context?
      */
-    public boolean getContext(Reader in, Writer out, String urlPrefix,
-            String morePrefix, String path, Definitions tags,
+    public boolean getContext(RuntimeEnvironment env, Reader in, Writer out,
+            String urlPrefix, String morePrefix, String path, Definitions tags,
             boolean limit, boolean isDefSearch, List<Hit> hits, Scopes scopes) {
 
         if (in == null) {
@@ -330,7 +332,6 @@ public class Context {
         boolean truncated = false;
 
         boolean lim = limit;
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         if (!env.isQuickContextScan()) {
             lim = false;
         }

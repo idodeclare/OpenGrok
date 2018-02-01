@@ -190,7 +190,9 @@ A <dfn>Query</dfn> is a series of clauses. A clause may be prefixed by:
     %>
 
     <dt>type</dt>
-    <dd>Type of analyzer used to scope down to certain file types (e.g. just C sources).<br/>Current mappings: <%=SearchHelper.getFileTypeDescriptions().toString()%></dd>
+    <dd>Type of analyzer used to scope down to certain file types (e.g. just C sources).<br/>
+        Current mappings: <%=PageConfig.get(request).prepareInternalSearch().
+            getFileTypeDescriptions().toString()%></dd>
 </dl>
 
 <p>

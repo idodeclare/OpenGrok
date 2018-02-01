@@ -88,6 +88,6 @@ public class UuencodeAnalyzer extends TextAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new UuencodeXref(reader));
+        return new JFlexXref(new UuencodeXref(reader), getFactory().getEnv());
     }
 }

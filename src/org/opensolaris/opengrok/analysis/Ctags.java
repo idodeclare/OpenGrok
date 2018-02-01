@@ -50,6 +50,7 @@ public class Ctags implements Resettable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Ctags.class);
 
+    private final RuntimeEnvironment env;
     private volatile boolean closing;
     private Process ctags;
     private Thread errThread;
@@ -62,6 +63,14 @@ public class Ctags implements Resettable {
     private int tabSize;
 
     private boolean junit_testing = false;
+
+    public Ctags(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+        this.binary = env.getCtags();
+    }
 
     /**
      * Gets a value indicating if a subprocess of ctags was started and it is
@@ -117,7 +126,6 @@ public class Ctags implements Resettable {
     }
 
     private void initialize() throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         ProcessBuilder processBuilder;
         if (true) {
             List<String> command = new ArrayList<>();

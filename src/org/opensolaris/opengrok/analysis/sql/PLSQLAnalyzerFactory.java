@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.sql;
@@ -26,6 +27,7 @@ package org.opensolaris.opengrok.analysis.sql;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 public class PLSQLAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -40,10 +42,14 @@ public class PLSQLAnalyzerFactory extends FileAnalyzerFactory {
         "PCK"
     };
 
-    public PLSQLAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+    public PLSQLAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Creates a new instance of {@link PLSQLAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new PLSQLAnalyzer(this);

@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.configuration.messages;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.condition.ConditionalRun;
 import org.opensolaris.opengrok.condition.ConditionalRunRule;
@@ -52,20 +53,23 @@ import org.opensolaris.opengrok.util.TestRepository;
 @ConditionalRun(CtagsInstalled.class)
 public class RepositoryMessageTest {
     
-    private RuntimeEnvironment env;
+    private static RuntimeEnvironment env;
 
     private TestRepository repository;
 
-    @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
 
     @Before
     public void setUp() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream(
                 "repositories.zip"));
 
-        env = RuntimeEnvironment.getInstance();
         env.removeAllMessages();
         env.setSourceRoot(repository.getSourceRoot());
         env.setDataRoot(repository.getDataRoot());

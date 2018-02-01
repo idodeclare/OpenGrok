@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.history;
 
@@ -33,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 import org.opensolaris.opengrok.logger.LoggerFactory;
 import org.opensolaris.opengrok.util.Executor;
 
@@ -70,7 +70,7 @@ public class SCCSRepository extends Repository {
         try {
             File history = SCCSHistoryParser.getSCCSFile(parent, basename);
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
-            return SCCSget.getRevision(RepoCommand, history, rev);
+            return SCCSget.getRevision(env, RepoCommand, history, rev);
         } catch (FileNotFoundException ex) {
             return null;
         } catch (IOException ex) {
@@ -93,7 +93,7 @@ public class SCCSRepository extends Repository {
         argv.add(file.getCanonicalPath());
 
         Executor executor = new Executor(argv, file.getCanonicalFile().getParentFile(),
-            RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         SCCSRepositoryAuthorParser parser = new SCCSRepositoryAuthorParser();
         executor.exec(true, parser);
         
@@ -123,7 +123,7 @@ public class SCCSRepository extends Repository {
         }
         argv.add(file.getCanonicalPath());
         Executor executor = new Executor(argv, file.getCanonicalFile().getParentFile(),
-                RuntimeEnvironment.getInstance().getInteractiveCommandTimeout());
+                env.getInteractiveCommandTimeout());
         SCCSRepositoryAnnotationParser parser = new SCCSRepositoryAnnotationParser(file, authors);
         executor.exec(true, parser);
         return parser.getAnnotation();

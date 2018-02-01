@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2015 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis.python;
@@ -27,6 +27,7 @@ package org.opensolaris.opengrok.analysis.python;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  *
@@ -50,10 +51,15 @@ public class PythonAnalyzerFactory extends FileAnalyzerFactory {
         "#!python"
     };
 
-    public PythonAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+    public PythonAnalyzerFactory(RuntimeEnvironment env) {
+        super(env, null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN,
+                name);
     }
 
+    /**
+     * Creates a new instance of {@link PythonAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new PythonAnalyzer(this);

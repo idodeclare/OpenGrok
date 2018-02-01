@@ -63,6 +63,6 @@ public class PhpAnalyzer extends AbstractSourceCodeAnalyzer {
      */
     @Override
     protected JFlexXref newXref(Reader reader) {
-        return new JFlexXref(new PhpXref(reader));
+        return new JFlexXref(new PhpXref(reader), getFactory().getEnv());
     }
 }

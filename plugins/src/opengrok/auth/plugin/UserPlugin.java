@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package opengrok.auth.plugin;
 
@@ -31,6 +32,7 @@ import opengrok.auth.plugin.entity.User;
 import org.opensolaris.opengrok.authorization.IAuthorizationPlugin;
 import org.opensolaris.opengrok.configuration.Group;
 import org.opensolaris.opengrok.configuration.Project;
+import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
 /**
  * Authorization plug-in to extract user info from HTTP headers.
@@ -46,7 +48,7 @@ public class UserPlugin implements IAuthorizationPlugin {
     private IUserDecoder decoder = new OSSOHeaderDecoder();
 
     @Override
-    public void load(Map<String, Object> parameters) {
+    public void load(RuntimeEnvironment env, Map<String, Object> parameters) {
         Boolean fake;
 
         if ((fake = (Boolean) parameters.get(FAKE_PARAM)) != null

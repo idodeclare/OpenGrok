@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 package org.opensolaris.opengrok.configuration.messages;
 
@@ -30,6 +31,7 @@ import java.security.Permission;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
@@ -38,6 +40,8 @@ import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
  * @author Krystof Tulinger
  */
 public class MessagesTest {
+
+    private static RuntimeEnvironment env;
 
     private int portNum;
     private PrintStream stdout;
@@ -97,13 +101,18 @@ public class MessagesTest {
         return 0;
     }
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Before
     public void setUp() {
         portNum = 50000;
         System.setSecurityManager(new ExitExceptionSecurityManager());
-        RuntimeEnvironment.getInstance().stopConfigurationListenerThread();
+        env.stopConfigurationListenerThread();
 
-        while (!RuntimeEnvironment.getInstance().startConfigurationListenerThread(
+        while (!env.startConfigurationListenerThread(
                 new InetSocketAddress("localhost", portNum))) {
             portNum++;
         }
@@ -119,26 +128,26 @@ public class MessagesTest {
     @After
     public void tearDown() {
         System.setSecurityManager(null);
-        RuntimeEnvironment.getInstance().stopConfigurationListenerThread();
+        env.stopConfigurationListenerThread();
         System.setOut(stdout);
         System.setErr(stderr);
     }
 
     @Test
     public void testMessageSendSuccess() {
-        RuntimeEnvironment.getInstance().setMessageLimit(100);
+        env.setMessageLimit(100);
         Assert.assertEquals(0, invokeMain());
     }
 
     @Test
     public void testMessageSendWrongHost() {
-        RuntimeEnvironment.getInstance().setMessageLimit(100);
+        env.setMessageLimit(100);
         Assert.assertEquals(1, invokeMain("localhost", portNum + 2));
     }
 
     @Test
     public void testMessageSendOverLimit() {
-        RuntimeEnvironment.getInstance().setMessageLimit(0);
+        env.setMessageLimit(0);
         String output, outerr;
 
         Assert.assertEquals(1, invokeMain());

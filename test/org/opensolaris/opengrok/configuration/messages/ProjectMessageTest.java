@@ -35,6 +35,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opensolaris.opengrok.condition.ConditionalRun;
@@ -68,20 +69,24 @@ import org.opensolaris.opengrok.util.TestRepository;
 @ConditionalRun(RepositoryInstalled.SubvsersionInstalled.class)
 public class ProjectMessageTest {
     
-    RuntimeEnvironment env;
+    private static RuntimeEnvironment env;
 
-    private static TestRepository repository = new TestRepository();
+    private TestRepository repository;
 
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
 
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        env = RuntimeEnvironment.getInstance();
+    }
+
     @Before
     public void setUp() throws IOException {
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.create(HistoryGuru.class.getResourceAsStream(
                 "repositories.zip"));
 
-        env = RuntimeEnvironment.getInstance();
         env.removeAllMessages();
         env.setSourceRoot(repository.getSourceRoot());
         env.setDataRoot(repository.getDataRoot());
@@ -217,7 +222,7 @@ public class ProjectMessageTest {
                 collect(Collectors.toSet()).size());
 
         // Check that HistoryGuru now includes the project in its list.
-        Set<String> directoryNames = HistoryGuru.getInstance().
+        Set<String> directoryNames = env.getHistoryGuru().
             getRepositories().stream().map(ri -> ri.getDirectoryName()).
             collect(Collectors.toSet());
         Assert.assertTrue("though it should contain the top root,",
@@ -239,10 +244,10 @@ public class ProjectMessageTest {
         Assert.assertTrue(env.getProjects().containsKey("git"));
         Assert.assertTrue(env.getProjects().containsKey("svn"));
         
-        Assert.assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+        Assert.assertFalse(env.getHistoryGuru().getRepositories().stream().
                 map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                 contains("git"));
-        Assert.assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+        Assert.assertFalse(env.getHistoryGuru().getRepositories().stream().
                 map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                 contains("svn"));
     }
@@ -266,7 +271,8 @@ public class ProjectMessageTest {
 
         m.apply(env);
         Assert.assertEquals(2, env.getRepositories().size());
-        Assert.assertEquals(2, env.getProjectRepositoriesMap().get(Project.getProject(mercurialRoot)).size());
+        Assert.assertEquals(2, env.getProjectRepositoriesMap().get(
+                env.getProject(mercurialRoot)).size());
 
         // Delete the newly added repository to verify it will be removed from
         // configuration after the message is reapplied. This is necessary anyway
@@ -275,7 +281,8 @@ public class ProjectMessageTest {
 
         m.apply(env);
         Assert.assertEquals(1, env.getRepositories().size());
-        Assert.assertEquals(1, env.getProjectRepositoriesMap().get(Project.getProject(mercurialRoot)).size());
+        Assert.assertEquals(1, env.getProjectRepositoriesMap().get(
+                env.getProject(mercurialRoot)).size());
     }
 
     /**
@@ -332,7 +339,7 @@ public class ProjectMessageTest {
         // This is necessary so that repositories in HistoryGuru get populated.
         // When 'indexpart' is run, this is called from setConfiguration() because
         // of the -R option is present.
-        HistoryGuru.getInstance().invalidateRepositories(
+        env.getHistoryGuru().invalidateRepositories(
             env.getRepositories(), null, false);
         env.setHistoryEnabled(true);
         Indexer.getInstance().prepareIndexer(
@@ -346,7 +353,7 @@ public class ProjectMessageTest {
                 repos, // repositories - needed when refreshing history partially
                 new ArrayList<>(), // don't zap cache
                 false); // don't list repos
-        Indexer.getInstance().doIndexerExecution(true, null, null);
+        Indexer.getInstance().doIndexerExecution(env, true, null, null);
 
         // Then remove multiple projects.
         m.setText("delete");
@@ -372,7 +379,7 @@ public class ProjectMessageTest {
 
         // Check that HistoryGuru no longer maintains the removed projects.
         for (String p : projectsToDelete) {
-            Assert.assertFalse(HistoryGuru.getInstance().getRepositories().stream().
+            Assert.assertFalse(env.getHistoryGuru().getRepositories().stream().
                     map(ri -> ri.getDirectoryName()).collect(Collectors.toSet()).
                     contains(repository.getSourceRoot() + File.separator + p));
         }
@@ -406,7 +413,7 @@ public class ProjectMessageTest {
         // Add some changes to the repository.
         File mercurialRoot = new File(repository.getSourceRoot() + File.separator + "mercurial");
         MercurialRepositoryTest.runHgCommand(mercurialRoot,
-            "import", HistoryGuru.getInstance().getClass().
+            "import", env.getHistoryGuru().getClass().
             getResource("hg-export-subdir.txt").getPath());
 
         // Test that the project's indexed flag becomes true only after
@@ -528,7 +535,7 @@ public class ProjectMessageTest {
             List<RepositoryInfo> riList = env.getProjectRepositoriesMap().get(project);
             Assert.assertNotNull(riList);
             for (RepositoryInfo ri : riList) {
-                Repository repo = getRepository(ri, false);
+                Repository repo = getRepository(env, ri, false);
                 Assert.assertFalse(repo.isHandleRenamedFiles());
             }
         }

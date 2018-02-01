@@ -71,7 +71,7 @@ public class JarAnalyzerTest {
         originalProjectsEnabled = env.isProjectsEnabled();
         env.setProjectsEnabled(false);
 
-        repository = new TestRepository();
+        repository = new TestRepository(env);
         repository.createEmpty();
         repository.addAdhocFile(TESTPLUGINS_JAR,
             AuthorizationFrameworkReloadTest.class.getResourceAsStream(
@@ -88,7 +88,7 @@ public class JarAnalyzerTest {
                 new TreeSet<>(Collections.singletonList("/c")),
                 false, false, null, null, new ArrayList<>(), false);
 
-        Indexer.getInstance().doIndexerExecution(true, null, progress);
+        Indexer.getInstance().doIndexerExecution(env, true, null, progress);
 
         configFile = File.createTempFile("configuration", ".xml");
         env.writeConfiguration(configFile);
@@ -108,7 +108,7 @@ public class JarAnalyzerTest {
 
     @Test
     public void testSearchForJar() {
-        SearchEngine instance = new SearchEngine();
+        SearchEngine instance = new SearchEngine(env);
         instance.setFile(TESTPLUGINS_JAR);
         int noHits = instance.search();
         assertTrue("noHits for " + TESTPLUGINS_JAR + " should be positive",

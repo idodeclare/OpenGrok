@@ -276,25 +276,6 @@ public class Group implements Comparable<Group>, Nameable {
     }
 
     /**
-     * Returns group object by its name
-     *
-     * @param name name of a group
-     * @return group that fits the name
-     */
-    public static Group getByName(String name) {
-        Group ret = null;
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        if (env.hasGroups()) {
-            for (Group grp : env.getGroups()) {
-                if (name.equals(grp.getName())) {
-                    ret = grp;
-                }
-            }
-        }
-        return ret;
-    }
-
-    /**
      * Reduce the group set to only those which match the given project based on
      * the project's description.
      *

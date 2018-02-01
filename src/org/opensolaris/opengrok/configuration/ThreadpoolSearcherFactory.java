@@ -19,12 +19,12 @@
 
  /*
   * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+  * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
   */
 package org.opensolaris.opengrok.configuration;
 
 import java.io.IOException;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.SearcherFactory;
 
 /**
@@ -34,11 +34,21 @@ import org.apache.lucene.search.SearcherFactory;
  * @author vkotal
  */
 class ThreadpoolSearcherFactory extends SearcherFactory {
+
+    private final RuntimeEnvironment env;
+
+    public ThreadpoolSearcherFactory(RuntimeEnvironment env) {
+        if (env == null) {
+            throw new IllegalArgumentException("env is null");
+        }
+        this.env = env;
+    }
+
     @Override
     public SuperIndexSearcher newSearcher(IndexReader r, IndexReader prev) throws IOException {
         // The previous IndexReader is not used here.
         SuperIndexSearcher searcher = new SuperIndexSearcher(r,
-            RuntimeEnvironment.getInstance().getSearchExecutor());
+                env.getSearchExecutor());
         return searcher;
     }
 }
