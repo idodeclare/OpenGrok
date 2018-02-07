@@ -188,7 +188,15 @@ public final class Configuration {
     private String reviewPattern;
     private String webappLAF;
     private RemoteSCM remoteScmSupported;
-    private boolean optimizeDatabase;
+    /**
+     * @deprecated This is kept around so not to break object de-serialization.
+     * The configuration will be written leaving out this deprecated property;
+     * so after some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
+    private boolean optimizeDatabase = true;
     private boolean quickContextScan;
 
     private LuceneLockName luceneLocking = LuceneLockName.OFF;
@@ -486,7 +494,7 @@ public final class Configuration {
         setMaxRevisionThreadCount(Runtime.getRuntime().availableProcessors());
         setMessageLimit(500);
         setNavigateWindowEnabled(false);
-        setOptimizeDatabase(true);
+        // optimizeDatabase (deprecated) default is true
         setPluginDirectory(null);
         setPluginStack(new AuthorizationStack(AuthControlFlag.REQUIRED, "default stack"));
         setPrintProgress(false);
@@ -1040,12 +1048,14 @@ public final class Configuration {
         this.remoteScmSupported = remoteScmSupported;
     }
 
+    @Deprecated
     public boolean isOptimizeDatabase() {
         return optimizeDatabase;
     }
 
+    @Deprecated
     public void setOptimizeDatabase(boolean optimizeDatabase) {
-        this.optimizeDatabase = optimizeDatabase;
+        // does nothing
     }
 
     public LuceneLockName getLuceneLocking() {

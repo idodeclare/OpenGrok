@@ -1153,14 +1153,6 @@ public final class RuntimeEnvironment {
         setConfigurationValue("remoteScmSupported", supported);
     }
 
-    public boolean isOptimizeDatabase() {
-        return (boolean) getConfigurationValue("optimizeDatabase");
-    }
-
-    public void setOptimizeDatabase(boolean optimizeDatabase) {
-        setConfigurationValue("optimizeDatabase", optimizeDatabase);
-    }
-
     public LuceneLockName getLuceneLocking() {
         return (LuceneLockName) getConfigurationValue("luceneLocking");
     }
