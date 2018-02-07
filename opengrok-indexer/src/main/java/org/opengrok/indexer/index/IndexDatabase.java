@@ -52,8 +52,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
+
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat;
 import org.apache.lucene.codecs.lucene70.Lucene70Codec;
 import org.apache.lucene.document.DateTools;
@@ -82,6 +82,7 @@ import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.NativeFSLockFactory;
 import org.apache.lucene.store.NoLockFactory;
 import org.apache.lucene.store.SimpleFSLockFactory;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.Ctags;
@@ -132,6 +133,7 @@ public class IndexDatabase {
     private IndexWriter writer;
     private IndexAnalysisSettings settings;
     private PendingFileCompleter completer;
+    private Bits liveDocs;
     private TermsEnum uidIter;
     private PostingsEnum postsIter;
     private IgnoredNames ignoredNames;
@@ -409,6 +411,7 @@ public class IndexDatabase {
         settings = null;
         uidIter = null;
         postsIter = null;
+        liveDocs = null;
         acceptedNonlocalSymlinks.clear();
 
         IOException finishingException = null;
@@ -461,6 +464,7 @@ public class IndexDatabase {
 
                 String startuid = Util.path2uid(dir, "");
                 reader = DirectoryReader.open(indexDirectory); // open existing index
+                liveDocs = MultiFields.getLiveDocs(reader);
                 settings = readAnalysisSettings();
                 if (settings == null) {
                     settings = new IndexAnalysisSettings();
@@ -504,7 +508,9 @@ public class IndexDatabase {
                     while (uidIter != null && uidIter.term() != null
                         && uidIter.term().utf8ToString().startsWith(startuid)) {
 
-                        removeFile(true);
+                        if (anyLiveDoc()) {
+                            removeFile(true);
+                        }
                         BytesRef next = uidIter.next();
                         if (next == null) {
                             uidIter=null;
@@ -551,106 +557,15 @@ public class IndexDatabase {
         }
 
         if (!isInterrupted() && isDirty()) {
-            if (env.isOptimizeDatabase()) {
-                optimize();
-            }
-            env.setIndexTimestamp();
-        }
-    }
-
-    /**
-     * Optimize all index databases
-     *
-     * @throws IOException if an error occurs
-     */
-    static CountDownLatch optimizeAll() throws IOException {
-        List<IndexDatabase> dbs = new ArrayList<>();
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        IndexerParallelizer parallelizer = env.getIndexerParallelizer();
-        if (env.hasProjects()) {
-            for (Project project : env.getProjectList()) {
-                dbs.add(new IndexDatabase(project));
-            }
-        } else {
-            dbs.add(new IndexDatabase());
-        }
-
-        CountDownLatch latch = new CountDownLatch(dbs.size());
-        for (IndexDatabase d : dbs) {
-            final IndexDatabase db = d;
-            if (db.isDirty()) {
-                parallelizer.getFixedExecutor().submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            db.update();
-                        } catch (Throwable e) {
-                            LOGGER.log(Level.SEVERE,
-                                "Problem updating lucene index database: ", e);
-                        } finally {
-                            latch.countDown();
-                        }
-                    }
-                });
-            }
-        }
-        return latch;
-    }
-
-    /**
-     * Optimize the index database
-     */
-    public void optimize() throws IOException {
-        synchronized (lock) {
-            if (running) {
-                LOGGER.warning("Optimize terminated... Someone else is updating / optimizing it!");
-                return;
-            }
-            running = true;
-        }
-
-        IndexWriter wrt = null;
-        IOException writerException = null;
-        try {
-            Statistics elapsed = new Statistics();
-            String projectDetail = this.project != null ? " for project " + project.getName() : "";
-            LOGGER.log(Level.INFO, "Optimizing the index{0}", projectDetail);
-            Analyzer analyzer = new StandardAnalyzer();
-            IndexWriterConfig conf = new IndexWriterConfig(analyzer);
-            conf.setOpenMode(OpenMode.CREATE_OR_APPEND);
-
-            wrt = new IndexWriter(indexDirectory, conf);
-            wrt.forceMerge(1); // this is deprecated and not needed anymore
-            elapsed.report(LOGGER, String.format("Done optimizing index%s", projectDetail));
             synchronized (lock) {
                 if (dirtyFile.exists() && !dirtyFile.delete()) {
-                    LOGGER.log(Level.FINE, "Failed to remove \"dirty-file\": {0}",
+                    LOGGER.log(Level.FINE,
+                        "Failed to remove \"dirty-file\": {0}",
                         dirtyFile.getAbsolutePath());
                 }
                 dirty = false;
             }
-        } catch (IOException e) {
-            writerException = e;
-            LOGGER.log(Level.SEVERE, "ERROR: optimizing index: {0}", e);
-        } finally {
-            if (wrt != null) {
-                try {
-                    wrt.close();
-                } catch (IOException e) {
-                    if (writerException == null) {
-                        writerException = e;
-                    }
-                    LOGGER.log(Level.WARNING,
-                        "An error occurred while closing writer", e);
-                }
-            }
-            synchronized (lock) {
-                running = false;
-            }
-        }
-
-        if (writerException != null) {
-            throw writerException;
+            env.setIndexTimestamp();
         }
     }
 
@@ -791,7 +706,6 @@ public class IndexDatabase {
 
     private FileAnalyzer getAnalyzerFor(File file, String path)
             throws IOException {
-        FileAnalyzer fa;
         try (InputStream in = new BufferedInputStream(
                 new FileInputStream(file))) {
             return AnalyzerGuru.getAnalyzer(in, path);
@@ -1125,14 +1039,20 @@ public class IndexDatabase {
                                 && uidIter.term().compareTo(emptyBR) != 0
                                 && uidIter.term().compareTo(buid) < 0) {
 
-                            // If the term's path matches path of currently processed file,
-                            // it is clear that the file has been modified and thus
-                            // removeFile() will be followed by call to addFile() below.
-                            // In such case, instruct removeFile() not to remove history
-                            // cache for the file so that incremental history cache
-                            // generation works.
-                            String termPath = Util.uid2url(uidIter.term().utf8ToString());
-                            removeFile(!termPath.equals(path));
+                            if (anyLiveDoc()) {
+                                String termPath = Util.uid2url(uidIter.term().
+                                        utf8ToString());
+                                /*
+                                 * If the term's path matches path of currently
+                                 * processed file, it is clear that the file
+                                 * has been modified and thus removeFile() will
+                                 * be followed by call to addFile() below. In
+                                 * such case, instruct removeFile() not to
+                                 * remove history cache for the file so that
+                                 * incremental history cache generation works.
+                                 */
+                                removeFile(!termPath.equals(path));
+                            }
 
                             BytesRef next = uidIter.next();
                             if (next == null) {
@@ -1705,8 +1625,18 @@ public class IndexDatabase {
         postsIter = uidIter.postings(postsIter);
         while (postsIter.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
             ++n;
+            int docID = postsIter.docID();
+            // If the document is deleted, break to skip further checking.
+            if (liveDocs != null && (docID >= liveDocs.length() ||
+                    !liveDocs.get(docID))) {
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, "not live doc {0}: {1}",
+                            new Object[]{docID, path});
+                }
+                continue;
+            }
             // Read a limited-fields version of the document.
-            Document doc = reader.document(postsIter.docID(), CHECK_FIELDS);
+            Document doc = reader.document(docID, CHECK_FIELDS);
             if (doc == null) {
                 LOGGER.log(Level.FINER, "No Document: {0}", path);
                 continue;
@@ -1816,8 +1746,19 @@ public class IndexDatabase {
             LOGGER.log(Level.FINEST, "Missing {0}", path);
             return false;
         }
-
         return true;
+    }
+
+    private boolean anyLiveDoc() throws IOException {
+        postsIter = uidIter.postings(postsIter);
+        while (postsIter.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+            int docID = postsIter.docID();
+            if (liveDocs == null || (docID < liveDocs.length() &&
+                    liveDocs.get(docID))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private class IndexDownArgs {
