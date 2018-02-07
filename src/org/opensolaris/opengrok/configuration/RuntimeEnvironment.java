@@ -1142,14 +1142,6 @@ public final class RuntimeEnvironment {
         threadConfig.get().setRemoteScmSupported(supported);
     }
 
-    public boolean isOptimizeDatabase() {
-        return threadConfig.get().isOptimizeDatabase();
-    }
-
-    public void setOptimizeDatabase(boolean optimizeDatabase) {
-        threadConfig.get().setOptimizeDatabase(optimizeDatabase);
-    }
-
     public LuceneLockName getLuceneLocking() {
         return threadConfig.get().getLuceneLocking();
     }

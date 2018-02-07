@@ -188,7 +188,16 @@ public final class Configuration {
     private String reviewPattern;
     private String webappLAF;
     private RemoteSCM remoteScmSupported;
-    private boolean optimizeDatabase;
+    /**
+     * @deprecated This is kept around so not to break object deserialization,
+     * though the Indexer opt is removed so there is a breaking change. The
+     * configuration will be  written leaving out this deprecated property; so
+     * after some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
+    private boolean optimizeDatabase = true;
     /**
      * @deprecated This is kept around so not to break object de-serialization.
      * <p>Anyone who is using `--lock on` will now be setting
@@ -478,7 +487,7 @@ public final class Configuration {
         //mandoc is default(String)
         setMaxSearchThreadCount(2 * Runtime.getRuntime().availableProcessors());
         setMessageLimit(500);
-        setOptimizeDatabase(true);
+        // optimizeDatabase (deprecated) default is true
         setPluginDirectory(null);
         setPluginStack(new AuthorizationStack(AuthControlFlag.REQUIRED, "default stack"));
         setPrintProgress(false);
@@ -1055,12 +1064,14 @@ public final class Configuration {
         this.remoteScmSupported = remoteScmSupported;
     }
 
+    @Deprecated
     public boolean isOptimizeDatabase() {
         return optimizeDatabase;
     }
 
+    @Deprecated
     public void setOptimizeDatabase(boolean optimizeDatabase) {
-        this.optimizeDatabase = optimizeDatabase;
+        // does nothing
     }
 
     @Deprecated

@@ -84,7 +84,6 @@ public final class Indexer {
     private static Configuration checkIndexVersionCfg;
     private static boolean listRepos = false;
     private static boolean runIndex = true;
-    private static boolean optimizedChanged = false;
     private static boolean addProjects = false;
     private static boolean searchRepositories = false;
     private static boolean noindex = false;
@@ -295,7 +294,7 @@ public final class Indexer {
             }
 
             // And now index it all.
-            if (runIndex || (optimizedChanged && genv.isOptimizeDatabase())) {
+            if (runIndex) {
                 IndexChangedListener progress = new DefaultIndexChangedListener();
                 getInstance().doIndexerExecution(genv, update, subFiles,
                         progress);
@@ -581,17 +580,18 @@ public final class Indexer {
                 runIndex = false;
             });
 
+            /**
+             * Deprecated but kept around for now so as not to break command
+             * execution. The configuration will be written leaving out the
+             * deprecated property; so after some time this switch can be
+             * retired with the expectation that zero or a miniscule number of
+             * production configurations still will use this.
+             */
             parser.on("-O", "--optimize", "=on|off", ON_OFF, Boolean.class,
-                "Turn on/off the optimization of the index database",
-                "as part of the indexing step.").
-                Do( v -> {
-                    boolean oldval = cfg.isOptimizeDatabase();
-                    cfg.setOptimizeDatabase((Boolean)v);
-                    if (oldval != cfg.isOptimizeDatabase()) {
-                        optimizedChanged = true;
-                    }
-                }
-            );
+                "Deprecated switch is ignored and will be removed soon.").Do(
+                v -> System.err.println(
+                "`-O,--optimize' is deprecated, ignored, and will be removed" +
+                " soon."));
 
             parser.on("-o", "--ctagOpts", "=path",
                 "File with extra command line options for ctags.").
@@ -1037,8 +1037,6 @@ public final class Indexer {
         if (subFiles == null || subFiles.isEmpty()) {
             if (update) {
                 latch = IndexDatabase.updateAll(env, progress);
-            } else if (env.isOptimizeDatabase()) {
-                latch = IndexDatabase.optimizeAll(env);
             } else {
                 latch = new CountDownLatch(0);
             }
@@ -1073,7 +1071,6 @@ public final class Indexer {
 
             latch = new CountDownLatch(dbs.size());
             for (final IndexDatabase db : dbs) {
-                final boolean optimize = env.isOptimizeDatabase();
                 db.addIndexChangedListener(progress);
                 parallelizer.getFixedExecutor().submit(new Runnable() {
                     @Override
@@ -1081,8 +1078,6 @@ public final class Indexer {
                         try {
                             if (update) {
                                 db.update();
-                            } else if (optimize) {
-                                db.optimize();
                             }
                         } catch (Throwable e) {
                             LOGGER.log(Level.SEVERE, "An error occurred while "
