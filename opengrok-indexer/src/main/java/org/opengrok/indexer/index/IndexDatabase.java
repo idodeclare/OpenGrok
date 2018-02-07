@@ -349,20 +349,13 @@ public class IndexDatabase {
         return false;
     }
 
-    private int getFileCount(File sourceRoot, String dir) throws IOException {
-        int file_cnt = 0;
+    private void showFileCount(
+            String dir, IndexDownArgs args, Statistics elapsed) {
         if (RuntimeEnvironment.getInstance().isPrintProgress()) {
-            IndexDownArgs args = new IndexDownArgs();
-            args.count_only = true;
-
-            Statistics elapsed = new Statistics();
-            LOGGER.log(Level.INFO, "Counting files in {0} ...", dir);
-            indexDown(sourceRoot, dir, args);
-            elapsed.report(LOGGER, String.format("Need to process: %d files for %s",
-                    args.cur_count, dir));
+            elapsed.report(LOGGER, String.format(
+                    "Need to process: %d files for %s",
+                    args.est_total, dir));
         }
-
-        return file_cnt;
     }
 
     private void markProjectIndexed(Project project) {
@@ -494,18 +487,15 @@ public class IndexDatabase {
                     // The actual indexing happens in indexParallel().
 
                     IndexDownArgs args = new IndexDownArgs();
-                    args.est_total = getFileCount(sourceRoot, dir);
-
-                    args.cur_count = 0;
                     Statistics elapsed = new Statistics();
                     LOGGER.log(Level.INFO, "Starting traversal of directory {0}", dir);
                     indexDown(sourceRoot, dir, args);
-                    elapsed.report(LOGGER, String.format("Done traversal of directory %s", dir));
+                    showFileCount(dir, args, elapsed);
 
                     args.cur_count = 0;
                     elapsed = new Statistics();
                     LOGGER.log(Level.INFO, "Starting indexing of directory {0}", dir);
-                    indexParallel(args);
+                    indexParallel(dir, args);
                     elapsed.report(LOGGER, String.format("Done indexing of directory %s", dir));
 
                     // Remove data for the trailing terms that indexDown()
@@ -1043,12 +1033,24 @@ public class IndexDatabase {
         return local;
     }
 
-    private void printProgress(int currentCount, int totalCount) {
-        if (RuntimeEnvironment.getInstance().isPrintProgress()
-            && totalCount > 0 && LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.log(Level.INFO, "Progress: {0} ({1}%)",
-                    new Object[]{currentCount,
-                    (currentCount * 100.0f / totalCount)});
+    private void printProgress(String dir, int currentCount, int totalCount) {
+        if (totalCount > 0 && RuntimeEnvironment.getInstance().isPrintProgress()) {
+            Level currentLevel;
+            if (currentCount <= 1 || currentCount >= totalCount ||
+                    currentCount % 100 == 0) {
+                currentLevel = Level.INFO;
+            } else if (currentCount % 50 == 0) {
+                currentLevel = Level.FINE;
+            } else if (currentCount % 10 == 0) {
+                currentLevel = Level.FINER;
+            } else {
+                currentLevel = Level.FINEST;
+            }
+            if (LOGGER.isLoggable(currentLevel)) {
+                LOGGER.log(currentLevel, "Progress: {0} ({1}%) for {2}",
+                        new Object[]{currentCount, currentCount * 100.0f /
+                                totalCount, dir});
+            }
         }
     }
 
@@ -1109,9 +1111,6 @@ public class IndexDatabase {
                     indexDown(file, path, args);
                 } else {
                     args.cur_count++;
-                    if (args.count_only) {
-                        continue;
-                    }
 
                     if (uidIter != null) {
                         path = Util.fixPathIfWindows(path);
@@ -1169,10 +1168,12 @@ public class IndexDatabase {
 
     /**
      * Executes the second, parallel stage of indexing.
+     * @param dir the parent directory (when appended to SOURCE_ROOT)
      * @param args contains a list of files to index, found during the earlier
      * stage
      */
-    private void indexParallel(IndexDownArgs args) throws IOException {
+    private void indexParallel(String dir, IndexDownArgs args)
+            throws IOException {
 
         int worksCount = args.works.size();
         if (worksCount < 1) {
@@ -1233,7 +1234,7 @@ public class IndexDatabase {
                         }
 
                         int ncount = currentCounter.incrementAndGet();
-                        printProgress(ncount, worksCount);
+                        printProgress(dir, ncount, worksCount);
                         return ret;
                     }
                 }))).get();
@@ -1820,7 +1821,6 @@ public class IndexDatabase {
     }
 
     private class IndexDownArgs {
-        boolean count_only;
         int cur_count;
         int est_total;
         final List<IndexFileWork> works = new ArrayList<>();
