@@ -41,25 +41,37 @@ public class DefaultIndexChangedListener implements IndexChangedListener {
 
     @Override
     public void fileAdd(String path, String analyzer) {
-        LOGGER.log(Level.INFO, "Add: {0} ({1})", new Object[]{path, analyzer});
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Add: {0} ({1})", new Object[]{path,
+                    analyzer});
+        }
     }
 
     @Override
     public void fileRemove(String path) {
-        LOGGER.log(Level.INFO, "Remove file:{0}", path);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Remove file:{0}", path);
+        }
     }
     @Override
     public void fileUpdate(String path) {
-        LOGGER.log(Level.INFO, "Update: {0}", path);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Update: {0}", path);
+        }
     }
 
     @Override
     public void fileAdded(String path, String analyzer) {
-        LOGGER.log(Level.FINER, "Added: {0} ({1})", new Object[]{path, analyzer});
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.log(Level.FINER, "Added: {0} ({1})", new Object[]{path,
+                    analyzer});
+        }
     }
 
     @Override
     public void fileRemoved(String path) {
-        LOGGER.log(Level.FINER, "Removed file:{0}", path);
+        if (LOGGER.isLoggable(Level.FINER)) {
+            LOGGER.log(Level.FINER, "Removed file:{0}", path);
+        }
     }
 }
