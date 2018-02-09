@@ -210,7 +210,8 @@ public class JFlexXref implements Xrefer, SymbolMatchedListener,
     public void symbolMatched(SymbolMatchedEvent evt) {
         try {
             JFlexXrefUtils.writeSymbol(out, defs, urlPrefix, project,
-                evt.getStr(), null, matcher.getLineNumber(), false, false);
+                evt.getLiteral(), evt.getStr(), null, matcher.getLineNumber(),
+                false, false);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }

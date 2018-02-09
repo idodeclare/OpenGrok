@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
+import java.util.function.Function;
 import static org.junit.Assert.assertNotNull;
 import org.opengrok.indexer.analysis.CtagsReader;
 import org.opengrok.indexer.analysis.Definitions;
@@ -137,7 +138,7 @@ public class StreamUtils {
 
     public static Definitions readTagsFromResource(String tagsResourceName)
             throws IOException {
-        return readTagsFromResource(tagsResourceName, null);
+        return readTagsFromResource(tagsResourceName, null, null, 0);
     }
 
     public static Definitions readTagsFromResource(String tagsResourceName,
@@ -146,7 +147,14 @@ public class StreamUtils {
     }
 
     public static Definitions readTagsFromResource(String tagsResourceName,
-        String rawResourceName, int tabSize) throws IOException {
+            String rawResourceName, int tabSize) throws IOException {
+        return readTagsFromResource(tagsResourceName, rawResourceName, null,
+                tabSize);
+    }
+
+    public static Definitions readTagsFromResource(String tagsResourceName,
+            String rawResourceName, Function<String, String> matchReducer,
+            int tabSize) throws IOException {
 
         InputStream res = StreamUtils.class.getClassLoader().
             getResourceAsStream(tagsResourceName);
@@ -156,6 +164,7 @@ public class StreamUtils {
             res, "UTF-8"));
 
         CtagsReader rdr = new CtagsReader();
+        rdr.setMatchReducer(matchReducer);
         rdr.setTabSize(tabSize);
         if (rawResourceName != null) {
             rdr.setSplitterSupplier(() -> {
@@ -179,6 +188,7 @@ public class StreamUtils {
         while ((line = in.readLine()) != null) {
             rdr.readLine(line);
         }
+        res.close();
         return rdr.getDefinitions();
     }
 

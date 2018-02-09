@@ -656,6 +656,7 @@ public class IndexDatabase {
             listener.fileAdd(path, fa.getClass().getSimpleName());
         }
 
+        ctags.setMatchReducer(fa.getMatchReducer());
         ctags.setTabSize(project != null ? project.getTabSize() : 0);
         if (ctags.getBinary() != null) {
             fa.setCtags(ctags);
