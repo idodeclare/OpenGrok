@@ -25,6 +25,7 @@
 package org.opengrok.indexer.analysis;
 
 import java.util.EnumMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -94,6 +95,8 @@ public class CtagsReader {
     private SourceSplitter splitter;
     private long cutCacheKey;
     private String cutCacheValue;
+
+    private Function<String, String> matchReducer;
 
     private int tabSize;
 
@@ -199,6 +202,22 @@ public class CtagsReader {
         splitter = null;
         triedSplitterSupplier = false;
         splitterSupplier = obj;
+    }
+
+    /**
+     * Sets a function that is used as a last resort to reduce the text that is
+     * matched in searches against source text.
+     * <p>
+     * E.g., for Objective-C with multi-part method names that are interleaved
+     * with parameter types and names, a reducer could lop off parts of the
+     * method name for last-resort searching.
+     * <p>
+     * The reducer object can return {@code null} to indicate that no
+     * last-resort search should be done.
+     * @param obj a defined instance or {@code null}
+     */
+    public void setMatchReducer(Function<String, String> obj) {
+        matchReducer = obj;
     }
 
     /**
@@ -442,6 +461,13 @@ public class CtagsReader {
             e = ExpandTabsReader.translate(whole, woff + str.length(), t);
             return new CpatIndex(lineno, s, e);
         }
+
+        if (matchReducer != null) {
+            String newStr = matchReducer.apply(str);
+            if (newStr != null && !newStr.equals(str)) {
+                return bestIndexOfTag(lineno, origWhole, newStr);
+            }
+        }
         /**
          * When ctags has truncated a pattern, or when it spans multiple lines,
          * then `str' might not be found in `whole'. In that case, return an
@@ -549,6 +575,12 @@ public class CtagsReader {
             }
         }
 
+        if (matchReducer != null) {
+            String newArg = matchReducer.apply(arg);
+            if (newArg != null && !newArg.equals(arg)) {
+                return bestIndexOfArg(lineno, whole, newArg);
+            }
+        }
         /**
          * When no match is found, return an imprecise index for the last
          * character as the best we can do.

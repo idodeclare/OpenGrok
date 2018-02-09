@@ -146,8 +146,8 @@ public abstract class JFlexSymbolMatcher extends JFlexStateStacker
     protected void onSymbolMatched(String literal, String str, int start) {
         SymbolMatchedListener l = symbolListener;
         if (l != null) {
-            SymbolMatchedEvent evt = new SymbolMatchedEvent(this, str, start,
-                    start + literal.length());
+            SymbolMatchedEvent evt = new SymbolMatchedEvent(this, literal, str,
+                    start, start + literal.length());
             l.symbolMatched(evt);
         }
     }

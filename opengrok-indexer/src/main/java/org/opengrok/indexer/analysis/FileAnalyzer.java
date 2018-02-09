@@ -27,6 +27,7 @@ package org.opengrok.indexer.analysis;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -76,6 +77,16 @@ public class FileAnalyzer extends AbstractAnalyzer {
         return ((long)rootVersionNo << 32) | getSpecializedVersionNo();
     }
 
+
+    /**
+     * Subclasses can override to return a function that is used as a last
+     * resort to reduce the text that is matched in searches for ctags positions
+     * w.r.t. source text.
+     * @return {@code null}
+     */
+    public Function<String, String> getMatchReducer() {
+        return null;
+    }
 
     protected boolean supportsScopes() {
         return false;

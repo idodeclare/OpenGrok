@@ -85,6 +85,7 @@ import org.opengrok.indexer.analysis.json.JsonAnalyzerFactory;
 import org.opengrok.indexer.analysis.kotlin.KotlinAnalyzerFactory;
 import org.opengrok.indexer.analysis.lisp.LispAnalyzerFactory;
 import org.opengrok.indexer.analysis.lua.LuaAnalyzerFactory;
+import org.opengrok.indexer.analysis.objectivec.ObjectiveCAnalyzerFactory;
 import org.opengrok.indexer.analysis.pascal.PascalAnalyzerFactory;
 import org.opengrok.indexer.analysis.perl.PerlAnalyzerFactory;
 import org.opengrok.indexer.analysis.php.PhpAnalyzerFactory;
@@ -268,6 +269,7 @@ public class AnalyzerGuru {
                 new JarAnalyzerFactory(),
                 new ZipAnalyzerFactory(),
                 new TarAnalyzerFactory(),
+                new ObjectiveCAnalyzerFactory(), // Just before C.
                 new CAnalyzerFactory(),
                 new CSharpAnalyzerFactory(),
                 new VBAnalyzerFactory(),
@@ -336,7 +338,7 @@ public class AnalyzerGuru {
      * {@link FileAnalyzerFactory} subclasses are revised to target more or
      * different files.
      * @return a value whose lower 32-bits are a static value
-     * 20190216_01
+     * 20190217_00
      * for the current implementation and whose higher-32 bits are non-zero if
      * {@link #addExtension(java.lang.String, AnalyzerFactory)}
      * or
@@ -344,7 +346,7 @@ public class AnalyzerGuru {
      * has been called.
      */
     public static long getVersionNo() {
-        final int ver32 = 20190216_01; // Edit comment above too!
+        final int ver32 = 20190217_00; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
             ver |= (long)customizationHashCode << 32;

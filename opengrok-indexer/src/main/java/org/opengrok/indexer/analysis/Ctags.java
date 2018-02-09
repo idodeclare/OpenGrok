@@ -34,6 +34,7 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
@@ -51,6 +52,7 @@ public class Ctags implements Resettable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Ctags.class);
 
     private volatile boolean closing;
+    private Function<String, String> matchReducer;
     private Process ctags;
     private Thread errThread;
     private OutputStreamWriter ctagsIn;
@@ -93,11 +95,28 @@ public class Ctags implements Resettable {
     }
 
     /**
+     * Sets a function that is used as a last resort to reduce the text that is
+     * matched in searches against source text.
+     * <p>
+     * E.g., for Objective-C with multi-part method names that are interleaved
+     * with parameter types and names, a reducer could lop off parts of the
+     * method name for last-resort searching.
+     * <p>
+     * The reducer object can return {@code null} to indicate that no
+     * last-resort search should be done.
+     * @param obj a defined instance or {@code null}
+     */
+    public void setMatchReducer(Function<String, String> obj) {
+        matchReducer = obj;
+    }
+
+    /**
      * Resets the instance for use for another file but without closing any
      * running ctags instance.
      */
     @Override
     public void reset() {
+        setMatchReducer(null);
         setTabSize(0);
     }
 
@@ -369,6 +388,7 @@ public class Ctags implements Resettable {
         }
 
         CtagsReader rdr = new CtagsReader();
+        rdr.setMatchReducer(matchReducer);
         rdr.setSplitterSupplier(() -> { return trySplitSource(file); });
         rdr.setTabSize(tabSize);
         Definitions ret;
@@ -451,6 +471,7 @@ public class Ctags implements Resettable {
         };
 
         CtagsReader rdr = new CtagsReader();
+        rdr.setMatchReducer(matchReducer);
         rdr.setTabSize(tabSize);
         readTags(rdr);
         Definitions ret = rdr.getDefinitions();
