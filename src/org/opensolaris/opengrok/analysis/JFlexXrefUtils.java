@@ -222,7 +222,11 @@ public class JFlexXrefUtils {
     }
 
     /**
-     * Writes a symbol and generate links as appropriate.
+     * Calls
+     * {@link #writeSymbol(java.io.Writer, org.opensolaris.opengrok.analysis.Definitions, java.lang.String, org.opensolaris.opengrok.configuration.Project, java.lang.String, java.lang.String, java.util.Set, int, boolean, boolean)}
+     * with {@code out}, {@code defs}, {@code urlPrefix}, {@code project},
+     * {@code symbol} (twice), {@code keywords}, {@code line},
+     * {@code caseSensitive}, and {@code isKeyword}.
      *
      * @param out a defined, target instance
      * @param defs a possibly defined instance or null
@@ -240,17 +244,45 @@ public class JFlexXrefUtils {
      * @throws IOException if an error occurs while writing to the stream
      */
     public static boolean writeSymbol(Writer out, Definitions defs,
-        String urlPrefix, Project project, String symbol, Set<String> keywords,
-        int line, boolean caseSensitive, boolean isKeyword)
-            throws IOException {
+            String urlPrefix, Project project, String symbol,
+            Set<String> keywords, int line, boolean caseSensitive,
+            boolean isKeyword) throws IOException {
+
+        return writeSymbol(out, defs, urlPrefix, project, symbol, symbol,
+                keywords, line, caseSensitive, isKeyword);
+    }
+
+    /**
+     * Writes a symbol and generate links as appropriate.
+     *
+     * @param out a defined, target instance
+     * @param defs a possibly defined instance or null
+     * @param urlPrefix a defined instance
+     * @param project a possibly defined instance or null
+     * @param literal the literal representation of the symbol
+     * @param symbol the symbol to write
+     * @param keywords a set of keywords recognized by this analyzer (no links
+     * will be generated if the symbol is a keyword)
+     * @param line the line number on which the symbol appears
+     * @param caseSensitive Whether the keyword list is case sensitive
+     * @param isKeyword Whether the symbol is certainly a keyword without
+     * bothering to look up in a defined {@code keywords}
+     * @return true if the {@code symbol} was not in {@code keywords} or if
+     * {@code keywords} was null and if-and-only-if {@code isKeyword} is false
+     * @throws IOException if an error occurs while writing to the stream
+     */
+    public static boolean writeSymbol(Writer out, Definitions defs,
+            String urlPrefix, Project project, String literal, String symbol,
+            Set<String> keywords, int line, boolean caseSensitive,
+            boolean isKeyword) throws IOException {
+
         String[] strs = new String[1];
         strs[0] = "";
-
         String check = caseSensitive ? symbol : symbol.toLowerCase(Locale.ROOT);
         if (isKeyword || (keywords != null && keywords.contains( check ))) {
             // This is a keyword, so we don't create a link.
             out.append("<b>");
-            Util.htmlize(symbol, out);
+            Util.htmlize(literal, out);
             out.append("</b>");
             return false;
         }
@@ -296,10 +328,10 @@ public class JFlexXrefUtils {
             out.append(" intelliWindow-symbol\"");
             out.append(" data-definition-place=\"def\"");
             out.append(">");
-            Util.htmlize(symbol, out);
+            Util.htmlize(literal, out);
             out.append("</a>");
         } else if (defs != null && defs.occurrences(symbol) == 1) {
-            writeSameFileLinkSymbol(out, symbol);
+            writeSameFileLinkSymbol(out, literal, symbol);
         } else {
             // This is a symbol that is not defined in this file, or a symbol
             // that is defined more than once in this file. In either case, we
@@ -314,15 +346,16 @@ public class JFlexXrefUtils {
             out.append(" class=\"intelliWindow-symbol\"");
             out.append(" data-definition-place=\"undefined-in-file\"");
             out.append(">");
-            Util.htmlize(symbol, out);
+            Util.htmlize(literal, out);
             out.append("</a>");
         }
         return true;
     }
 
     /**
-     * Write a symbol with a link to its definition which is expected at
-     * exactly one location in the same file.
+     * Calls
+     * {@link #writeSameFileLinkSymbol(java.io.Writer, java.lang.String, java.lang.String)}
+     * with {@code out} and {@code symbol} (twice).
      * @param out a defined, target instance
      * @param symbol the symbol to write
      * @throws IOException if {@link Writer#append(java.lang.CharSequence)}
@@ -330,6 +363,20 @@ public class JFlexXrefUtils {
      */
     public static void writeSameFileLinkSymbol(Writer out, String symbol)
             throws IOException {
+        writeSameFileLinkSymbol(out, symbol, symbol);
+    }
+
+    /**
+     * Write a symbol with a link to its definition which is expected at
+     * exactly one location in the same file.
+     * @param out a defined, target instance
+     * @param literal the literal representation of the symbol
+     * @param symbol the symbol to write
+     * @throws IOException if {@link Writer#append(java.lang.CharSequence)}
+     * fails
+     */
+    public static void writeSameFileLinkSymbol(Writer out, String literal,
+            String symbol) throws IOException {
         // This is a reference to a symbol defined exactly once in this file.
         String style_class = "d";
 
@@ -341,7 +388,7 @@ public class JFlexXrefUtils {
         out.append("\"");
         out.append(" data-definition-place=\"defined-in-file\"");
         out.append(">");
-        Util.htmlize(symbol, out);
+        Util.htmlize(literal, out);
         out.append("</a>");
     }
 

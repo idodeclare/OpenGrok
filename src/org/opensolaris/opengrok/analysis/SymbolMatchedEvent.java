@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opensolaris.opengrok.analysis;
@@ -35,6 +35,7 @@ package org.opensolaris.opengrok.analysis;
 public class SymbolMatchedEvent {
 
     private final Object source;
+    private final String literal;
     private final String str;
     private final int start;
     private final int end;
@@ -42,12 +43,30 @@ public class SymbolMatchedEvent {
     /**
      * Initializes an immutable instance of {@link SymbolMatchedEvent}.
      * @param source the event source
-     * @param str the symbol string
+     * @param str the symbol string (same literal as canonical)
      * @param start the symbol start position
      * @param end the symbol end position
      */
     public SymbolMatchedEvent(Object source, String str, int start, int end) {
         this.source = source;
+        this.literal = str;
+        this.str = str;
+        this.start = start;
+        this.end = end;
+    }
+
+    /**
+     * Initializes an immutable instance of {@link SymbolMatchedEvent}.
+     * @param source the event source
+     * @param literal the literal representation of the symbol string
+     * @param str the symbol string
+     * @param start the symbol literal start position
+     * @param end the symbol literal end position
+     */
+    public SymbolMatchedEvent(Object source, String literal, String str,
+            int start, int end) {
+        this.source = source;
+        this.literal = literal;
         this.str = str;
         this.start = start;
         this.end = end;
@@ -62,7 +81,18 @@ public class SymbolMatchedEvent {
     }
 
     /**
-     * Gets the symbol string.
+     * Gets the literal representation of the symbol string.
+     * <p>The literal representation might be partial if the symbol's
+     * declaration is interleaved with other language elements (e.g., for
+     * Objective-C).
+     * @return the initial value
+     */
+    public String getLiteral() {
+        return literal;
+    }
+
+    /**
+     * Gets the canonical symbol string.
      * @return the initial value
      */
     public String getStr() {
@@ -70,7 +100,7 @@ public class SymbolMatchedEvent {
     }
 
     /**
-     * Gets the symbol start position.
+     * Gets the symbol literal start position.
      * @return the initial value
      */
     public int getStart() {
@@ -78,7 +108,7 @@ public class SymbolMatchedEvent {
     }
 
     /**
-     * Gets the symbol end position.
+     * Gets the symbol literal end position.
      * @return the initial value
      */
     public int getEnd() {

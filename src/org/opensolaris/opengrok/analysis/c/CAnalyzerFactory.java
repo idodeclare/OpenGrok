@@ -24,18 +24,24 @@
 
 package org.opensolaris.opengrok.analysis.c;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 import org.opensolaris.opengrok.analysis.FileAnalyzer;
 import org.opensolaris.opengrok.analysis.FileAnalyzer.Genre;
 import org.opensolaris.opengrok.analysis.FileAnalyzerFactory;
 import org.opensolaris.opengrok.configuration.RuntimeEnvironment;
 
+/**
+ * Represents a factory to create {@link CAnalyzer} instances.
+ */
 public class CAnalyzerFactory extends FileAnalyzerFactory {
     
     private static final String name = "C";
     
     private static final String[] SUFFIXES = {
         "C",
-        "H",
         "I",
         "L",
         "Y",
@@ -47,10 +53,59 @@ public class CAnalyzerFactory extends FileAnalyzerFactory {
         "X",                    // rpcgen input files
     };
 
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new Matcher() {
+        @Override
+        public String description() {
+            return "*.h file extension, and no other matcher claims a file";
+        }
+
+        @Override
+        public boolean isAllowedExtension(String suffix) {
+            return "H".equals(suffix);
+        }
+
+        @Override
+        public FileAnalyzerFactory isMagic(byte[] contents, InputStream in)
+                throws IOException {
+            return self;
+        }
+
+        @Override
+        public FileAnalyzerFactory forFactory() {
+            return self;
+        }
+    };
+
+    private final List<Matcher> MATCHER_CONTAINER =
+        Collections.singletonList(MATCHER);
+
+    /**
+     * Initializes a factory instance to associate {@link CAnalyzer} with file
+     * extensions .c, .d, .i, .l, .lex, .s, .x .xs, .y, or .yacc or with a
+     * fallback matcher for file extension .h if no other matcher claims the
+     * file.
+     * @param env a defined instance
+     */
     public CAnalyzerFactory(RuntimeEnvironment env) {
         super(env, null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
+    /**
+     * Gets a single-element list for a matcher limited to file extension .h and
+     * that takes all files (to claim any .h file which no other matcher does).
+     * @return a defined list
+     */
+    @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new {@link CAnalyzer} instance.
+     * @return a defined instance
+     */
     @Override
     protected FileAnalyzer newAnalyzer() {
         return new CAnalyzer(this);

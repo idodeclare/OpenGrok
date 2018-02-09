@@ -38,6 +38,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
@@ -118,8 +119,8 @@ public class CustomAssertions {
 
     /**
      * Calls
-     * {@link #assertSymbolStream(java.lang.Class, java.io.InputStream, java.util.List, boolean, org.opensolaris.opengrok.analysis.TokenizerMode)}
-     * with {@code klass}, {@code iss}, {@code expectedTokens} and
+     * {@link #assertSymbolStream(java.lang.Class, java.io.InputStream, java.util.Map, java.util.List, boolean, org.opensolaris.opengrok.analysis.TokenizerMode)}
+     * with {@code klass}, {@code iss}, {@code null}, {@code expectedTokens} and
      * {@code false}, and {@code TokenizerMode.SYMBOLS_ONLY}.
      * @param klass the test class
      * @param iss the input stream
@@ -130,7 +131,32 @@ public class CustomAssertions {
     public static void assertSymbolStream(
         Class<? extends JFlexSymbolMatcher> klass, InputStream iss,
         List<String> expectedTokens) throws Exception {
-        assertSymbolStream(klass, iss, expectedTokens, false,
+
+        assertSymbolStream(klass, iss, null, expectedTokens, false,
+                TokenizerMode.SYMBOLS_ONLY);
+    }
+
+    /**
+     * Calls
+     * {@link #assertSymbolStream(java.lang.Class, java.io.InputStream, java.util.Map, java.util.List, boolean, org.opensolaris.opengrok.analysis.TokenizerMode)}
+     * with {@code klass}, {@code iss}, {@code overrides},
+     * {@code expectedTokens} and {@code false}, and
+     * {@code TokenizerMode.SYMBOLS_ONLY}.
+     * @param klass the test class
+     * @param iss the input stream
+     * @param overrides an optional map of input overrides where the key is the
+     * token sequence number and the value is a pair of (expected literal value,
+     * expected symbol value)
+     * @param expectedTokens the expected, ordered token list
+     * @throws java.lang.Exception if an error occurs constructing a
+     * {@code klass} instance or testing the stream
+     */
+    public static void assertSymbolStream(
+            Class<? extends JFlexSymbolMatcher> klass, InputStream iss,
+            Map<Integer, SimpleEntry<String, String>> overrides,
+            List<String> expectedTokens) throws Exception {
+
+        assertSymbolStream(klass, iss, overrides, expectedTokens, false,
             TokenizerMode.SYMBOLS_ONLY);
     }
 
@@ -141,6 +167,9 @@ public class CustomAssertions {
      * with {@code null} values, {@code caseInsensitive}, and {@code mode}.
      * @param klass the test class
      * @param iss the input stream
+     * @param overrides an optional map of input overrides where the key is the
+     * token sequence number and the value is a pair of (expected literal value,
+     * expected symbol value)
      * @param expectedTokens the expected, ordered token list
      * @param caseInsensitive indicates if content should be checked against
      * source in case-insensitive (i.e. lower-cased) manner
@@ -151,6 +180,7 @@ public class CustomAssertions {
      */
     public static void assertSymbolStream(
         Class<? extends JFlexSymbolMatcher> klass, InputStream iss,
+        Map<Integer, SimpleEntry<String, String>> overrides,
         List<String> expectedTokens, boolean caseInsensitive,
         TokenizerMode mode) throws Exception {
 
@@ -158,12 +188,14 @@ public class CustomAssertions {
             expectedTokens.stream().map((s) ->
             new SimpleEntry<>(s, (Integer)null)).collect(
             Collectors.toList());
-        assertSymbolStream2(klass, iss, kvs, caseInsensitive, mode);
+        assertSymbolStream2(klass, iss, overrides, kvs, caseInsensitive, mode);
     }
 
     /**
-     * Asserts the specified tokenizer class produces an expected stream of
-     * symbols from the specified input.
+     * Calls
+     * {@link #assertSymbolStream2(java.lang.Class, java.io.InputStream, java.util.Map, java.util.List, boolean, org.opensolaris.opengrok.analysis.TokenizerMode)}
+     * with {@code klass}, {@code iss}, {@code null}, {@code expectedTokens},
+     * {@code caseInsensitive}, and {@code mode}.
      * @param klass the test class
      * @param iss the input stream
      * @param expectedTokens the expected, ordered token list, where the Integer
@@ -176,7 +208,34 @@ public class CustomAssertions {
      * {@code klass} instance or testing the stream
      */
     public static void assertSymbolStream2(
+            Class<? extends JFlexSymbolMatcher> klass, InputStream iss,
+            List<SimpleEntry<String, Integer>> expectedTokens,
+            boolean caseInsensitive, TokenizerMode mode) throws Exception {
+
+        assertSymbolStream2(klass, iss, null, expectedTokens, caseInsensitive,
+                mode);
+    }
+
+    /**
+     * Asserts the specified tokenizer class produces an expected stream of
+     * symbols from the specified input.
+     * @param klass the test class
+     * @param iss the input stream
+     * @param overrides an optional map of input overrides where the key is the
+     * token sequence number and the value is a pair of (expected literal value,
+     * expected symbol value)
+     * @param expectedTokens the expected, ordered token list, where the Integer
+     * value is optional but asserted to match if not null
+     * @param caseInsensitive indicates if content should be checked against
+     * source in case-insensitive (i.e. lower-cased) manner
+     * @param mode indicates mode for
+     * {@link JFlexTokenizer#setTokenizerMode(org.opensolaris.opengrok.analysis.TokenizerMode)}
+     * @throws java.lang.Exception if an error occurs constructing a
+     * {@code klass} instance or testing the stream
+     */
+    public static void assertSymbolStream2(
         Class<? extends JFlexSymbolMatcher> klass, InputStream iss,
+        Map<Integer, SimpleEntry<String, String>> overrides,
         List<SimpleEntry<String, Integer>> expectedTokens,
         boolean caseInsensitive, TokenizerMode mode) throws Exception {
 
@@ -207,6 +266,7 @@ public class CustomAssertions {
         int count = 0;
         List<SimpleEntry<String, Integer>> tokens = new ArrayList<>();
         while (tokenizer.incrementToken()) {
+            ++count;
             String termValue = term.toString();
             Integer v = pinc != null ? pinc.getPositionIncrement() : null;
             tokens.add(new SimpleEntry<>(termValue, v));
@@ -216,7 +276,16 @@ public class CustomAssertions {
             if (caseInsensitive) {
                 cutValue = cutValue.toLowerCase(Locale.ROOT);
             }
-            assertEquals("cut term" + (1 + count), cutValue, termValue);
+
+            // If an override exists, test it specially.
+            if (overrides != null && overrides.containsKey(count)) {
+                SimpleEntry<String, String> overkv = overrides.get(count);
+                assertEquals("cut term override" + count, overkv.getKey(),
+                        cutValue);
+                assertEquals("cut term w.r.t. term override" + count,
+                        overkv.getValue(), termValue);
+                continue;
+            }
 
             assertTrue("cut term" + (1 + count) + "[" + cutValue +
                     "] startOffset " + offs.startOffset() +
@@ -232,7 +301,7 @@ public class CustomAssertions {
             lastOffset = offs.startOffset();
             lastCutValue = cutValue;
 
-            ++count;
+            assertEquals("cut term" + count, cutValue, termValue);
         }
 
         boolean anyPosIncs = anyPositionIncrements(expectedTokens);

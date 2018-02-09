@@ -1,0 +1,23 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	0	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/1620c633/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+LAMainView	grok.m	/^@interface LAMainView ()$/;"	interface	line:213
+lottieLogo	grok.m	/^@property (nonatomic, strong) LOTAnimationView *lottieLogo;$/;"	property	line:215	interface:LAMainView
+LAMainView	grok.m	/^@implementation LAMainView$/;"	implementation	line:218
+initWithCoder:	grok.m	/^- (instancetype)initWithCoder:(NSCoder *)coder {$/;"	method	line:220	implementation:LAMainView	signature:(NSCoder*)
+initWithFrame:	grok.m	/^- (instancetype)initWithFrame:(NSRect)frame {$/;"	method	line:228	implementation:LAMainView	signature:(NSRect)
+commonInit	grok.m	/^- (void)commonInit {$/;"	method	line:236	implementation:LAMainView	signature:()
+viewDidMoveToSuperview	grok.m	/^- (void)viewDidMoveToSuperview {$/;"	method	line:248	implementation:LAMainView	signature:()
+draggingEntered:	grok.m	/^- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender {$/;"	method	line:252	implementation:LAMainView	signature:(id id NSDraggingInfo NSDraggingInfo)
+performDragOperation:	grok.m	/^- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {$/;"	method	line:274	implementation:LAMainView	signature:(id id NSDraggingInfo NSDraggingInfo)
+openAnimationFile:	grok.m	/^- (void)_openAnimationFile:(NSString *)file {$/;"	method	line:298	implementation:LAMainView	signature:(NSString*)
+openAnimationURL:	grok.m	/^{$/;"	method	line:313	implementation:LAMainView	signature:(NSURL*)
+setAnimationProgress:	grok.m	/^- (void)setAnimationProgress:(CGFloat)progress {$/;"	method	line:334	implementation:LAMainView	signature:(CGFloat)
+playAnimation	grok.m	/^- (void)playAnimation {$/;"	method	line:337	implementation:LAMainView	signature:()
+rewindAnimation	grok.m	/^- (void)rewindAnimation {$/;"	method	line:344	implementation:LAMainView	signature:()
+toggleLoop	grok.m	/^- (void)toggleLoop {$/;"	method	line:347	implementation:LAMainView	signature:()
+method1:forUrl:	grok.m	/^-(void)method1:(NSString *)name forUrl:(NSURL *)url {$/;"	method	line:350	implementation:LAMainView	signature:(NSString*,NSURL*)
