@@ -301,6 +301,8 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                                 while (cfg.getEnv().isWebappCtags()) {
                                     Ctags ctags = ctagsPool.get();
                                     try {
+                                        ctags.setMatchReducer(a.getAnalyzer().
+                                                getMatchReducer());
                                         ctags.setTabSize(project != null ?
                                                 project.getTabSize() : 0);
                                         defs = ctags.doCtags(tempf.getPath());

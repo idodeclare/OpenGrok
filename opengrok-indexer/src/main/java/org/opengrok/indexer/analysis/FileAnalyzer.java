@@ -29,6 +29,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -153,6 +154,16 @@ public class FileAnalyzer extends Analyzer {
      */
     protected int getSpecializedVersionNo() {
         return 0; // FileAnalyzer is not specialized.
+    }
+
+    /**
+     * Subclasses can override to return a function that is used as a last
+     * resort to reduce the text that is matched in searches for ctags positions
+     * w.r.t. source text.
+     * @return {@code null}
+     */
+    public Function<String, String> getMatchReducer() {
+        return null;
     }
 
     public void setCtags(Ctags ctags) {

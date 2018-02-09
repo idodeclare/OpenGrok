@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import static org.junit.Assert.assertEquals;
@@ -39,8 +40,10 @@ import org.junit.Test;
 import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.analysis.ExpandTabsReader;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.analysis.objectivec.ObjectiveCAnalyzer;
 import org.opengrok.indexer.util.IOUtils;
 import org.opengrok.indexer.util.StreamUtils;
+import static org.opengrok.indexer.util.StreamUtils.readTagsFromResource;
 
 /**
  * Represents a container for tests of {@link DefinitionsTokenStream}.
@@ -66,7 +69,7 @@ public class DefinitionsTokenStreamTest {
         testDefinitionsVsContent(false,
             "analysis/c/sample.cc",
             "analysis/c/sampletags_cc", 65, false,
-            overrides);
+            overrides, null);
     }
 
     /**
@@ -80,7 +83,7 @@ public class DefinitionsTokenStreamTest {
         testDefinitionsVsContent(false,
             "analysis/c/sample.cc",
             "analysis/c/sampletags_cc", 65, true,
-            null);
+            null, null);
     }
 
     /**
@@ -94,22 +97,69 @@ public class DefinitionsTokenStreamTest {
         testDefinitionsVsContent(true,
             "analysis/c/sample.cc",
             "analysis/c/sampletags_cc", 65, true,
-            null);
+            null, null);
+    }
+
+    /**
+     * Tests sample.m v. sampletags with no expand-tabs.
+     * @throws java.io.IOException
+     */
+    @Test
+    public void testObjectiveCDefinitionsWithRawContent() throws IOException {
+        Map<Integer, SimpleEntry<String, String>> overrides = new TreeMap<>();
+        overrides.put(5, new SimpleEntry<>("{", "NSCoder"));
+        overrides.put(11, new SimpleEntry<>("{", "NSDraggingInfo"));
+        overrides.put(13, new SimpleEntry<>("{", "NSDraggingInfo"));
+        overrides.put(15, new SimpleEntry<>("{", "NSString"));
+        overrides.put(16, new SimpleEntry<>("{", "openAnimationURL:"));
+        overrides.put(17, new SimpleEntry<>("{", "NSURL"));
+        overrides.put(23, new SimpleEntry<>("{", "method1:forUrl:"));
+        overrides.put(24, new SimpleEntry<>("{", "NSString"));
+        overrides.put(25, new SimpleEntry<>("{", "NSURL"));
+
+        testDefinitionsVsContent(false,
+                "analysis/objectivec/sample.m",
+                "analysis/objectivec/sampletags", 25,
+                true, overrides, null);
+    }
+
+    /**
+     * Tests sample.m v. sampletags with
+     * {@link ObjectiveCAnalyzer#MATCH_REDUCER} and with no expand-tabs.
+     * @throws java.io.IOException
+     */
+    @Test
+    public void testObjectiveCDefinitions2WithRawContent() throws IOException {
+        Map<Integer, SimpleEntry<String, String>> overrides = new TreeMap<>();
+        overrides.put(5, new SimpleEntry<>("{", "NSCoder"));
+        overrides.put(11, new SimpleEntry<>("{", "NSDraggingInfo"));
+        overrides.put(13, new SimpleEntry<>("{", "NSDraggingInfo"));
+        overrides.put(15, new SimpleEntry<>("{", "NSString"));
+        overrides.put(16, new SimpleEntry<>("{", "openAnimationURL:"));
+        overrides.put(17, new SimpleEntry<>("{", "NSURL"));
+        overrides.put(23, new SimpleEntry<>("method1:", "method1:forUrl:"));
+        overrides.put(24, new SimpleEntry<>("{", "NSString"));
+        overrides.put(25, new SimpleEntry<>("{", "NSURL"));
+
+        testDefinitionsVsContent(false,
+                "analysis/objectivec/sample.m",
+                "analysis/objectivec/sampletags", 25,
+                true, overrides, ObjectiveCAnalyzer.MATCH_REDUCER);
     }
 
     private void testDefinitionsVsContent(boolean expandTabs,
         String sourceResource, String tagsResource, int expectedCount,
         boolean doSupplement,
-        Map<Integer, SimpleEntry<String, String>> overrides)
-            throws IOException {
+        Map<Integer, SimpleEntry<String, String>> overrides,
+        Function<String, String> matchReducer) throws IOException {
 
         StreamSource src = getSourceFromResource(sourceResource);
 
         // Deserialize the ctags.
         int tabSize = expandTabs ? 8 : 0;
         String suppResource = doSupplement ? sourceResource : null;
-        Definitions defs = StreamUtils.readTagsFromResource(tagsResource,
-            suppResource, tabSize);
+        Definitions defs = readTagsFromResource(tagsResource, suppResource,
+                matchReducer, tabSize);
 
         // Read the whole input.
         StringBuilder bld = new StringBuilder();
