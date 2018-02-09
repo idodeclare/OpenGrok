@@ -303,6 +303,8 @@ Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
         <run-jflex dir="${gen.analysis.dir}/javascript" name="JavaScriptXref"/>
         <run-jflex dir="${gen.analysis.dir}/lua" name="LuaSymbolTokenizer"/>
         <run-jflex dir="${gen.analysis.dir}/lua" name="LuaXref"/>
+        <run-jflex dir="${gen.analysis.dir}/objectivec" name="ObjectiveCLexer"/>
+        <run-jflex dir="${gen.analysis.dir}/objectivec" name="ObjectiveCNamer"/>
         <run-jflex dir="${gen.analysis.dir}/powershell" name="PowershellSymbolTokenizer"/>
         <run-jflex dir="${gen.analysis.dir}/powershell" name="PowershellXref"/>
         <run-jflex dir="${gen.analysis.dir}/python" name="PythonSymbolTokenizer"/>

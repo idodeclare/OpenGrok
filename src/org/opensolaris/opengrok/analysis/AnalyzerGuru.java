@@ -96,6 +96,7 @@ import org.opensolaris.opengrok.analysis.scala.ScalaAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.clojure.ClojureAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.json.JsonAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.kotlin.KotlinAnalyzerFactory;
+import org.opensolaris.opengrok.analysis.objectivec.ObjectiveCAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.sh.ShAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.powershell.PowershellAnalyzerFactory;
 import org.opensolaris.opengrok.analysis.ruby.RubyAnalyzerFactory;
@@ -277,7 +278,8 @@ public class AnalyzerGuru {
                 new JarAnalyzerFactory(env),
                 new ZipAnalyzerFactory(env),
                 new TarAnalyzerFactory(env),
-                new CAnalyzerFactory(env),
+                new ObjectiveCAnalyzerFactory(env), // Just before C.
+                new CAnalyzerFactory(env), // Just after Objective-C.
                 new CSharpAnalyzerFactory(env),
                 new VBAnalyzerFactory(env),
                 new CxxAnalyzerFactory(env),
@@ -343,7 +345,7 @@ public class AnalyzerGuru {
      * {@link FileAnalyzerFactory} subclasses are revised to target more or
      * different files.
      * @return a value whose lower 32-bits are a static value
-     * 20180212_07
+     * 20180214_00
      * for the current implementation and whose higher-32 bits are non-zero if
      * {@link #addExtension(java.lang.String, org.opensolaris.opengrok.analysis.FileAnalyzerFactory)}
      * or
@@ -351,7 +353,7 @@ public class AnalyzerGuru {
      * has been called.
      */
     public long getVersionNo() {
-        final int ver32 = 20180212_07; // Edit comment above too!
+        final int ver32 = 20180214_00; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
             ver |= (long)customizationHashCode << 32;
