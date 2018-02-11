@@ -111,6 +111,7 @@ public final class WebappListener
      */
     @Override
     public void contextDestroyed(final ServletContextEvent servletContextEvent) {
+        genv.getIndexerParallelizer().bounce();
         genv.stopWatchDogService();
         genv.stopExpirationTimer();
         try {

@@ -40,19 +40,23 @@ java.util.List,
 java.util.Locale,
 java.util.Set,
 java.util.logging.Level,
+java.util.logging.Logger,
 java.util.zip.GZIPInputStream,
 javax.servlet.http.HttpServletResponse,
 
 org.opensolaris.opengrok.analysis.AnalyzerGuru,
+org.opensolaris.opengrok.analysis.Ctags,
 org.opensolaris.opengrok.analysis.Definitions,
 org.opensolaris.opengrok.analysis.FileAnalyzer.Genre,
 org.opensolaris.opengrok.analysis.FileAnalyzerFactory,
 org.opensolaris.opengrok.history.Annotation,
 org.opensolaris.opengrok.index.IndexDatabase,
+org.opensolaris.opengrok.logger.LoggerFactory,
 org.opensolaris.opengrok.search.DirectoryEntry,
 org.opensolaris.opengrok.search.DirectoryExtraReader,
 org.opensolaris.opengrok.search.FileExtra,
 org.opensolaris.opengrok.util.FileExtraZipper,
+org.opensolaris.opengrok.util.ObjectPool,
 org.opensolaris.opengrok.util.IOUtils,
 org.opensolaris.opengrok.web.DirectoryListing,
 org.opensolaris.opengrok.web.SearchHelper"
@@ -86,6 +90,8 @@ document.pageReady.push(function() { pageReadyList();});
 <%
 /* ---------------------- list.jsp start --------------------- */
 {
+    final Logger LOGGER = LoggerFactory.getLogger(getClass());
+
     PageConfig cfg = PageConfig.get(request);
     String rev = cfg.getRequestedRevision();
     Project project = cfg.getProject();
@@ -253,20 +259,32 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
             FileAnalyzerFactory a = guru.find(basename);
             Genre g = guru.getGenre(a);
             String error = null;
-            if (g == Genre.PLAIN|| g == Genre.HTML || g == null) {
+            if (g == Genre.PLAIN || g == Genre.HTML || g == null) {
                 InputStream in = null;
+                File tempf = null;
                 try {
+                    tempf = File.createTempFile("ogtags", basename);
                     HistoryGuru hguru = cfg.getEnv().getHistoryGuru();
-                    in = hguru.getRevision(resourceFile.getParent(), basename,
-                            rev);
+                    if (hguru.getRevision(tempf, resourceFile.getParent(),
+                            basename, rev)) {
+                        in = new BufferedInputStream(
+                                new FileInputStream(tempf));
+                    } else {
+                        tempf.delete();
+                        tempf = null;
+                    }
                 } catch (Exception e) {
                     // fall through to error message
                     error = e.getMessage();
+                    if (tempf != null) {
+                        tempf.delete();
+                        tempf = null;
+                    }
                 }
                 if (in != null) {
                     try {
                         if (g == null) {
-                            a = guru.find(in);
+                            a = guru.find(in, basename);
                             g = guru.getGenre(a);
                         }
                         if (g == Genre.DATA || g == Genre.XREFABLE
@@ -281,9 +299,36 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
     <div id="src">
         <pre><%
                             if (g == Genre.PLAIN) {
-                                // We don't have any way to get definitions
-                                // for old revisions currently.
                                 Definitions defs = null;
+                                ObjectPool<Ctags> ctagsPool = cfg.getEnv().
+                                        getIndexerParallelizer().getCtagsPool();
+                                int tries = 2;
+                                while (cfg.getEnv().isWebappCtags()) {
+                                    Ctags ctags = ctagsPool.get();
+                                    try {
+                                        ctags.setTabSize(project != null ?
+                                                project.getTabSize() : 0);
+                                        defs = ctags.doCtags(tempf.getPath());
+                                        break;
+                                    } catch (InterruptedException ex) {
+                                        if (--tries > 0) {
+                                            LOGGER.log(Level.WARNING,
+                                                    "doCtags() interrupted--{0}",
+                                                    ex.getMessage());
+                                            continue;
+                                        }
+                                        LOGGER.log(Level.WARNING, "doCtags()",
+                                                ex);
+                                        break;
+                                    } catch (Exception ex) {
+                                        LOGGER.log(Level.WARNING, "doCtags()",
+                                                ex);
+                                        break;
+                                    } finally {
+                                        ctags.reset();
+                                        ctagsPool.release(ctags);
+                                    }
+                                }
                                 Annotation annotation = cfg.getAnnotation();
                                 //not needed yet
                                 //annotation.writeTooltipMap(out);
@@ -324,6 +369,9 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                         if (in != null) {
                             try { in.close(); }
                             catch (Exception e) { /* ignore */ }
+                        }
+                        if (tempf != null) {
+                            tempf.delete();
                         }
                     }
         %></pre>

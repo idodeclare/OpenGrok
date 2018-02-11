@@ -1126,6 +1126,14 @@ public final class RuntimeEnvironment {
         threadConfig.get().setWebappLAF(laf);
     }
 
+    /**
+     * Gets a value indicating if the web app should run ctags as necessary.
+     * @return the value of {@link Configuration#isWebappCtags()}
+     */
+    public boolean isWebappCtags() {
+        return threadConfig.get().isWebappCtags();
+    }
+
     public Configuration.RemoteSCM getRemoteScmSupported() {
         return threadConfig.get().getRemoteScmSupported();
     }
