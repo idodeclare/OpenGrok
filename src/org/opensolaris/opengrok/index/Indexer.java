@@ -775,6 +775,10 @@ public final class Indexer {
                 LoggerUtil.setBaseConsoleLogLevel(Level.INFO);
             });
 
+            parser.on("--webappCtags", "=on|off", ON_OFF, Boolean.class,
+                "Web application should run ctags when necessary. Default is off.").
+                Do(v -> cfg.setWebappCtags((Boolean)v));
+
             parser.on("-W", "--writeConfig", "=/path/to/configuration",
                 "Write the current configuration to the specified file",
                 "(so that the web application can use the same configuration)").Do( configFile -> {

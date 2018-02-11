@@ -260,6 +260,24 @@ public final class HistoryGuru {
     }
 
     /**
+     * Gets a named revision of the specified file into the specified target.
+     *
+     * @param target a require target file
+     * @param parent The directory containing the file
+     * @param basename The name of the file
+     * @param rev The revision to get
+     * @return {@code true} if content was found
+     * @throws java.io.IOException if an I/O error occurs
+     */
+    public boolean getRevision(File target, String parent, String basename,
+            String rev) throws IOException {
+
+        Repository repo = getRepository(new File(parent));
+        return repo == null ? false : repo.getHistoryGet(target, parent,
+                basename, rev);
+    }
+
+    /**
      * Get a named revision of the specified file.
      *
      * @param parent The directory containing the file
