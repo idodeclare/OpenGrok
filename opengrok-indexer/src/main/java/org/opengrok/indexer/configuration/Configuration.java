@@ -107,6 +107,7 @@ public final class Configuration {
      * Path to {@code ctags} binary.
      */
     private String ctags;
+    private boolean webappCtags;
 
     /**
      * A defined value to specify the mandoc binary or else null so that mandoc
@@ -495,6 +496,7 @@ public final class Configuration {
         // unconditionally later.
         setUserPageSuffix("");
         setWebappLAF("default");
+        // webappCtags is default(boolean)
     }
 
     public String getRepoCmd(String clazzName) {
@@ -1001,6 +1003,22 @@ public final class Configuration {
 
     public void setWebappLAF(String webappLAF) {
         this.webappLAF = webappLAF;
+    }
+
+    /**
+     * Gets a value indicating if the web app should run ctags as necessary.
+     * @return
+     */
+    public boolean isWebappCtags() {
+        return webappCtags;
+    }
+
+    /**
+     * Sets a value indicating if the web app should run ctags as necessary.
+     * @param value
+     */
+    public void setWebappCtags(boolean value) {
+        this.webappCtags = value;
     }
 
     public RemoteSCM getRemoteScmSupported() {

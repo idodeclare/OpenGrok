@@ -27,9 +27,11 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -44,6 +46,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opengrok.indexer.logger.LoggerFactory;
+import org.opengrok.indexer.util.BufferSink;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.StringUtils;
 
@@ -171,14 +174,18 @@ public class GitRepository extends Repository {
     /**
      * Try to get file contents for given revision.
      *
+     * @param sink a required target sink
+     * @param outIterations a required out array for storing the number of calls
+     * made to {@code sink}
      * @param fullpath full pathname of the file
      * @param rev revision
-     * @return contents of the file in revision rev
+     * @return {@code true} if any contents were found
      */
-    private InputStream getHistoryRev(String fullpath, String rev) {
-        InputStream ret = null;
-        File directory = new File(getDirectoryName());
+    private boolean getHistoryRev(BufferSink sink, int[] outIterations,
+            String fullpath, String rev) {
 
+        outIterations[0] = 0;
+        File directory = new File(getDirectoryName());
         try {
             String filename = fullpath.substring(getDirectoryName().length() + 1);
             ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
@@ -192,13 +199,13 @@ public class GitRepository extends Repository {
                     env.getInteractiveCommandTimeout());
             int status = executor.exec();
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[32 * 1024];
+            byte[] buffer = new byte[8 * 1024];
             try (InputStream in = executor.getOutputStream()) {
                 int len;
                 while ((len = in.read(buffer)) != -1) {
                     if (len > 0) {
-                        out.write(buffer, 0, len);
+                        outIterations[0]++;
+                        sink.write(buffer, 0, len);
                     }
                 }
             }
@@ -207,22 +214,48 @@ public class GitRepository extends Repository {
              * If exit value of the process was not 0 then the file did
              * not exist or internal git error occured.
              */
-            if (status == 0) {
-                ret = new ByteArrayInputStream(out.toByteArray());
-            } else {
-                ret = null;
-            }
+            return status == 0;
         } catch (Exception exp) {
             LOGGER.log(Level.SEVERE,
                     "Failed to get history for file {0} in revision {1}: ",
                         new Object[]{fullpath, rev, exp.getClass().toString(), exp});
+            return false;
         }
+    }
 
-        return ret;
+    /**
+     * Gets the contents of a specific version of a named file into the
+     * specified target without a full, in-memory buffer.
+     *
+     * @param target a required target file which will be overwritten
+     * @param parent the name of the directory containing the file
+     * @param basename the name of the file to get
+     * @param rev the revision to get
+     * @return {@code true} if contents were found
+     * @throws java.io.IOException if an I/O error occurs
+     */
+    @Override
+    public boolean getHistoryGet(File target, String parent, String basename,
+            String rev) throws IOException {
+        try (OutputStream out = new FileOutputStream(target)) {
+            return getHistoryGet((buf, offset, n) -> out.write(buf, offset, n),
+                    parent, basename, rev);
+        }
     }
 
     @Override
-    public InputStream getHistoryGet(String parent, String basename, String rev) {
+    public InputStream getHistoryGet(String parent, String basename,
+            String rev) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        if (getHistoryGet((buf, offset, n) -> out.write(buf, offset, n),
+                parent, basename, rev)) {
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+        return null;
+    }
+
+    protected boolean getHistoryGet(BufferSink sink, String parent,
+            String basename, String rev) {
         String fullpath;
         try {
             fullpath = new File(parent, basename).getCanonicalPath();
@@ -233,11 +266,13 @@ public class GitRepository extends Repository {
                     return String.format("Failed to get canonical path: %s/%s", parent, basename);
                 }
             });
-            return null;
+            return false;
         }
 
-        InputStream ret = getHistoryRev(fullpath, rev);
-        if (ret == null) {
+        int[] iterations = new int[1];
+        boolean ret = getHistoryRev((buf, offset, n) -> sink.write(buf, offset,
+                n), iterations, fullpath, rev);
+        if (!ret && iterations[0] < 1) {
             /*
              * If we failed to get the contents it might be that the file was
              * renamed so we need to find its original name in that revision
@@ -253,10 +288,10 @@ public class GitRepository extends Repository {
                         return String.format("Failed to get original revision: %s/%s (revision %s)", parent, basename, rev);
                     }
                 });
-                return null;
+                return false;
             }
             if (origpath != null) {
-                ret = getHistoryRev(origpath, rev);
+                ret = getHistoryRev(sink, iterations, origpath, rev);
             }
         }
 

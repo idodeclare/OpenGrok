@@ -1143,6 +1143,14 @@ public final class RuntimeEnvironment {
         setConfigurationValue("webappLAF", laf);
     }
 
+    /**
+     * Gets a value indicating if the web app should run ctags as necessary.
+     * @return the value of {@link Configuration#isWebappCtags()}
+     */
+    public boolean isWebappCtags() {
+        return (boolean)getConfigurationValue("webappCtags");
+    }
+
     public Configuration.RemoteSCM getRemoteScmSupported() {
         return (Configuration.RemoteSCM)getConfigurationValue("remoteScmSupported");
     }
