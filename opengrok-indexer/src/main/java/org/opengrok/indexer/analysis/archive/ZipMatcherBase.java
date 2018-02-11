@@ -42,7 +42,7 @@ public abstract class ZipMatcherBase implements FileAnalyzerFactory.Matcher {
     private static final int XFHSIZ = 4;
 
     @Override
-    public boolean getIsPreciseMagic() { return true; }
+    public boolean isPreciseMagic() { return true; }
 
     @Override
     public FileAnalyzerFactory isMagic(byte[] contents, InputStream in)
