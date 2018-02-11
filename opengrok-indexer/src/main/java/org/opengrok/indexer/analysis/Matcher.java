@@ -34,10 +34,19 @@ import java.io.InputStream;
 public interface Matcher {
 
     /**
+     * Gets a value indicating if the specified extension is allowed by the
+     * matcher. Implementations can override to qualify {@code suffix} if
+     * necessary.
+     * @param suffix a defined, upper-case value
+     * @return {@code true}
+     */
+    default boolean isAllowedExtension(String suffix) { return true; }
+
+    /**
      * Get a value indicating if the magic is byte-precise.
      * @return true if precise
      */
-    default boolean getIsPreciseMagic() { return false; }
+    default boolean isPreciseMagic() { return false; }
 
     /**
      * Gets a default, reportable description of the matcher.
@@ -48,8 +57,7 @@ public interface Matcher {
      * @return a defined, reportable String
      */
     default String description() {
-        return getIsPreciseMagic() ? "precise matcher" :
-            "heuristic matcher";
+        return isPreciseMagic() ? "precise matcher" : "heuristic matcher";
     }
 
     /**

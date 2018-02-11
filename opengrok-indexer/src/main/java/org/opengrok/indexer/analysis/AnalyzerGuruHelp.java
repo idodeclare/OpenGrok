@@ -64,12 +64,12 @@ public class AnalyzerGuruHelp {
 
         b.append("\nAnalyzerGuru magic matchers:\n");
         AnalyzerGuru.getAnalyzerFactoryMatchers().forEach((m) -> {
-            if (m.getIsPreciseMagic()) {
+            if (m.isPreciseMagic()) {
                 b.append(reportable(m));
             }
         });
         AnalyzerGuru.getAnalyzerFactoryMatchers().forEach((m) -> {
-            if (!m.getIsPreciseMagic()) {
+            if (!m.isPreciseMagic()) {
                 b.append(reportable(m));
             }
         });

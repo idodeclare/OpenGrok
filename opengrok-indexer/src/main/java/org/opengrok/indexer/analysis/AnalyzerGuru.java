@@ -336,7 +336,7 @@ public class AnalyzerGuru {
      * {@link FileAnalyzerFactory} subclasses are revised to target more or
      * different files.
      * @return a value whose lower 32-bits are a static value
-     * 20190216_00
+     * 20190216_01
      * for the current implementation and whose higher-32 bits are non-zero if
      * {@link #addExtension(java.lang.String, AnalyzerFactory)}
      * or
@@ -344,7 +344,7 @@ public class AnalyzerGuru {
      * has been called.
      */
     public static long getVersionNo() {
-        final int ver32 = 20190216_00; // Edit comment above too!
+        final int ver32 = 20190216_01; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
             ver |= (long)customizationHashCode << 32;
@@ -962,9 +962,15 @@ public class AnalyzerGuru {
 
         AnalyzerFactory fac;
 
+        String ext = "";
+        int dotpos = file.lastIndexOf('.');
+        if (dotpos >= 0) {
+            ext = file.substring(dotpos + 1).toUpperCase(Locale.ROOT);
+        }
+
         // First, do precise-magic Matcher matching
         for (Matcher matcher : matchers) {
-            if (matcher.getIsPreciseMagic()) {
+            if (matcher.isPreciseMagic() && matcher.isAllowedExtension(ext)) {
                 fac = matcher.isMagic(content, in);
                 if (fac != null) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -986,7 +992,7 @@ public class AnalyzerGuru {
 
         // Last, do imprecise-magic Matcher matching
         for (Matcher matcher : matchers) {
-            if (!matcher.getIsPreciseMagic()) {
+            if (!matcher.isPreciseMagic() && matcher.isAllowedExtension(ext)) {
                 fac = matcher.isMagic(content, in);
                 if (fac != null) {
                     if (LOGGER.isLoggable(Level.FINEST)) {

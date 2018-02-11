@@ -43,7 +43,7 @@ public abstract class ZipMatcherBase implements Matcher {
     private static final int XFHSIZ = 4;
 
     @Override
-    public boolean getIsPreciseMagic() { return true; }
+    public boolean isPreciseMagic() { return true; }
 
     @Override
     public AnalyzerFactory isMagic(byte[] contents, InputStream in)
@@ -82,7 +82,7 @@ public abstract class ZipMatcherBase implements Matcher {
 
     /**
      * Derived classes must implement to get a value indicating if the ZIP
-     * "Extra field ID" should be checked to match the value returne by
+     * "Extra field ID" should be checked to match the value returned by
      * {@link #strictExtraFieldID()}.
      * @return {@code true} if "Extra field ID" should be checked
      */
