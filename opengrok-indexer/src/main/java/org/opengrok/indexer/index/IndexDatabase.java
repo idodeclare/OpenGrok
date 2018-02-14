@@ -869,8 +869,11 @@ public class IndexDatabase {
                 if (!absolutePath.equals(canonical.getPath())
                         && !acceptSymlink(absolute, canonical,
                                 outLocalRelPath)) {
-                    LOGGER.log(Level.FINE, "Skipped symlink ''{0}'' -> ''{1}''",
-                        new Object[]{absolutePath, canonical});
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE,
+                                "Skipped symlink ''{0}'' -> ''{1}''",
+                                new Object[]{absolutePath, canonical});
+                    }
                     return false;
                 }
             }
@@ -881,9 +884,15 @@ public class IndexDatabase {
                 return false;
             }
         } catch (IOException exp) {
-            LOGGER.log(Level.WARNING, "Failed to resolve name: {0}",
-                absolutePath);
-            LOGGER.log(Level.FINE, "Stack Trace: ", exp);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                // Still a WARNING but with FINE detail.
+                LOGGER.log(Level.WARNING, "Failed to resolve name: " +
+                        absolutePath, exp);
+            } else {
+                LOGGER.log(Level.WARNING, "Failed to resolve name: {0}",
+                        absolutePath);
+            }
+            return false;
         }
 
         if (file.isDirectory()) {
