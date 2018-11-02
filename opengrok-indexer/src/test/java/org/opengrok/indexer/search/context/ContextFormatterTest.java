@@ -23,13 +23,14 @@
 
 package org.opengrok.indexer.search.context;
 
-import org.apache.lucene.search.uhighlight.Passage;
-import org.apache.lucene.util.BytesRef;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 import static org.opengrok.indexer.util.CustomAssertions.assertLinesEqual;
+import org.apache.lucene.search.uhighlight.Passage;
+import org.apache.lucene.util.BytesRef;
+import org.junit.Test;
+import java.util.Collections;
 
 /**
  * Represents a container for tests of {@link ContextFormatter}.
@@ -192,5 +193,37 @@ public class ContextFormatterTest {
             "<a href=\"http://example.com/more\">[all &hellip;]</a><br/>";
         ctx = res.toString();
         assertLinesEqual("format().toString()", DOCCTX_2M, ctx);
+    }
+
+    @Test
+    public void testBoundsProblemFormatted() {
+        final String PHRASE = "efficitur vitae";
+        int ph_off = DOC.indexOf(PHRASE);
+        assertTrue(PHRASE, ph_off >= 0);
+
+        // Create a slightly-longer word of all '*'.
+        final int LF_CHAR_COUNT = 1;
+        final String STARS = String.join("", Collections.nCopies(
+                PHRASE.length() + LF_CHAR_COUNT, "*"));
+
+        Passage p = new Passage();
+        p.setStartOffset(ph_off);
+        p.setEndOffset(ph_off + STARS.length());
+        p.addMatch(ph_off, p.getEndOffset(), new BytesRef(STARS),1);
+        assertEquals("getNumMatches()", 1, p.getNumMatches());
+
+        // Test with contextCount==0
+        ContextArgs args = new ContextArgs((short)0, (short)10);
+        ContextFormatter fmt = new ContextFormatter(args);
+        fmt.setUrl("http://example.com");
+        Object res = fmt.format(new Passage[] {p}, DOC);
+        assertNotNull("format() result", res);
+
+        final String DOC_CTX_0 =
+                "<a class=\"s\" href=\"http://example.com#3\"><span class=\"l\">" +
+                        "3</span> Mauris diam nisl, tincidunt nec gravida sit" +
+                        " amet, <b>efficitur vitae</b></a><br/>\n";
+        String ctx = res.toString();
+        assertLinesEqual("format().toString()", DOC_CTX_0, ctx);
     }
 }
