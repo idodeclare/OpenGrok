@@ -228,6 +228,7 @@ public final class RuntimeEnvironment {
             configLock.readLock().lock();
             return getFieldValue(configuration, fieldName);
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, e.getMessage());
             return null;
         } finally {
             configLock.readLock().unlock();
@@ -245,6 +246,7 @@ public final class RuntimeEnvironment {
             configLock.readLock().lock();
             return getFieldValue(configuration, fieldName);
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, e.getMessage());
             throw new IOException("getter", e);
         } finally {
             configLock.readLock().unlock();
