@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * Use is subject to license terms.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -47,6 +47,7 @@ public abstract class AbstractAnalyzer extends Analyzer {
     protected Ctags ctags;
     protected boolean scopesEnabled;
     protected boolean foldingEnabled;
+    protected boolean allNonWhitespace;
 
     public AbstractAnalyzer(ReuseStrategy reuseStrategy) {
         super(reuseStrategy);
@@ -78,6 +79,14 @@ public abstract class AbstractAnalyzer extends Analyzer {
 
     public void setFoldingEnabled(boolean foldingEnabled) {
         this.foldingEnabled = supportsScopes() && foldingEnabled;
+    }
+
+    /**
+     * Sets a value indicating if all non-whitespace should be indexed for
+     * FULL search. Default is false.
+     */
+    public void setAllNonWhitespace(boolean value) {
+        this.allNonWhitespace = value;
     }
 
     protected abstract boolean supportsScopes();

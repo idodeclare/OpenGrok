@@ -45,6 +45,16 @@ import org.opengrok.indexer.analysis.JFlexSymbolMatcher;
   boolean nameFound;
 
   /**
+   * Gets a value indicating if the matcher is by-default case-insensitive --
+   * i.e. whether tokens should be lower-cased when published in a stream.
+   * @return {@code true}
+   */
+  @Override
+  public boolean isDefaultCaseInsensitive() {
+      return true;
+  }
+
+  /**
    * Resets the uuencode tracked state after
    * {@link JFlexSymbolMatcher#reset()}.
    */
@@ -73,12 +83,12 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
     nameFound = false;
     yybegin(BEGIN);
     yypushback(1);
-    onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+    onSymbolMatched(yytext(), yychar);
     return yystate();
   }
 
   {Identifier}|{Number}|{Printable} {
-    onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+    onSymbolMatched(yytext(), yychar);
     return yystate();
   }
 
@@ -105,7 +115,7 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
     else
       yybegin(YYINITIAL);
     yypushback(1);
-    onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+    onSymbolMatched(yytext(), yychar);
     return yystate();
   }
   [^] { yybegin(YYINITIAL); yypushback(1); }
@@ -115,7 +125,7 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
   " " { if (modeFound) yybegin(NAME); }
   {Identifier}|{Number}|{Printable} {
     modeFound = true;
-    onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+    onSymbolMatched(yytext(), yychar);
     return yystate();
   }
   [^] { yybegin(YYINITIAL); yypushback(1); }
@@ -130,7 +140,7 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
   }
   {Identifier}|{Number}|{Printable} {
     nameFound = true;
-    onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+    onSymbolMatched(yytext(), yychar);
     return yystate();
   }
   [^\n] { yybegin(YYINITIAL); yypushback(1); }
@@ -142,7 +152,7 @@ Printable = [\@\$\%\^\&\-+=\?\.\:]
     String t = yytext();
     if (t.equals("end") && !b64) {
       yybegin(YYINITIAL);
-      onSymbolMatched(yytext().toLowerCase(Locale.ROOT), yychar);
+      onSymbolMatched(yytext(), yychar);
       return yystate();
     } else if (t.equals("====") && b64)
       yybegin(YYINITIAL);
