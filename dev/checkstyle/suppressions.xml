@@ -32,7 +32,7 @@ Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
         |Summary\.java|OGKUnifiedHighlighter\.java|ResponseHeaderFilter\.java|BoundedBlockingObjectPool\.java|
         |ObjectPool\.java|ObjectValidator\.java|ObjectFactory\.java|AbstractObjectPool\.java|
         |BlockingObjectPool\.java|OGKTextVecField\.java|OGKTextField\.java|
-        |LazilyInstantiate\.java" />
+        |LazilyInstantiate\.java|TextTrieMap\.java" />
 
     <suppress checks="ParameterNumber" files="CtagsReader\.java|Definitions\.java|PerlLexHelper\.java|
         |JFlexXrefUtils\.java|RubyLexHelper\.java|FileAnalyzerFactory\.java|SearchController\.java|
