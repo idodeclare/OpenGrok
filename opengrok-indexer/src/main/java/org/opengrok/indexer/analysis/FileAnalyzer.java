@@ -76,7 +76,7 @@ public class FileAnalyzer extends AbstractAnalyzer {
         return ((long)rootVersionNo << 32) | getSpecializedVersionNo();
     }
 
-    @Override
+
     protected boolean supportsScopes() {
         return false;
     }
@@ -214,8 +214,13 @@ public class FileAnalyzer extends AbstractAnalyzer {
     }
 
     private JFlexTokenizer createPlainFullTokenizer() {
-        return new JFlexTokenizer(new PlainFullTokenizer(
+        JFlexTokenizer tokenizer = new JFlexTokenizer(new PlainFullTokenizer(
                 AbstractAnalyzer.DUMMY_READER));
+        tokenizer.setTokenizerModeSupplier(() -> {
+            return allNonWhitespace ? TokenizerMode.SYMBOLS_AND_NON_WHITESPACE :
+                    TokenizerMode.SYMBOLS_ONLY;
+        });
+        return tokenizer;
     }
 
     @Override

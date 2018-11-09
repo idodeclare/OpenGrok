@@ -186,6 +186,7 @@ public class Context {
          */
         PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
         AbstractAnalyzer anz = fac.getAnalyzer();
+        anz.setAllNonWhitespace(env.isAllNonWhitespace());
 
         String path = doc.get(QueryBuilder.PATH);
         String pathE = Util.URIEncodePath(path);
