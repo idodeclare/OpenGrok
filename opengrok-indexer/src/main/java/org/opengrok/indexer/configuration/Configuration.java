@@ -107,6 +107,7 @@ public final class Configuration {
      * Path to {@code ctags} binary.
      */
     private String ctags;
+    private boolean webappCtags;
 
     /**
      * A defined value to specify the mandoc binary or else null so that mandoc
@@ -189,7 +190,25 @@ public final class Configuration {
     private boolean compressXref;
     private boolean indexVersionedFilesOnly;
     private int indexingParallelism;
+    /**
+     * @deprecated This is kept around so not to break object de-serialization
+     * but it is ignored and cannot be truly set. This should mean that the
+     * configuration is written leaving out this deprecated property; so after
+     * some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
     private int historyParallelism;
+    /**
+     * @deprecated This is kept around so not to break object de-serialization
+     * but it is ignored and cannot be truly set. This should mean that the
+     * configuration is written leaving out this deprecated property; so after
+     * some time it can be retired with the expectation that zero or a
+     * miniscule number of production configurations still have this deprecated
+     * property.
+     */
+    @Deprecated
     private int historyRenamedParallelism;
     private boolean tagsEnabled;
     private int hitsPerPage;
@@ -475,6 +494,7 @@ public final class Configuration {
         // unconditionally later.
         setUserPageSuffix("");
         setWebappLAF("default");
+        // webappCtags is default(boolean)
     }
 
     public String getRepoCmd(String clazzName) {
@@ -983,6 +1003,20 @@ public final class Configuration {
         this.webappLAF = webappLAF;
     }
 
+    /**
+     * Gets a value indicating if the web app should run ctags as necessary.
+     */
+    public boolean isWebappCtags() {
+        return webappCtags;
+    }
+
+    /**
+     * Sets a value indicating if the web app should run ctags as necessary.
+     */
+    public void setWebappCtags(boolean value) {
+        this.webappCtags = value;
+    }
+
     public RemoteSCM getRemoteScmSupported() {
         return remoteScmSupported;
     }
@@ -1035,20 +1069,24 @@ public final class Configuration {
         this.indexingParallelism = value > 0 ? value : 0;
     }
 
+    @Deprecated
     public int getHistoryParallelism() {
         return historyParallelism;
     }
 
+    @Deprecated
     public void setHistoryParallelism(int value) {
-        this.historyParallelism = value > 0 ? value : 0;
+        // ignored
     }
 
+    @Deprecated
     public int getHistoryRenamedParallelism() {
         return historyRenamedParallelism;
     }
 
+    @Deprecated
     public void setHistoryRenamedParallelism(int value) {
-        this.historyRenamedParallelism = value > 0 ? value : 0;
+        // ignored
     }
 
     public boolean isTagsEnabled() {
