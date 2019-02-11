@@ -18,7 +18,7 @@
  */
 
  /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.document;
 
@@ -28,7 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
-import org.opengrok.indexer.analysis.FileAnalyzerFactory.Matcher;
+import org.opengrok.indexer.analysis.Matcher;
 import org.opengrok.indexer.util.IOUtils;
 
 /**

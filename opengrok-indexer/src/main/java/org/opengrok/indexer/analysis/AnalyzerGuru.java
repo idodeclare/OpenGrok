@@ -57,7 +57,6 @@ import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.util.BytesRef;
-import org.opengrok.indexer.analysis.FileAnalyzerFactory.Matcher;
 import org.opengrok.indexer.analysis.ada.AdaAnalyzerFactory;
 import org.opengrok.indexer.analysis.archive.BZip2AnalyzerFactory;
 import org.opengrok.indexer.analysis.archive.GZIPAnalyzerFactory;
@@ -141,7 +140,7 @@ public class AnalyzerGuru {
 
     /**
      * The number of bytes read from the start of the file for magic number or
-     * string analysis. Some {@link FileAnalyzerFactory.Matcher}
+     * string analysis. Some {@link Matcher}
      * implementations may read more data subsequently, but this field defines
      * the number of bytes initially read for general matching.
      */
@@ -209,7 +208,7 @@ public class AnalyzerGuru {
      * List of matcher objects which can be used to determine which analyzer
      * factory to use.
      */
-    private static final List<FileAnalyzerFactory.Matcher> matchers = new ArrayList<>();
+    private static final List<Matcher> matchers = new ArrayList<>();
 
     /**
      * List of all registered {@code FileAnalyzerFactory} instances.
@@ -948,7 +947,7 @@ public class AnalyzerGuru {
         AnalyzerFactory fac;
 
         // First, do precise-magic Matcher matching
-        for (FileAnalyzerFactory.Matcher matcher : matchers) {
+        for (Matcher matcher : matchers) {
             if (matcher.getIsPreciseMagic()) {
                 fac = matcher.isMagic(content, in);
                 if (fac != null) {
@@ -970,7 +969,7 @@ public class AnalyzerGuru {
         }
 
         // Last, do imprecise-magic Matcher matching
-        for (FileAnalyzerFactory.Matcher matcher : matchers) {
+        for (Matcher matcher : matchers) {
             if (!matcher.getIsPreciseMagic()) {
                 fac = matcher.isMagic(content, in);
                 if (fac != null) {

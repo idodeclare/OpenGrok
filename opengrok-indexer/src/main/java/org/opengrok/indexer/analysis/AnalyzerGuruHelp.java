@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis;
@@ -115,7 +115,7 @@ public class AnalyzerGuruHelp {
         return b.toString();
     }
 
-    private static String reportable(FileAnalyzerFactory.Matcher m) {
+    private static String reportable(Matcher m) {
         final String MATCHER_FMT = "%-11s %-1s %s\n";
         StringBuilder b = new StringBuilder();
         String[] lines = splitLines(m.description(), 66);

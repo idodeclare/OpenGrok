@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.archive;
@@ -27,16 +27,16 @@ package org.opengrok.indexer.analysis.archive;
 import java.io.IOException;
 import java.io.InputStream;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
-import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Matcher;
 
 /**
  * Represents an abstract base class for a ZIP archive
- * {@link FileAnalyzerFactory.Matcher} that can strictly check an "Extra field"
+ * {@link Matcher} that can strictly check an "Extra field"
  * 16-bit ID code.
  * <p>
  * (Derived from /usr/src/cmd/file/file.c in OpenSolaris.)
  */
-public abstract class ZipMatcherBase implements FileAnalyzerFactory.Matcher {
+public abstract class ZipMatcherBase implements Matcher {
 
     private static final byte[] MAGIC = {'P', 'K', 3, 4};
     private static final int LOCHDRSIZ = 30;

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -55,7 +55,7 @@ public abstract class AnalyzerFactory {
      * List of matchers which delegate files to different types of
      * analyzers.
      */
-    protected final List<FileAnalyzerFactory.Matcher> matchers;
+    protected final List<Matcher> matchers;
     /**
      * The content type for the files recognized by this kind of analyzer.
      */
@@ -65,7 +65,7 @@ public abstract class AnalyzerFactory {
      */
     protected AbstractAnalyzer.Genre genre;
 
-    public AnalyzerFactory(FileAnalyzerFactory.Matcher matcher, String contentType) {
+    public AnalyzerFactory(Matcher matcher, String contentType) {
         cachedAnalyzer = new ThreadLocal<>();
         if (matcher == null) {
             this.matchers = Collections.emptyList();
@@ -123,7 +123,7 @@ public abstract class AnalyzerFactory {
      *
      * @return list of matchers
      */
-    final List<FileAnalyzerFactory.Matcher> getMatchers() {
+    final List<Matcher> getMatchers() {
         return matchers;
     }
 

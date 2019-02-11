@@ -19,12 +19,10 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +71,7 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
     }
 
     /**
-     * Helper method which wraps an array in a list.
+     * Helper method that wraps an array in a list.
      *
      * @param a the array to wrap ({@code null} means an empty array)
      * @return a list which wraps the array
@@ -91,12 +89,12 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
     }
 
     /**
-     * Get an analyzer. If the same thread calls this method multiple times on
+     * Gets an analyzer. If the same thread calls this method multiple times on
      * the same factory object, the exact same analyzer object will be returned
      * each time. Subclasses should not override this method, but instead
      * override the {@code newAnalyzer()} method.
      *
-     * @return a {@code FileAnalyzer} instance
+     * @return a defined instance
      * @see #newAnalyzer()
      */
     @Override
@@ -119,56 +117,10 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
 
     /**
      * Create a new analyzer.
-     * @return an analyzer
+     * @return a defined instance
      */
     @Override
     protected AbstractAnalyzer newAnalyzer() {
         return new FileAnalyzer(this);
-    }
-
-    /**
-     * Interface for matchers which map file contents to analyzer factories.
-     */
-    public interface Matcher {
-
-        /**
-         * Get a value indicating if the magic is byte-precise.
-         * @return true if precise
-         */
-        default boolean getIsPreciseMagic() { return false; }
-
-        /**
-         * Gets a default, reportable description of the matcher.
-         * <p>
-         * Subclasses can override to report a more informative description,
-         * with line length up to 50 characters before starting a new line with
-         * {@code \n}.
-         * @return a defined, reportable String
-         */
-        default String description() {
-            return getIsPreciseMagic() ? "precise matcher" :
-                "heuristic matcher";
-        }
-
-        /**
-         * Try to match the file contents with an analyzer factory.
-         * If the method reads from the input stream, it must reset the
-         * stream before returning.
-         *
-         * @param contents the first few bytes of a file
-         * @param in the input stream from which the full file can be read
-         * @return an analyzer factory if the contents match, or {@code null}
-         * if they don't match any factory known by this matcher
-         * @throws java.io.IOException in case of any read error
-         */
-        AnalyzerFactory isMagic(byte[] contents, InputStream in)
-                throws IOException;
-
-        /**
-         * Gets the instance which the matcher produces if
-         * {@link #isMagic(byte[], java.io.InputStream)} matches a file.
-         * @return a defined instance
-         */
-        AnalyzerFactory forFactory();
     }
 }
