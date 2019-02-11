@@ -18,13 +18,14 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.eiffel;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 /**
  * Represents a factory to create {@link EiffelAnalyzer} instances.
@@ -40,7 +41,7 @@ public class EiffelAnalyzerFactory extends FileAnalyzerFactory {
      * {@link EiffelAnalyzer}.
      */
     public EiffelAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", AbstractAnalyzer.Genre.PLAIN,
+        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN,
             NAME);
     }
 

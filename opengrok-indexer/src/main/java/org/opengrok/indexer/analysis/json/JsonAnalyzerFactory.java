@@ -19,13 +19,14 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.json;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 public class JsonAnalyzerFactory extends FileAnalyzerFactory {
     // TODO add schema support
@@ -36,7 +37,7 @@ public class JsonAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public JsonAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

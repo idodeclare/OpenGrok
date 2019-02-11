@@ -49,8 +49,8 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
-import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.Definitions;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Scopes;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
@@ -228,17 +228,17 @@ public final class Results {
                 out.write("</a>");
                 out.write("</td><td><code class=\"con\">");
                 if (sh.sourceContext != null) {
-                    AbstractAnalyzer.Genre genre = AbstractAnalyzer.Genre.get(doc.get("t"));
-                    if (AbstractAnalyzer.Genre.XREFABLE == genre && sh.summarizer != null) {
+                    Genre genre = Genre.get(doc.get("t"));
+                    if (Genre.XREFABLE == genre && sh.summarizer != null) {
                         String xtags = getTags(xrefDataDir, rpath, sh.compressed);
                         // FIXME use Highlighter from lucene contrib here,
                         // instead of summarizer, we'd also get rid of
                         // apache lucene in whole source ...
                         out.write(sh.summarizer.getSummary(xtags).toString());
-                    } else if (AbstractAnalyzer.Genre.HTML == genre && sh.summarizer != null) {
+                    } else if (Genre.HTML == genre && sh.summarizer != null) {
                         String htags = getTags(sh.sourceRoot, rpath, false);
                         out.write(sh.summarizer.getSummary(htags).toString());
-                    } else if (genre == AbstractAnalyzer.Genre.PLAIN) {
+                    } else if (genre == Genre.PLAIN) {
                         printPlain(fargs, doc, docId, rpath);
                     }
                 }

@@ -29,6 +29,7 @@ import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 
@@ -55,7 +56,7 @@ public class MandocAnalyzerFactory extends FileAnalyzerFactory {
         new MandocAnalyzerFactory();
 
     protected MandocAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", AbstractAnalyzer.Genre.PLAIN, NAME);
+        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, NAME);
     }
 
     @Override

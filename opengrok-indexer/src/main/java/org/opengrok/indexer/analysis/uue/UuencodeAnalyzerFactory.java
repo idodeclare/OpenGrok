@@ -20,12 +20,14 @@
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2012, 2013 Constantine A. Murenin &lt;C++@Cns.SU&gt;
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.uue;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 /**
  * @author Constantine A. Murenin &lt;http://cnst.su/&gt;
@@ -52,7 +54,7 @@ public class UuencodeAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public UuencodeAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

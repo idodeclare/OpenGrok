@@ -20,7 +20,7 @@ CDDL HEADER END
 
 Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
 Portions Copyright 2011 Jens Elkner.
-Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
 
 --%>
 <%@page errorPage="error.jsp" import="
@@ -40,7 +40,7 @@ org.opengrok.indexer.analysis.AnalyzerGuru,
 org.opengrok.indexer.analysis.Ctags,
 org.opengrok.indexer.analysis.Definitions,
 org.opengrok.indexer.analysis.AbstractAnalyzer,
-org.opengrok.indexer.analysis.AbstractAnalyzer.Genre,
+org.opengrok.indexer.analysis.Genre,
 org.opengrok.indexer.analysis.AnalyzerFactory,
 org.opengrok.indexer.history.Annotation,
 org.opengrok.indexer.index.IndexDatabase,
@@ -187,17 +187,17 @@ document.pageReady.push(function() { pageReadyList();});
                     new BufferedInputStream(new FileInputStream(resourceFile));
                 try {
                     AnalyzerFactory a = AnalyzerGuru.find(basename);
-                    AbstractAnalyzer.Genre g = AnalyzerGuru.getGenre(a);
+                    Genre g = AnalyzerGuru.getGenre(a);
                     if (g == null) {
                         a = AnalyzerGuru.find(bin);
                         g = AnalyzerGuru.getGenre(a);
                     }
-                    if (g == AbstractAnalyzer.Genre.IMAGE) {
+                    if (g == Genre.IMAGE) {
 %>
 <div id="src">
     <img src="<%= rawPath %>"/>
 </div><%
-                    } else if ( g == AbstractAnalyzer.Genre.HTML) {
+                    } else if ( g == Genre.HTML) {
                         /**
                          * For backward compatibility, read the OpenGrok-produced
                          * document using the system default charset.
@@ -205,7 +205,7 @@ document.pageReady.push(function() { pageReadyList();});
                         r = new InputStreamReader(bin);
                         // dumpXref() is also useful here for translating links.
                         Util.dumpXref(out, r, request.getContextPath());
-                    } else if (g == AbstractAnalyzer.Genre.PLAIN) {
+                    } else if (g == Genre.PLAIN) {
 %>
 <div id="src" data-navigate-window-enabled="<%= navigateWindowEnabled %>">
     <pre><%
@@ -281,7 +281,7 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                             a = AnalyzerGuru.find(in, basename);
                             g = AnalyzerGuru.getGenre(a);
                         }
-                        if (g == AbstractAnalyzer.Genre.DATA || g == AbstractAnalyzer.Genre.XREFABLE || g == null) {
+                        if (g == Genre.DATA || g == Genre.XREFABLE || g == null) {
     %>
     <div id="src">
     Binary file [Click <a href="<%= rawPath %>?r=<%= Util.URIEncode(rev) %>">here</a> to download]
@@ -290,7 +290,7 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
     %>
     <div id="src">
         <pre><%
-                            if (g == AbstractAnalyzer.Genre.PLAIN) {
+                            if (g == Genre.PLAIN) {
                                 Definitions defs = null;
                                 ObjectPool<Ctags> ctagsPool = cfg.getEnv().
                                         getIndexerParallelizer().getCtagsPool();
@@ -329,11 +329,11 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
                                         request.getContextPath(),
                                         a, r, out,
                                         defs, annotation, project);
-                            } else if (g == AbstractAnalyzer.Genre.IMAGE) {
+                            } else if (g == Genre.IMAGE) {
         %></pre>
         <img src="<%= rawPath %>?r=<%= Util.URIEncode(rev) %>"/>
         <pre><%
-                            } else if (g == AbstractAnalyzer.Genre.HTML) {
+                            } else if (g == Genre.HTML) {
                                 /**
                                  * For backward compatibility, read the
                                  * OpenGrok-produced document using the system
@@ -374,7 +374,7 @@ Click <a href="<%= rawPath %>">download <%= basename %></a><%
     <p class="error"><%= error %></p><%
                     }
                 }
-            } else if (g == AbstractAnalyzer.Genre.IMAGE) {
+            } else if (g == Genre.IMAGE) {
     %>
     <div id="src">
         <img src="<%= rawPath %>?r=<%= Util.URIEncode(rev) %>"/>

@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
  * Portions copyright (c) 2011 Jens Elkner.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.web;
 
@@ -58,9 +58,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.HttpHeaders;
 import org.opengrok.indexer.Info;
-import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.ExpandTabsReader;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.authorization.AuthorizationFramework;
 import org.opengrok.indexer.configuration.Group;
 import org.opengrok.indexer.configuration.Project;
@@ -130,8 +130,8 @@ public final class PageConfig {
     private Boolean annotate;
     private Annotation annotation;
     private Boolean hasHistory;
-    private static final EnumSet<AbstractAnalyzer.Genre> txtGenres
-            = EnumSet.of(AbstractAnalyzer.Genre.DATA, AbstractAnalyzer.Genre.PLAIN, AbstractAnalyzer.Genre.HTML);
+    private static final EnumSet<Genre> txtGenres
+            = EnumSet.of(Genre.DATA, Genre.PLAIN, Genre.HTML);
     private SortedSet<String> requestedProjects;
     private String requestedProjectsString;
     private List<String> dirFileList;
@@ -278,7 +278,7 @@ public final class PageConfig {
                     }
                 }
 
-                if (data.genre != AbstractAnalyzer.Genre.PLAIN && data.genre != AbstractAnalyzer.Genre.HTML) {
+                if (data.genre != Genre.PLAIN && data.genre != Genre.HTML) {
                     return data;
                 }
 

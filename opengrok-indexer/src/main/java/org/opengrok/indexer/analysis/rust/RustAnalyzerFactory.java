@@ -20,12 +20,14 @@
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright (c) 2016 Nikolay Denev.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.rust;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 /**
  *
@@ -42,7 +44,7 @@ public class RustAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public RustAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

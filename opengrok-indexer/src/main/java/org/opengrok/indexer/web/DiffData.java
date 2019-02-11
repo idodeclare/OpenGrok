@@ -20,10 +20,11 @@
 /*
  * Copyright 2009 - 2011 Jens Elkner.
  * Copyright (c) 2009, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.web;
 
-import org.opengrok.indexer.analysis.AbstractAnalyzer;
+import org.opengrok.indexer.analysis.Genre;
 import org.suigeneris.jrcs.diff.Revision;
 
 /**
@@ -41,7 +42,7 @@ public class DiffData {
     /** the HTML escaped filename used */
     public String filename;
     /** the genre of the requested diff */
-    public AbstractAnalyzer.Genre genre;
+    public Genre genre;
     /** the original and new revision container */
     public Revision revision;
     /** the URI encoded parameter values of the request. {@code param[0]}

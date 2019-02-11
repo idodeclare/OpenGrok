@@ -578,8 +578,8 @@ public class AnalyzerGuru {
         }
 
         if (fa != null) {
-            AbstractAnalyzer.Genre g = fa.getGenre();
-            if (g == AbstractAnalyzer.Genre.PLAIN || g == AbstractAnalyzer.Genre.XREFABLE || g == AbstractAnalyzer.Genre.HTML) {
+            Genre g = fa.getGenre();
+            if (g == Genre.PLAIN || g == Genre.XREFABLE || g == Genre.HTML) {
                 doc.add(new Field(QueryBuilder.T, g.typeName(), string_ft_stored_nanalyzed_norms));
             }
             fa.analyze(doc, StreamSource.fromFile(file), xrefOut);
@@ -625,7 +625,7 @@ public class AnalyzerGuru {
             Annotation annotation, Project project)
             throws IOException {
         Reader input = in;
-        if (factory.getGenre() == AbstractAnalyzer.Genre.PLAIN) {
+        if (factory.getGenre() == Genre.PLAIN) {
             // This is some kind of text file, so we need to expand tabs to
             // spaces to match the project's tab settings.
             input = ExpandTabsReader.wrap(in, project);
@@ -678,7 +678,7 @@ public class AnalyzerGuru {
      * @param file The file to inspect
      * @return The genre suitable to decide how to display the file
      */
-    public static AbstractAnalyzer.Genre getGenre(String file) {
+    public static Genre getGenre(String file) {
         return getGenre(find(file));
     }
 
@@ -689,7 +689,7 @@ public class AnalyzerGuru {
      * @return The genre suitable to decide how to display the file
      * @throws java.io.IOException If an error occurs while getting the content
      */
-    public static AbstractAnalyzer.Genre getGenre(InputStream in) throws IOException {
+    public static Genre getGenre(InputStream in) throws IOException {
         return getGenre(find(in));
     }
 
@@ -699,7 +699,7 @@ public class AnalyzerGuru {
      * @param factory the analyzer factory to get the genre for
      * @return The genre of this class (null if not found)
      */
-    public static AbstractAnalyzer.Genre getGenre(AnalyzerFactory factory) {
+    public static Genre getGenre(AnalyzerFactory factory) {
         if (factory != null) {
             return factory.getGenre();
         }

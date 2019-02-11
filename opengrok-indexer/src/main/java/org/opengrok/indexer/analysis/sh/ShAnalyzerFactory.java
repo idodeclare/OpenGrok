@@ -19,12 +19,13 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.sh;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 public class ShAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -60,7 +61,7 @@ public class ShAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ShAnalyzerFactory() {
-        super(NAMES, PREFIXES, SUFFIXES, MAGICS, null, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(NAMES, PREFIXES, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

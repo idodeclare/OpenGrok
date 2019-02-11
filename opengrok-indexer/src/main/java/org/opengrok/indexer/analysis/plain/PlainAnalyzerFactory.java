@@ -29,6 +29,7 @@ import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
 import org.opengrok.indexer.util.IOUtils;
 
@@ -99,7 +100,7 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
             new PlainAnalyzerFactory();
 
     private PlainAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

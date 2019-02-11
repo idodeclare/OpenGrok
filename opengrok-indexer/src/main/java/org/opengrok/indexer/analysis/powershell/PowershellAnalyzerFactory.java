@@ -19,11 +19,13 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.powershell;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 public class PowershellAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,7 +37,7 @@ public class PowershellAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public PowershellAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

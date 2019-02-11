@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.data;
@@ -26,6 +27,7 @@ package org.opengrok.indexer.analysis.data;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 /**
  * Factory for analyzer that tells that image files can be displayed.
@@ -39,7 +41,7 @@ public class ImageAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ImageAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, null, AbstractAnalyzer.Genre.IMAGE, name);
+        super(null, null, SUFFIXES, null, null, null, Genre.IMAGE, name);
     }
 
     @Override

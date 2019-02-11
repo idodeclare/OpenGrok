@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis.executables;
 
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 
 public class ELFAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -35,7 +37,7 @@ public class ELFAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ELFAnalyzerFactory() {
-        super(null, null, null, MAGICS, null, null, AbstractAnalyzer.Genre.XREFABLE, name);
+        super(null, null, null, MAGICS, null, null, Genre.XREFABLE, name);
     }
 
     @Override

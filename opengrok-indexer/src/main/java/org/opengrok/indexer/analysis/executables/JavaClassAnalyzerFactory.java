@@ -28,6 +28,7 @@ import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
 
 /**
@@ -92,7 +93,7 @@ public class JavaClassAnalyzerFactory extends FileAnalyzerFactory {
         new JavaClassAnalyzerFactory();
 
     private JavaClassAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, MATCHER, null, AbstractAnalyzer.Genre.XREFABLE, name);
+        super(null, null, SUFFIXES, null, MATCHER, null, Genre.XREFABLE, name);
     }
 
     /**

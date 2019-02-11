@@ -60,13 +60,13 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
     protected FileAnalyzerFactory(
             String[] names, String[] prefixes, String[] suffixes,
             String[] magics, Matcher matcher, String contentType,
-            AbstractAnalyzer.Genre genre, String name) {
+            Genre genre, String name) {
         super(matcher, contentType);
         this.names = asList(names);
         this.prefixes = asList(prefixes);
         this.suffixes = asList(suffixes);
         this.magics = asList(magics);
-        this.genre = (genre == null) ? AbstractAnalyzer.Genre.DATA : genre;
+        this.genre = (genre == null) ? Genre.DATA : genre;
         this.name = name;
     }
 

@@ -23,7 +23,7 @@
 
 package org.opengrok.indexer.analysis.verilog;
 
-import org.opengrok.indexer.analysis.AbstractAnalyzer.Genre;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 

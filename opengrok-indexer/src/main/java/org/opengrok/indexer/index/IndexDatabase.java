@@ -90,6 +90,7 @@ import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.Ctags;
 import org.opengrok.indexer.analysis.Definitions;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.HistoryException;
@@ -1514,8 +1515,8 @@ public class IndexDatabase {
     }
 
     private boolean isXrefWriter(AbstractAnalyzer fa) {
-        AbstractAnalyzer.Genre g = fa.getFactory().getGenre();
-        return (g == AbstractAnalyzer.Genre.PLAIN || g == AbstractAnalyzer.Genre.XREFABLE);
+        Genre g = fa.getFactory().getGenre();
+        return (g == Genre.PLAIN || g == Genre.XREFABLE);
     }
 
     /**

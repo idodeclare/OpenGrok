@@ -19,28 +19,21 @@ information: Portions Copyright [yyyy] [name of copyright owner]
 CDDL HEADER END
 
 Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
-
 Portions Copyright 2011 Jens Elkner.
---%><%@page errorPage="error.jsp" import="
+Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
+
+--%>
+<%@page errorPage="error.jsp" import="
 java.io.ByteArrayInputStream,
 java.io.OutputStream,
-java.io.BufferedReader,
-java.io.FileNotFoundException,
 java.io.InputStream,
-java.io.InputStreamReader,
-java.io.UnsupportedEncodingException,
-java.net.URLDecoder,
-java.util.ArrayList,
 
 org.suigeneris.jrcs.diff.delta.Chunk,
 org.suigeneris.jrcs.diff.delta.Delta,
-org.suigeneris.jrcs.diff.Diff,
-org.suigeneris.jrcs.diff.Revision,
-org.opengrok.indexer.analysis.AnalyzerGuru,
+org.opengrok.indexer.analysis.Genre,
 org.opengrok.indexer.web.DiffData,
 org.opengrok.indexer.web.DiffType"
 %>
-<%@ page import="org.opengrok.indexer.analysis.AbstractAnalyzer" %>
 <%!
 private String getAnnotateRevision(DiffData data) {
     if (data.type == DiffType.OLD || data.type == DiffType.NEW) {
@@ -109,7 +102,7 @@ include file="mast.jsp"
     <h3 class="error">Error:</h3>
     <p><%= data.errorMsg %></p>
 </div><%
-    } else if (data.genre == AbstractAnalyzer.Genre.IMAGE) {
+    } else if (data.genre == Genre.IMAGE) {
 
         String link = request.getContextPath() + Prefix.DOWNLOAD_P
             + Util.htmlize(cfg.getPath());
@@ -129,7 +122,7 @@ include file="mast.jsp"
     </table>
 </div><%
 
-    } else if (data.genre != AbstractAnalyzer.Genre.PLAIN && data.genre != AbstractAnalyzer.Genre.HTML) {
+    } else if (data.genre != Genre.PLAIN && data.genre != Genre.HTML) {
 
         String link = request.getContextPath() + Prefix.DOWNLOAD_P
             + Util.htmlize(cfg.getPath());

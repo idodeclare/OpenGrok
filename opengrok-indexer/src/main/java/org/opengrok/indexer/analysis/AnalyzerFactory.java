@@ -63,7 +63,7 @@ public abstract class AnalyzerFactory {
     /**
      * The genre for files recognized by this kind of analyzer.
      */
-    protected AbstractAnalyzer.Genre genre;
+    protected Genre genre;
 
     public AnalyzerFactory(Matcher matcher, String contentType) {
         cachedAnalyzer = new ThreadLocal<>();
@@ -141,7 +141,7 @@ public abstract class AnalyzerFactory {
      *
      * @return a genre
      */
-    public final AbstractAnalyzer.Genre getGenre() {
+    public final Genre getGenre() {
         return genre;
     }
 

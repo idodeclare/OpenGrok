@@ -29,6 +29,7 @@ import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
+import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
 
 public class TroffAnalyzerFactory extends FileAnalyzerFactory {
@@ -52,7 +53,7 @@ public class TroffAnalyzerFactory extends FileAnalyzerFactory {
         new TroffAnalyzerFactory();
 
     protected TroffAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", AbstractAnalyzer.Genre.PLAIN, name);
+        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

@@ -100,7 +100,7 @@ public abstract class AbstractAnalyzer extends Analyzer {
         return factory;
     }
 
-    public AbstractAnalyzer.Genre getGenre() {
+    public Genre getGenre() {
         return factory.getGenre();
     }
 
@@ -120,64 +120,4 @@ public abstract class AbstractAnalyzer extends Analyzer {
 
     @Override
     protected abstract TokenStream normalize(String fieldName, TokenStream in);
-
-    /**
-     * What kind of file is this?
-     */
-    public enum Genre {
-        /**
-         * xrefed - line numbered context
-         */
-        PLAIN("p"),
-        /**
-         * xrefed - summarizer context
-         */
-        XREFABLE("x"),
-        /**
-         * not xrefed - no context - used by diff/list
-         */
-        IMAGE("i"),
-        /**
-         * not xrefed - no context
-         */
-        DATA("d"),
-        /**
-         * not xrefed - summarizer context from original file
-         */
-        HTML("h");
-        private final String typeName;
-
-        Genre(String typename) {
-            this.typeName = typename;
-        }
-
-        /**
-         * Get the type name value used to tag lucene documents.
-         *
-         * @return a none-null string.
-         */
-        public String typeName() {
-            return typeName;
-        }
-
-        /**
-         * Get the Genre for the given type name.
-         *
-         * @param typeName name to check
-         * @return {@code null} if it doesn't match any genre, the genre
-         * otherwise.
-         * @see #typeName()
-         */
-        public static Genre get(String typeName) {
-            if (typeName == null) {
-                return null;
-            }
-            for (Genre g : values()) {
-                if (g.typeName.equals(typeName)) {
-                    return g;
-                }
-            }
-            return null;
-        }
-    }
 }
