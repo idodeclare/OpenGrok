@@ -41,7 +41,7 @@ public class VerilogAnalyzerFactory extends FileAnalyzerFactory {
      * ".svh", ".v", and ".vh" with {@link VerilogAnalyzer}.
      */
     public VerilogAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN,
+        super(null, null, SUFFIXES, null, "text/plain", Genre.PLAIN,
                 NAME);
     }
 

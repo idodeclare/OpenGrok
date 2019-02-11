@@ -37,7 +37,7 @@ public class SwiftAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public SwiftAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

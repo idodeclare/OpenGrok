@@ -27,6 +27,10 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class AnalyzerFactory {
+
+    private static final List<Matcher> EMPTY_MATCHERS =
+            Collections.unmodifiableList(Collections.emptyList());
+
     /**
      * Cached analyzer object for the current thread (analyzer objects can be
      * expensive to allocate).
@@ -52,11 +56,6 @@ public abstract class AnalyzerFactory {
      */
     protected List<String> magics;
     /**
-     * List of matchers which delegate files to different types of
-     * analyzers.
-     */
-    protected final List<Matcher> matchers;
-    /**
      * The content type for the files recognized by this kind of analyzer.
      */
     protected final String contentType;
@@ -65,13 +64,8 @@ public abstract class AnalyzerFactory {
      */
     protected Genre genre;
 
-    public AnalyzerFactory(Matcher matcher, String contentType) {
+    protected AnalyzerFactory(String contentType) {
         cachedAnalyzer = new ThreadLocal<>();
-        if (matcher == null) {
-            this.matchers = Collections.emptyList();
-        } else {
-            this.matchers = Collections.singletonList(matcher);
-        }
         this.contentType = contentType;
     }
 
@@ -119,12 +113,12 @@ public abstract class AnalyzerFactory {
 
     /**
      * Get matchers that map file contents to analyzer factories
-     * programmatically.
+     * programmatically. Subclasses can override to return a non-empty list.
      *
-     * @return list of matchers
+     * @return an empty list
      */
-    final List<Matcher> getMatchers() {
-        return matchers;
+    public List<Matcher> getMatchers() {
+        return EMPTY_MATCHERS;
     }
 
     /**

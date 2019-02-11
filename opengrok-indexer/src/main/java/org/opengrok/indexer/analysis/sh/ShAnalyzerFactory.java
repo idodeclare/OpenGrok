@@ -61,7 +61,7 @@ public class ShAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ShAnalyzerFactory() {
-        super(NAMES, PREFIXES, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+        super(NAMES, PREFIXES, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

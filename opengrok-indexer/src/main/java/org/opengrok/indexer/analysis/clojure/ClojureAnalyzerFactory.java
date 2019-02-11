@@ -38,7 +38,7 @@ public class ClojureAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ClojureAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

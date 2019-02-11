@@ -41,7 +41,7 @@ public class ErlangAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ErlangAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

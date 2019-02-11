@@ -29,6 +29,8 @@ import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
+import java.util.Collections;
+import java.util.List;
 
 public final class ZipAnalyzerFactory extends FileAnalyzerFactory {
     
@@ -38,7 +40,9 @@ public final class ZipAnalyzerFactory extends FileAnalyzerFactory {
         "ZIP"
     };
 
-    private static final Matcher MATCHER = new ZipMatcherBase() {
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new ZipMatcherBase() {
 
         @Override
         public String description() {
@@ -47,7 +51,7 @@ public final class ZipAnalyzerFactory extends FileAnalyzerFactory {
 
         @Override
         public AnalyzerFactory forFactory() {
-            return ZipAnalyzerFactory.DEFAULT_INSTANCE;
+            return self;
         }
 
         @Override
@@ -56,13 +60,22 @@ public final class ZipAnalyzerFactory extends FileAnalyzerFactory {
         }
     };
 
-    public static final ZipAnalyzerFactory DEFAULT_INSTANCE =
-            new ZipAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    private ZipAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, MATCHER, null, Genre.XREFABLE, name);
+    public ZipAnalyzerFactory() {
+        super(null, null, SUFFIXES, null, null, Genre.XREFABLE, name);
     }
 
+    @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link ZipAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected AbstractAnalyzer newAnalyzer() {
         return new ZipAnalyzer(this);

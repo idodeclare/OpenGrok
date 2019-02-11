@@ -40,7 +40,7 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
      * Create an instance of {@code FileAnalyzerFactory}.
      */
     FileAnalyzerFactory() {
-        this(null, null, null, null, null, null, null,null);
+        this(null, null, null, null, null, null, null);
     }
 
     /**
@@ -51,7 +51,6 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
      * @param prefixes list of prefixes to recognize (possibly {@code null})
      * @param suffixes list of suffixes to recognize (possibly {@code null})
      * @param magics list of magic strings to recognize (possibly {@code null})
-     * @param matcher a matcher for this analyzer (possibly {@code null})
      * @param contentType content type for this analyzer (possibly {@code null})
      * @param genre the genre for this analyzer (if {@code null}, {@code
      * Genre.DATA} is used)
@@ -59,9 +58,9 @@ public class FileAnalyzerFactory extends AnalyzerFactory {
      */
     protected FileAnalyzerFactory(
             String[] names, String[] prefixes, String[] suffixes,
-            String[] magics, Matcher matcher, String contentType,
+            String[] magics, String contentType,
             Genre genre, String name) {
-        super(matcher, contentType);
+        super(contentType);
         this.names = asList(names);
         this.prefixes = asList(prefixes);
         this.suffixes = asList(suffixes);

@@ -39,7 +39,7 @@ public class BZip2AnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public BZip2AnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, null, null, name);
+        super(null, null, SUFFIXES, MAGICS, null, null, name);
     }
 
     @Override

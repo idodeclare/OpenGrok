@@ -24,20 +24,24 @@
 
 package org.opengrok.indexer.analysis.plain;
 
-import java.io.IOException;
-import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
 import org.opengrok.indexer.util.IOUtils;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 
 public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
 
     private static final String name = "Plain Text";
-    
-    private static final Matcher MATCHER = new Matcher() {
+
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new Matcher() {
             @Override
             public String description() {
                 return "UTF-8, UTF-16BE, or UTF-16LE Byte Order Mark is" +
@@ -49,7 +53,7 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
             public AnalyzerFactory isMagic(byte[] content, InputStream in)
                     throws IOException {
                 if (isPlainText(content)) {
-                    return DEFAULT_INSTANCE;
+                    return self;
                 } else {
                     return null;
                 }
@@ -57,7 +61,7 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
 
             @Override
             public AnalyzerFactory forFactory() {
-                return DEFAULT_INSTANCE;
+                return self;
             }
 
             /**
@@ -96,13 +100,22 @@ public final class PlainAnalyzerFactory extends FileAnalyzerFactory {
             }
         };
 
-    public static final PlainAnalyzerFactory DEFAULT_INSTANCE =
-            new PlainAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    private PlainAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, name);
+    public PlainAnalyzerFactory() {
+        super(null, null, null, null, "text/plain", Genre.PLAIN, name);
     }
 
+    @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link PlainAnalyzer}.
+     * @return a defined instance
+     */
     @Override
     protected AbstractAnalyzer newAnalyzer() {
         return new PlainAnalyzer(this);

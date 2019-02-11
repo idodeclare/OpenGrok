@@ -39,11 +39,11 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
+import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.analysis.Scopes;
 import org.opengrok.indexer.analysis.Scopes.Scope;
 import org.opengrok.indexer.analysis.TagDesc;
-import org.opengrok.indexer.analysis.plain.PlainAnalyzerFactory;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.Hit;
@@ -184,8 +184,7 @@ public class Context {
          * UnifiedHighlighter demands an analyzer "even if in some
          * circumstances it isn't used"; here it is not meant to be used.
          */
-        PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
-        AbstractAnalyzer anz = fac.getAnalyzer();
+        AbstractAnalyzer anz = AnalyzerGuru.getPlainAnalyzer();
         anz.setAllNonWhitespace(env.isAllNonWhitespace());
 
         String path = doc.get(QueryBuilder.PATH);

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis;
@@ -519,8 +519,7 @@ public class JFlexXrefTest {
         };
         Document doc = new Document();
         StringWriter out = new StringWriter();
-        JavaClassAnalyzerFactory.DEFAULT_INSTANCE.getAnalyzer().analyze(
-            doc, src, out);
+        new JavaClassAnalyzerFactory().getAnalyzer().analyze(doc, src, out);
         // Used to throw SAXParseException.
         DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new InputSource(new StringReader("<doc>" + out + "</doc>")));

@@ -24,57 +24,40 @@
 
 package org.opengrok.indexer.analysis.document;
 
-import java.io.IOException;
-import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
-import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
+import java.util.Collections;
+import java.util.List;
 
 public class TroffAnalyzerFactory extends FileAnalyzerFactory {
 
     private static final String name = "Troff";
 
-    public static final Matcher MATCHER = new Matcher() {
-        @Override
-        public AnalyzerFactory isMagic(byte[] contents, InputStream in)
-                throws IOException {
-            return getTrueMatcher().isMagic(contents, in);
-        }
+    private final FileAnalyzerFactory self = this;
 
-        @Override
-        public AnalyzerFactory forFactory() {
-            return getTrueMatcher().forFactory();
-        }
-    };
+    final DocumentMatcher MATCHER = new DocumentMatcher(
+            self, new String[] {"'\\\"", ".so", ".\\\"", ".TH"});
 
-    public static final TroffAnalyzerFactory DEFAULT_INSTANCE =
-        new TroffAnalyzerFactory();
+    private final List<Matcher> MATCHER_CONTAINER =
+            Collections.singletonList(MATCHER);
 
-    protected TroffAnalyzerFactory() {
-        super(null, null, null, null, MATCHER, "text/plain", Genre.PLAIN, name);
+    public TroffAnalyzerFactory() {
+        super(null, null, null, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override
+    public List<Matcher> getMatchers() {
+        return MATCHER_CONTAINER;
+    }
+
+    /**
+     * Creates a new instance of {@link TroffAnalyzer}.
+     * @return a defined instance
+     */
+    @Override
     protected AbstractAnalyzer newAnalyzer() {
         return new TroffAnalyzer(this);
-    }
-
-    // Because DEFAULT_INSTANCE during its initialization uses the MATCHER,
-    // while at the same time the DocumentMatcher in its initialization takes
-    // a FileAnalyzerFactory, and because we want the instances to be the same
-    // instance, then defer initialization of the DocumentMatcher using the
-    // "16.6 Lazy initialization holder class idiom," written by Brian Goetz
-    // and Tim Peierls with assistance from members of JCP JSR-166 Expert Group
-    // and released to the public domain, as explained at
-    // http://creativecommons.org/licenses/publicdomain .
-    private static class TrueMatcherHolder {
-        public static final DocumentMatcher MATCHER = new DocumentMatcher(
-            DEFAULT_INSTANCE, new String[] {"'\\\"", ".so", ".\\\"", ".TH"});
-    }
-
-    private static DocumentMatcher getTrueMatcher() {
-        return TrueMatcherHolder.MATCHER;
     }
 }

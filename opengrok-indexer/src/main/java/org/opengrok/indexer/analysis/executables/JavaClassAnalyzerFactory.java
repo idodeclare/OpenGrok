@@ -24,12 +24,14 @@
 
 package org.opengrok.indexer.analysis.executables;
 
-import java.io.InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory;
 import org.opengrok.indexer.analysis.Genre;
 import org.opengrok.indexer.analysis.Matcher;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Represents a subclass of {@link FileAnalyzerFactory} that creates
@@ -54,7 +56,9 @@ public class JavaClassAnalyzerFactory extends FileAnalyzerFactory {
     private static final int JDK1_1_MAJOR_VER = 0x2D;
     private static final int JAVA_SE_9_MAJOR_VER = 0x35;
 
-    private static final Matcher MATCHER = new Matcher() {
+    private final FileAnalyzerFactory self = this;
+
+    private final Matcher MATCHER = new Matcher() {
         @Override
         public String description() {
             return "0xCAFEBABE magic with major_version from JDK 1.1 to Java" +
@@ -78,22 +82,27 @@ public class JavaClassAnalyzerFactory extends FileAnalyzerFactory {
                 content[MAJOR_VER_LOWBYTE];
             if (majorVersion >= JDK1_1_MAJOR_VER && majorVersion <=
                 JAVA_SE_9_MAJOR_VER) {
-                return JavaClassAnalyzerFactory.DEFAULT_INSTANCE;
+                return self;
             }
             return null;
         }
 
         @Override
         public AnalyzerFactory forFactory() {
-            return JavaClassAnalyzerFactory.DEFAULT_INSTANCE;
+            return self;
         }
     };
 
-    public static final JavaClassAnalyzerFactory DEFAULT_INSTANCE =
-        new JavaClassAnalyzerFactory();
+    private final List<Matcher> JAVA_CLASS_MATCHERS =
+            Collections.singletonList(MATCHER);
 
-    private JavaClassAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, MATCHER, null, Genre.XREFABLE, name);
+    public JavaClassAnalyzerFactory() {
+        super(null, null, SUFFIXES, null, null, Genre.XREFABLE, name);
+    }
+
+    @Override
+    public List<Matcher> getMatchers() {
+        return JAVA_CLASS_MATCHERS;
     }
 
     /**

@@ -37,7 +37,7 @@ public class ELFAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public ELFAnalyzerFactory() {
-        super(null, null, null, MAGICS, null, null, Genre.XREFABLE, name);
+        super(null, null, null, MAGICS, null, Genre.XREFABLE, name);
     }
 
     @Override

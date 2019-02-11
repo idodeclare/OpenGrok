@@ -19,20 +19,18 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.search.context;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeSet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.junit.After;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertNotNull;
@@ -91,7 +89,7 @@ public class SearchAndContextFormatterTest {
         env.setHistoryEnabled(false);
         Indexer.getInstance().prepareIndexer(env, true, true,
                 false, null, null);
-        env.setDefaultProjectsFromNames(new TreeSet<String>(Collections.singletonList("/c")));
+        env.setDefaultProjectsFromNames(new TreeSet<>(Collections.singletonList("/c")));
         Indexer.getInstance().doIndexerExecution(true, null, null);
 
         configFile = File.createTempFile("configuration", ".xml");
@@ -101,7 +99,7 @@ public class SearchAndContextFormatterTest {
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
+    public static void tearDownClass() {
         repository.destroy();
         configFile.delete();
         env.setAllNonWhitespace(null);
@@ -116,7 +114,7 @@ public class SearchAndContextFormatterTest {
     }
 
     @Test
-    public void testSearch() throws IOException, InvalidTokenOffsetsException {
+    public void testSearch() throws IOException {
         SearchEngine instance = new SearchEngine();
         instance.setFreetext("embedded");
         instance.setFile("main.c");
@@ -135,7 +133,7 @@ public class SearchAndContextFormatterTest {
     }
 
     @Test
-    public void testSearch2() throws IOException, InvalidTokenOffsetsException {
+    public void testSearch2() throws IOException {
         env.setAllNonWhitespace(true);
 
         SearchEngine instance;
@@ -158,7 +156,7 @@ public class SearchAndContextFormatterTest {
     }
 
     private String[] getFirstFragments(SearchEngine instance)
-            throws IOException, InvalidTokenOffsetsException {
+            throws IOException {
 
         ContextArgs args = new ContextArgs((short)1, (short)10);
 
@@ -166,13 +164,13 @@ public class SearchAndContextFormatterTest {
          * The following `anz' should go unused, but UnifiedHighlighter demands
          * an analyzer "even if in some circumstances it isn't used."
          */
-        PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
+        PlainAnalyzerFactory fac = new PlainAnalyzerFactory();
         AbstractAnalyzer anz = fac.getAnalyzer();
 
         ContextFormatter formatter = new ContextFormatter(args);
         OGKUnifiedHighlighter uhi = new OGKUnifiedHighlighter(env,
             instance.getSearcher(), anz);
-        uhi.setBreakIterator(() -> new StrictLineBreakIterator());
+        uhi.setBreakIterator(StrictLineBreakIterator::new);
         uhi.setFormatter(formatter);
 
         ScoreDoc[] docs = instance.scoreDocs();

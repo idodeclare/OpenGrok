@@ -18,23 +18,28 @@
  */
 
 /*
- * Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.document;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
+import org.opengrok.indexer.analysis.Matcher;
 
 /**
  * Represents a container for tests of {@link DocumentMatcher} subclasses
  */
 public class DocumentMatcherTest {
+
+    private final Matcher TROFF_MATCHER = new TroffAnalyzerFactory().MATCHER;
+    private final Matcher MDOC_MATCHER = new MandocAnalyzerFactory().MATCHER;
 
     /**
      * Tests a mdoc(5)-style document.
@@ -51,13 +56,13 @@ public class DocumentMatcherTest {
         AnalyzerFactory fac;
 
         // assert that it is troff-like
-        fac = TroffAnalyzerFactory.MATCHER.isMagic(buf, res);
+        fac = TROFF_MATCHER.isMagic(buf, res);
         assertNotNull("though sync.1m is mdoc(5),", fac);
         assertSame("though sync.1m is troff-like mdoc(5)",
-            TroffAnalyzerFactory.DEFAULT_INSTANCE, fac);
+            TROFF_MATCHER.forFactory(), fac);
 
         // assert that it is not mandoc
-        fac = MandocAnalyzerFactory.MATCHER.isMagic(buf, res);
+        fac = MDOC_MATCHER.isMagic(buf, res);
         assertNull("though sync.1m is troff-like mdoc(5),", fac);
     }
 
@@ -76,17 +81,17 @@ public class DocumentMatcherTest {
         AnalyzerFactory fac;
 
         // assert that it is mandoc-like
-        fac = MandocAnalyzerFactory.MATCHER.isMagic(buf, res);
+        fac = MDOC_MATCHER.isMagic(buf, res);
         assertNotNull("though catman.1m is mandoc(5),", fac);
         assertSame("though catman.1m is mandoc(5)",
-            MandocAnalyzerFactory.DEFAULT_INSTANCE, fac);
+            MDOC_MATCHER.forFactory(), fac);
 
         // assert that it is also troff-like (though mandoc will win in the
         // AnalyzerGuru)
-        fac = TroffAnalyzerFactory.MATCHER.isMagic(buf, res);
+        fac = TROFF_MATCHER.isMagic(buf, res);
         assertNotNull("though catman.1m is mandoc(5),", fac);
         assertSame("though catman.1m is mandoc(5)",
-            TroffAnalyzerFactory.DEFAULT_INSTANCE, fac);
+            TROFF_MATCHER.forFactory(), fac);
     }
 
     /**
@@ -105,10 +110,10 @@ public class DocumentMatcherTest {
         AnalyzerFactory fac;
 
         // assert that it is mandoc-like
-        fac = MandocAnalyzerFactory.MATCHER.isMagic(buf, res);
+        fac = MDOC_MATCHER.isMagic(buf, res);
         assertNotNull("though utf16le.1m is mandoc(5),", fac);
         assertSame("though utf16le.1m is mandoc(5)",
-            MandocAnalyzerFactory.DEFAULT_INSTANCE, fac);
+            MDOC_MATCHER.forFactory(), fac);
     }
 
     private static byte[] readSignature(InputStream in) throws IOException {

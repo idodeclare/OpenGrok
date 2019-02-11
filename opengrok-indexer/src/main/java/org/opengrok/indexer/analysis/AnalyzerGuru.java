@@ -154,6 +154,12 @@ public class AnalyzerGuru {
     private static final AnalyzerFactory DEFAULT_ANALYZER_FACTORY = new FileAnalyzerFactory();
 
     /**
+     * The default {@code PlainAnalyzerFactory} instance.
+     */
+    private static final PlainAnalyzerFactory PLAIN_ANALYZER_FACTORY =
+            new PlainAnalyzerFactory();
+
+    /**
      * Map from file names to analyzer factories.
      */
     private static final Map<String, AnalyzerFactory> FILE_NAMES = new HashMap<>();
@@ -253,13 +259,13 @@ public class AnalyzerGuru {
                 new IgnorantAnalyzerFactory(),
                 new BZip2AnalyzerFactory(),
                 new XMLAnalyzerFactory(),
-                MandocAnalyzerFactory.DEFAULT_INSTANCE,
-                TroffAnalyzerFactory.DEFAULT_INSTANCE,
+                new MandocAnalyzerFactory(),
+                new TroffAnalyzerFactory(),
                 new ELFAnalyzerFactory(),
-                JavaClassAnalyzerFactory.DEFAULT_INSTANCE,
+                new JavaClassAnalyzerFactory(),
                 new ImageAnalyzerFactory(),
-                JarAnalyzerFactory.DEFAULT_INSTANCE,
-                ZipAnalyzerFactory.DEFAULT_INSTANCE,
+                new JarAnalyzerFactory(),
+                new ZipAnalyzerFactory(),
                 new TarAnalyzerFactory(),
                 new CAnalyzerFactory(),
                 new CSharpAnalyzerFactory(),
@@ -268,7 +274,7 @@ public class AnalyzerGuru {
                 new ErlangAnalyzerFactory(),
                 new ShAnalyzerFactory(),
                 new PowershellAnalyzerFactory(),
-                PlainAnalyzerFactory.DEFAULT_INSTANCE,
+                new PlainAnalyzerFactory(),
                 new UuencodeAnalyzerFactory(),
                 new GZIPAnalyzerFactory(),
                 new JavaAnalyzerFactory(),
@@ -504,6 +510,14 @@ public class AnalyzerGuru {
             return defaultAnalyzer;
         }
         return factory.getAnalyzer();
+    }
+
+    /**
+     * Gets the default {@link org.opengrok.indexer.analysis.plain.PlainAnalyzer}.
+     * @return a defined instance
+     */
+    public static AbstractAnalyzer getPlainAnalyzer() {
+        return PLAIN_ANALYZER_FACTORY.getAnalyzer();
     }
 
     /**

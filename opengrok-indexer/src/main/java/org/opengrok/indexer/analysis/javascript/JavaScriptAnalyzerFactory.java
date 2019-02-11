@@ -38,7 +38,7 @@ public class JavaScriptAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public JavaScriptAnalyzerFactory() {
-        super(null, null, SUFFIXES, null, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, null, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

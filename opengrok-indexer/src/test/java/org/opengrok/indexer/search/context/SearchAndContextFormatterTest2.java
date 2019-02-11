@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.search.context;
 
@@ -193,7 +193,7 @@ public class SearchAndContextFormatterTest2 {
     }
 
     private String[] getFirstFragments(SearchEngine instance)
-            throws IOException, InvalidTokenOffsetsException {
+            throws IOException {
 
         ContextArgs args = new ContextArgs((short)1, (short)10);
 
@@ -201,7 +201,7 @@ public class SearchAndContextFormatterTest2 {
          * The following `anz' should go unused, but UnifiedHighlighter demands
          * an analyzer "even if in some circumstances it isn't used."
          */
-        PlainAnalyzerFactory fac = PlainAnalyzerFactory.DEFAULT_INSTANCE;
+        PlainAnalyzerFactory fac = new PlainAnalyzerFactory();
         AbstractAnalyzer anz = fac.getAnalyzer();
 
         ContextFormatter formatter = new ContextFormatter(args);

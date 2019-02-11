@@ -51,7 +51,7 @@ public class PythonAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public PythonAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN, name);
     }
 
     @Override

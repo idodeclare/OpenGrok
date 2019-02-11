@@ -52,7 +52,7 @@ public class PerlAnalyzerFactory extends FileAnalyzerFactory {
     };
 
     public PerlAnalyzerFactory() {
-        super(null, null, SUFFIXES, MAGICS, null, "text/plain", Genre.PLAIN, name);
+        super(null, null, SUFFIXES, MAGICS, "text/plain", Genre.PLAIN, name);
     }
 
     @Override
