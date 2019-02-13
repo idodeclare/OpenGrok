@@ -78,6 +78,7 @@ import org.opengrok.indexer.analysis.executables.JarAnalyzerFactory;
 import org.opengrok.indexer.analysis.executables.JavaClassAnalyzerFactory;
 import org.opengrok.indexer.analysis.fortran.FortranAnalyzerFactory;
 import org.opengrok.indexer.analysis.golang.GolangAnalyzerFactory;
+import org.opengrok.indexer.analysis.groovy.GroovyAnalyzerFactory;
 import org.opengrok.indexer.analysis.haskell.HaskellAnalyzerFactory;
 import org.opengrok.indexer.analysis.java.JavaAnalyzerFactory;
 import org.opengrok.indexer.analysis.javascript.JavaScriptAnalyzerFactory;
@@ -150,7 +151,7 @@ public class AnalyzerGuru {
     private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzerGuru.class);
 
     /**
-     * The default {@code FileAnalyzerFactory} instance.
+     * The default {@link AnalyzerFactory} instance.
      */
     private static final AnalyzerFactory DEFAULT_ANALYZER_FACTORY = new FileAnalyzerFactory();
 
@@ -212,7 +213,7 @@ public class AnalyzerGuru {
     private static final List<FileAnalyzerFactory.Matcher> matchers = new ArrayList<>();
 
     /**
-     * List of all registered {@code FileAnalyzerFactory} instances.
+     * List of all registered {@link AnalyzerFactory} instances.
      */
     private static final List<AnalyzerFactory> factories = new ArrayList<>();
     
@@ -230,7 +231,7 @@ public class AnalyzerGuru {
 
     /**
      * Maps from {@link FileAnalyzer#getFileTypeName()} to
-     * {@link FileAnalyzerFactory}
+     * {@link AnalyzerFactory}
      */
     private static final Map<String, AnalyzerFactory> FILETYPE_FACTORIES =
             new HashMap<>();
@@ -295,7 +296,8 @@ public class AnalyzerGuru {
                 new AdaAnalyzerFactory(),
                 new RubyAnalyzerFactory(),
                 new EiffelAnalyzerFactory(),
-                new VerilogAnalyzerFactory()
+                new VerilogAnalyzerFactory(),
+                new GroovyAnalyzerFactory()
             };
 
             for (AnalyzerFactory analyzer : analyzers) {
@@ -325,11 +327,11 @@ public class AnalyzerGuru {
      * operation.
      * <p>
      * The static part of the version is bumped in a release when e.g. new
-     * {@link FileAnalyzerFactory} subclasses are registered or when existing
-     * {@link FileAnalyzerFactory} subclasses are revised to target more or
+     * {@link AnalyzerFactory} subclasses are registered or when existing
+     * {@link AnalyzerFactory} subclasses are revised to target more or
      * different files.
      * @return a value whose lower 32-bits are a static value
-     * 20190211_00
+     * 20190212_00
      * for the current implementation and whose higher-32 bits are non-zero if
      * {@link #addExtension(java.lang.String, AnalyzerFactory)}
      * or
@@ -337,7 +339,7 @@ public class AnalyzerGuru {
      * has been called.
      */
     public static long getVersionNo() {
-        final int ver32 = 20190211_00; // Edit comment above too!
+        final int ver32 = 20190212_00; // Edit comment above too!
         long ver = ver32;
         if (customizationHashCode != 0) {
             ver |= (long)customizationHashCode << 32;
@@ -386,7 +388,7 @@ public class AnalyzerGuru {
     }
 
     /**
-     * Register a {@code FileAnalyzerFactory} instance.
+     * Register a {@link AnalyzerFactory} instance.
      */
     private static void registerAnalyzer(AnalyzerFactory factory) {
         for (String name : factory.getFileNames()) {
@@ -708,7 +710,7 @@ public class AnalyzerGuru {
     }
 
     /**
-     * Finds a {@code FileAnalyzerFactory} for the specified
+     * Finds a {@link AnalyzerFactory} for the specified
      * {@link FileAnalyzer#getFileTypeName()}.
      * @param fileTypeName a defined instance
      * @return a defined instance or {@code null}
@@ -718,7 +720,7 @@ public class AnalyzerGuru {
     }
 
     /**
-     * Find a {@code FileAnalyzerFactory} with the specified class name. If one
+     * Find a {@link AnalyzerFactory} with the specified class name. If one
      * doesn't exist, create one and register it. Allow specification of either
      * the complete class name (which includes the package name) or the simple
      * name of the class.
@@ -727,8 +729,8 @@ public class AnalyzerGuru {
      * @return a file analyzer factory
      *
      * @throws ClassNotFoundException if there is no class with that name
-     * @throws ClassCastException if the class is not a subclass of {@code
-     * FileAnalyzerFactory}
+     * @throws ClassCastException if the class is not a subclass of {@link
+     * AnalyzerFactory}
      * @throws IllegalAccessException if the constructor cannot be accessed
      * @throws InstantiationException if the class cannot be instantiated
      * @throws NoSuchMethodException if no-argument constructor could not be found
@@ -803,14 +805,14 @@ public class AnalyzerGuru {
     }
     
     /**
-     * Find a {@code FileAnalyzerFactory} which is an instance of the specified
+     * Find a {@link AnalyzerFactory} which is an instance of the specified
      * class. If one doesn't exist, create one and register it.
      *
      * @param factoryClass the factory class
      * @return a file analyzer factory
      *
-     * @throws ClassCastException if the class is not a subclass of {@code
-     * FileAnalyzerFactory}
+     * @throws ClassCastException if the class is not a subclass of {@link
+     * AnalyzerFactory}
      * @throws IllegalAccessException if the constructor cannot be accessed
      * @throws InstantiationException if the class cannot be instantiated
      * @throws NoSuchMethodException if no-argument constructor could not be found
