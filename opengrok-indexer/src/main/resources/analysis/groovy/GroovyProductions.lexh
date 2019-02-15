@@ -22,11 +22,8 @@
  * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 
-IdentifierAnyChar = [A-Za-z_$0-9]
-CompilerDirective = \` [A-Za-z_]+
-EscapedIdentifier = \\[^\s]+
-SimpleIdentifier = [A-Za-z_] {IdentifierAnyChar}*
-SystemTaskFunctionIdentifier = "$" {IdentifierAnyChar}+
+Identifier = ({Letter} | [$_]) ({Letter} | {DIGIT} | "_")*
+Letter = [a-zA-Z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF\u0100-\uFFFE]
 
 Number = {Sign}? ({Integer} | {Real})
 Integer = ({Decimal_integer} | {Hexadecimal} | {Binary} | {Octal})
@@ -37,9 +34,6 @@ Binary = {Size}? {BinaryBase} {BINDIG} ("_" | {BINDIG})*
 Octal = {Size}? {OctalBase} {OCTDIG} ("_" | {OCTDIG})*
 Real = ({FixedPointNumber} |
         {UnsignedNumber} ("." {UnsignedNumber})? [Ee] {Sign}? {UnsignedNumber})
-UnbasedUnsized = \' [01XxZz]
-Time = ({UnsignedNumber} | {FixedPointNumber})
-        ("s" | "fs" | "ms" | "ns" | "ps" | "us")
 UnsignedNumber = {DIGIT} ("_" | {DIGIT})*
 NzUnsignedNumber = [1-9] ("_" | {DIGIT})*
 FixedPointNumber = {UnsignedNumber} "." {UnsignedNumber}
@@ -55,7 +49,10 @@ OCTDIG = [0-7XxZz\?]
 Size = {NzUnsignedNumber}
 Sign = [\+\-]
 
-Delay = "#" ({UnsignedNumber} | {Real} | {Time} | "1step")
+GroovyDocWithClassArg = "@throws" | "@exception"
+GroovyDocWithParamNameArg = "@param"
+ClassName = ({Identifier} ".")* {Identifier}
+ParamName = {Identifier} | "<" {Identifier} ">"
 
 /*
  * COMMENT : block comment
@@ -63,34 +60,31 @@ Delay = "#" ({UnsignedNumber} | {Real} | {Time} | "1step")
  * SCOMMENT : single-line comment
  * STRING : string literal
  */
-%state COMMENT GROOVYDOC SCOMMENT STRING
+%state AFTER_SHEBANG COMMENT GROOVYDOC SCOMMENT STRING
 
 %%
 <YYINITIAL> {
+    "#!" [^\n\r]*    {
+        onDisjointSpanChanged(HtmlConsts.COMMENT_CLASS, yychar);
+        offer(yytext());
+        onDisjointSpanChanged(null, yychar);
+        yybegin(AFTER_SHEBANG);
+    }
+
+    [^]    {
+        yybegin(AFTER_SHEBANG);
+        yypushback(yylength());
+    }
+}
+
+<AFTER_SHEBANG> {
     {Identifier} {
         chkLOC();
         String id = yytext();
         onFilteredSymbolMatched(id, yychar, Consts.kwd);
     }
 
-    {SimpleIdentifier} | {SystemTaskFunctionIdentifier} |
-            {CompilerDirective}    {
-        chkLOC();
-        if (offerSymbol(yytext(), 0, false) && returnOnSymbol()) {
-            return yystate();
-        }
-    }
-
-    {EscapedIdentifier}    {
-        chkLOC();
-        String id = yytext().substring(1);
-        offer("\\");
-        if (offerSymbol(id, 1, true) && returnOnSymbol()) {
-            return yystate();
-        }
-    }
-
-    {Number} | {UnbasedUnsized} | {Time} | {Delay}    {
+    {Number}    {
         chkLOC();
         onDisjointSpanChanged(HtmlConsts.NUMBER_CLASS, yychar);
         offer(yytext());
@@ -117,7 +111,7 @@ Delay = "#" ({UnsignedNumber} | {Real} | {Time} | "1step")
     }
 }
 
-<COMMENT> {
+<COMMENT, GROOVYDOC> {
     /*
      * Nesting of block comments is not recognized by Groovy.
      */
@@ -132,6 +126,22 @@ Delay = "#" ({UnsignedNumber} | {Real} | {Time} | "1step")
         onDisjointSpanChanged(null, yychar);
         onEndOfLineMatched(yytext(), yychar);
         onDisjointSpanChanged(HtmlConsts.COMMENT_CLASS, yychar);
+    }
+}
+
+<GROOVYDOC> {
+    {GroovyDocWithParamNameArg} {WhspChar}+ {ParamName} |
+            {GroovyDocWithClassArg} {WhspChar}+ {ClassName}    {
+        String capture = yytext();
+        String[] tokens = capture.split(WHITE_SPACE, 2);
+        onNonSymbolMatched(tokens[0], EmphasisHint.STRONG, yychar);
+        onNonSymbolMatched(capture.substring(tokens[0].length(), text.length() -
+                tokens[1].length()), yychar);
+        onNonSymbolMatched(tokens[1], EmphasisHint.EM, yychar);
+    }
+
+    "@" {Identifier} {
+        onNonSymbolMatched(yytext(), EmphasisHint.STRONG, yychar);
     }
 }
 
