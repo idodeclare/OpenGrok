@@ -46,7 +46,9 @@ import org.opengrok.indexer.search.SearchEngine;
  * Represents a container for tests of {@link PlainAnalyzer} and
  * {@link SearchEngine}.
  * <p>
+ * @author Chris Fraire
  * Derived from Trond Norbye's {@code SearchEngineTest}
+ * @author Trond Norbye
  */
 @ConditionalRun(CtagsInstalled.class)
 public class PlainAnalyzerTest {
@@ -86,7 +88,7 @@ public class PlainAnalyzerTest {
         env.setHistoryEnabled(false);
         IndexChangedListener progress = new DefaultIndexChangedListener();
         Indexer.getInstance().prepareIndexer(env, true, true,
-                true, null, new ArrayList<>());
+                false, null, null);
         Indexer.getInstance().doIndexerExecution(true, null, progress);
 
         configFile = File.createTempFile("configuration", ".xml");
