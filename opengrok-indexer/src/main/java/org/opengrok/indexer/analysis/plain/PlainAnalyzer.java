@@ -34,13 +34,13 @@ import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.analysis.ExpandTabsReader;
 import org.opengrok.indexer.analysis.JFlexTokenizer;
 import org.opengrok.indexer.analysis.JFlexXref;
-import org.opengrok.indexer.analysis.OGKTextField;
-import org.opengrok.indexer.analysis.OGKTextVecField;
 import org.opengrok.indexer.analysis.Scopes;
 import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.analysis.TextAnalyzer;
 import org.opengrok.indexer.analysis.WriteXrefArgs;
 import org.opengrok.indexer.analysis.Xrefer;
+import org.opengrok.indexer.index.OGKTextField;
+import org.opengrok.indexer.index.OGKTextVecField;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.NullWriter;
 

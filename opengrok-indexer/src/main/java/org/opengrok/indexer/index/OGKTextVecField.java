@@ -9,7 +9,7 @@
  * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
  */
 
-package org.opengrok.indexer.analysis;
+package org.opengrok.indexer.index;
 
 import java.io.Reader;
 import org.apache.lucene.analysis.TokenStream;
@@ -18,10 +18,10 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 
 /**
- * Represents an OpenGrok-customized tokenized text field to centralize settings
- * across all the analyzers.
+ * Represents an OpenGrok-customized tokenized, text field with stored term
+ * vectors to centralize settings across all the analyzers.
  */
-public class OGKTextField extends Field {
+public class OGKTextVecField extends Field {
 
     /** Indexed, tokenized, not stored. */
     public static final FieldType TYPE_NOT_STORED = new FieldType();
@@ -33,11 +33,13 @@ public class OGKTextField extends Field {
         TYPE_NOT_STORED.setIndexOptions(
             IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
         TYPE_NOT_STORED.setTokenized(true);
+        TYPE_NOT_STORED.setStoreTermVectors(true);
         TYPE_NOT_STORED.freeze();
 
         TYPE_STORED.setIndexOptions(
             IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
         TYPE_STORED.setTokenized(true);
+        TYPE_STORED.setStoreTermVectors(true);
         TYPE_STORED.setStored(true);
         TYPE_STORED.freeze();
     }
@@ -47,7 +49,7 @@ public class OGKTextField extends Field {
      * @param name field name
      * @param reader reader
      */
-    public OGKTextField(String name, Reader reader) {
+    public OGKTextVecField(String name, Reader reader) {
         super(name, reader, TYPE_NOT_STORED);
     }
 
@@ -57,7 +59,7 @@ public class OGKTextField extends Field {
      * @param reader reader
      * @param store store
      */
-    public OGKTextField(String name, Reader reader, Store store) {
+    public OGKTextVecField(String name, Reader reader, Store store) {
         super(name, reader, store == Store.YES ? TYPE_STORED : TYPE_NOT_STORED);
     }
 
@@ -67,7 +69,7 @@ public class OGKTextField extends Field {
      * @param value string value
      * @param store store
      */
-    public OGKTextField(String name, String value, Store store) {
+    public OGKTextVecField(String name, String value, Store store) {
         super(name, value, store == Store.YES ? TYPE_STORED : TYPE_NOT_STORED);
     }
 
@@ -76,7 +78,7 @@ public class OGKTextField extends Field {
      * @param name field name
      * @param stream stream
      */
-    public OGKTextField(String name, TokenStream stream) {
+    public OGKTextVecField(String name, TokenStream stream) {
         super(name, stream, TYPE_NOT_STORED);
     }
 }
