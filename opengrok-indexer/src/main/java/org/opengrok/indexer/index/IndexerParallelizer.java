@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.index;
@@ -35,6 +35,7 @@ import org.opengrok.indexer.util.BoundedBlockingObjectPool;
 import org.opengrok.indexer.util.LazilyInstantiate;
 import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
+import org.opengrok.indexer.util.ObjectValidator;
 
 /**
  * Represents a container for executors that enable parallelism for indexing
@@ -58,6 +59,9 @@ public class IndexerParallelizer implements AutoCloseable {
 
     private LazilyInstantiate<ObjectPool<Ctags>> lzCtagsPool;
     private ObjectPool<Ctags> ctagsPool;
+
+    private LazilyInstantiate<ObjectPool<OGKDocument>> lzDocumentsPool;
+    private ObjectPool<OGKDocument> documentsPool;
 
     private LazilyInstantiate<ExecutorService> lzFixedExecutor;
     private ExecutorService fixedExecutor;
@@ -86,6 +90,7 @@ public class IndexerParallelizer implements AutoCloseable {
 
         createLazyForkJoinPool();
         createLazyCtagsPool();
+        createLazyDocumentsPool();
         createLazyFixedExecutor();
         createLazyHistoryExecutor();
         createLazyHistoryRenamedExecutor();
@@ -115,6 +120,15 @@ public class IndexerParallelizer implements AutoCloseable {
     public ObjectPool<Ctags> getCtagsPool() {
         ObjectPool<Ctags> result = lzCtagsPool.get();
         ctagsPool = result;
+        return result;
+    }
+
+    /**
+     * @return the documentsPool
+     */
+    public ObjectPool<OGKDocument> getDocumentsPool() {
+        ObjectPool<OGKDocument> result = lzDocumentsPool.get();
+        documentsPool = result;
         return result;
     }
 
@@ -182,6 +196,13 @@ public class IndexerParallelizer implements AutoCloseable {
             formerCtagsPool.shutdown();
         }
 
+        ObjectPool<OGKDocument> formerDocumentsPool = documentsPool;
+        if (formerDocumentsPool != null) {
+            documentsPool = null;
+            createLazyDocumentsPool();
+            formerDocumentsPool.shutdown();
+        }
+
         formerFixedExecutor = historyExecutor;
         if (formerFixedExecutor != null) {
             historyExecutor = null;
@@ -206,6 +227,12 @@ public class IndexerParallelizer implements AutoCloseable {
         lzCtagsPool = LazilyInstantiate.using(() ->
                 new BoundedBlockingObjectPool<>(indexingParallelism,
                         new CtagsValidator(), new CtagsObjectFactory(env)));
+    }
+
+    private void createLazyDocumentsPool() {
+        lzDocumentsPool = LazilyInstantiate.using(() ->
+                new BoundedBlockingObjectPool<>(indexingParallelism,
+                        new DocumentValidator(), new DocumentsObjectFactory()));
     }
 
     private void createLazyFixedExecutor() {
@@ -255,8 +282,30 @@ public class IndexerParallelizer implements AutoCloseable {
             this.env = env;
         }
 
+        @Override
         public Ctags createNew() {
             return getNewCtags(env);
+        }
+    }
+
+    private class DocumentsObjectFactory implements ObjectFactory<OGKDocument> {
+
+        @Override
+        public OGKDocument createNew() {
+            return new OGKDocument();
+        }
+    }
+
+    private class DocumentValidator implements ObjectValidator<OGKDocument> {
+
+        @Override
+        public boolean isValid(OGKDocument document) {
+            return document != null;
+        }
+
+        @Override
+        public void invalidate(OGKDocument ogkDocument) {
+            // nothing
         }
     }
 }
