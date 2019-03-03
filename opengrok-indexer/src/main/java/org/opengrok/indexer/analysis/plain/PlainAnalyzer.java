@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.plain;
 
@@ -107,7 +107,7 @@ public class PlainAnalyzer extends TextAnalyzer {
         if (fullpath != null && ctags != null) {
             defs = ctags.doCtags(fullpath);
             if (defs != null && defs.numberOfSymbols() > 0) {
-                tryAddingDefs(doc, defs, src, fullpath);
+                tryAddingDefs(doc, defs, src);
                 byte[] tags = defs.serialize();
                 doc.add(new StoredField(QueryBuilder.TAGS, tags));                
             }
@@ -150,13 +150,13 @@ public class PlainAnalyzer extends TextAnalyzer {
         }
     }
 
-    private void tryAddingDefs(Document doc, Definitions defs, StreamSource src,
-        String fullpath) throws IOException {
+    private void tryAddingDefs(Document doc, Definitions defs, StreamSource src)
+            throws IOException {
 
         DefinitionsTokenStream defstream = new DefinitionsTokenStream();
         defstream.initialize(defs, src, (reader) -> wrapReader(reader));
 
-        /**
+        /*
          *     Testing showed that UnifiedHighlighter will fall back to
          * ANALYSIS in the presence of multi-term queries (MTQs) such as
          * prefixes and wildcards even for fields that are analyzed with
