@@ -19,10 +19,14 @@
 
 /*
  * Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.analysis;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.opengrok.indexer.util.CustomAssertions.assertLinesEqual;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,10 +38,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.lucene.document.Document;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +63,7 @@ import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.CtagsInstalled;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import static org.opengrok.indexer.util.CustomAssertions.assertLinesEqual;
+import org.opengrok.indexer.index.OGKDocument;
 import org.opengrok.indexer.util.TestRepository;
 import org.xml.sax.InputSource;
 
@@ -517,10 +518,16 @@ public class JFlexXrefTest {
                 return StringWriter.class.getResourceAsStream(path);
             }
         };
-        Document doc = new Document();
+        OGKDocument document = new OGKDocument();
         StringWriter out = new StringWriter();
-        JavaClassAnalyzerFactory.DEFAULT_INSTANCE.getAnalyzer().analyze(
-            doc, src, out);
+        AbstractAnalyzer fa = JavaClassAnalyzerFactory.DEFAULT_INSTANCE.getAnalyzer();
+        fa.setDocument(document);
+        try {
+            fa.analyze(src, out);
+        } finally {
+            fa.setDocument(null);
+        }
+
         // Used to throw SAXParseException.
         DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new InputSource(new StringReader("<doc>" + out + "</doc>")));

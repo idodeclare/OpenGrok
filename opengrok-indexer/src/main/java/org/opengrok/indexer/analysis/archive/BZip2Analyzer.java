@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.archive;
 
@@ -27,14 +27,15 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
+import java.util.Locale;
+
 import org.apache.tools.bzip2.CBZip2InputStream;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.search.QueryBuilder;
 
 /**
  * Analyzes a BZip2 file Created on September 22, 2005
@@ -69,16 +70,18 @@ public class BZip2Analyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
+    public void analyze(StreamSource src, Writer xrefOut)
             throws IOException, InterruptedException {
         AbstractAnalyzer fa;
 
         StreamSource bzSrc = wrap(src);
-        String path = doc.get("path");
+        String path = document.peek(QueryBuilder.PATH);
+        String lcPath;
         if (path != null
-                && (path.endsWith(".bz2") || path.endsWith(".BZ2") || path.endsWith(".bz"))) {
+                && ((lcPath = path.toLowerCase(Locale.ROOT)).endsWith(".bz2") ||
+                lcPath.endsWith(".bz"))) {
             String newname = path.substring(0, path.lastIndexOf('.'));
-            //System.err.println("BZIPPED OF = " + newname);
+
             try (InputStream in = bzSrc.getStream()) {
                 fa = AnalyzerGuru.getAnalyzer(in, newname);
             }
@@ -88,11 +91,17 @@ public class BZip2Analyzer extends FileAnalyzer {
                 } else {
                     this.g = Genre.DATA;
                 }
-                fa.analyze(doc, bzSrc, xrefOut);
-                if (doc.get("t") != null) {
-                    doc.removeField("t");
+
+                fa.setDocument(document);
+                try {
+                    fa.analyze(bzSrc, xrefOut);
+                } finally {
+                    fa.setDocument(null);
+                }
+
+                if (document.peek(QueryBuilder.T) != null) {
                     if (g == Genre.XREFABLE) {
-                        doc.add(new Field("t", g.typeName(), AnalyzerGuru.string_ft_stored_nanalyzed_norms));
+                        document.addTypeName(g.typeName());
                     }
                 }
             }

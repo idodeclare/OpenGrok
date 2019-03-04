@@ -19,23 +19,21 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.executables;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field.Store;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
-import org.opengrok.indexer.index.OGKTextField;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
 
@@ -45,9 +43,6 @@ import org.opengrok.indexer.web.Util;
  * @author Chandan
  */
 public class JarAnalyzer extends FileAnalyzer {
-
-    private static final String[] FIELD_NAMES = new String[]
-            {QueryBuilder.FULL, QueryBuilder.REFS, QueryBuilder.DEFS};
 
     protected JarAnalyzer(AnalyzerFactory factory) {
         super(factory);
@@ -65,7 +60,7 @@ public class JarAnalyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
         JFieldBuilder jfbuilder = new JFieldBuilder();
         try (ZipInputStream zis = new ZipInputStream(src.getStream())) {
             ZipEntry entry;
@@ -87,19 +82,31 @@ public class JarAnalyzer extends FileAnalyzer {
                     if (xrefOut != null) {
                         xrefOut.append("<br/>");
                     }
+
                     JavaClassAnalyzer jca =
                             (JavaClassAnalyzer) fac.getAnalyzer();
-                    jca.analyze(doc, new BufferedInputStream(zis), xrefOut,
-                            jfbuilder);
+                    jca.setDocument(document);
+                    try {
+                        jca.analyze(new BufferedInputStream(zis), xrefOut,
+                                jfbuilder);
+                    } finally {
+                        jca.setDocument(null);
+                    }
                 }
             }
         }
 
-        for (String name : FIELD_NAMES) {
-            if (jfbuilder.hasField(name)) {
-                String fstr = jfbuilder.write(name).toString();
-                doc.add(new OGKTextField(name, fstr, Store.NO));
-            }
+        if (jfbuilder.hasField(QueryBuilder.FULL)) {
+            String fullStr = jfbuilder.write(QueryBuilder.FULL).toString();
+            document.addFullText(new StringReader(fullStr));
+        }
+        if (jfbuilder.hasField(QueryBuilder.DEFS)) {
+            String defsStr = jfbuilder.write(QueryBuilder.DEFS).toString();
+            document.addDefinitions(defsStr);
+        }
+        if (jfbuilder.hasField(QueryBuilder.REFS)) {
+            String refsStr = jfbuilder.write(QueryBuilder.REFS).toString();
+            document.addRefs(refsStr);
         }
     }
 }

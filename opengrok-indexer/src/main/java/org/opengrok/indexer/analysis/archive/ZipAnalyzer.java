@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.archive;
 
@@ -28,13 +28,10 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import org.apache.lucene.document.Document;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.IteratorReader;
 import org.opengrok.indexer.analysis.StreamSource;
-import org.opengrok.indexer.index.OGKTextField;
-import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
 
 /**
@@ -60,7 +57,7 @@ public class ZipAnalyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
         ArrayList<String> names = new ArrayList<>();
 
         try (ZipInputStream zis = new ZipInputStream(src.getStream())) {
@@ -75,6 +72,6 @@ public class ZipAnalyzer extends FileAnalyzer {
             }
         }
 
-        doc.add(new OGKTextField(QueryBuilder.FULL, new IteratorReader(names)));
+        document.addFullText(new IteratorReader(names));
     }
 }

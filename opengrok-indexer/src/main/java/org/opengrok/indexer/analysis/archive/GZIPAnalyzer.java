@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.archive;
 
@@ -31,14 +31,13 @@ import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.AnalyzerGuru;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.logger.LoggerFactory;
+import org.opengrok.indexer.search.QueryBuilder;
 
 /**
  * Analyzes GZip files Created on September 22, 2005
@@ -75,12 +74,12 @@ public class GZIPAnalyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
+    public void analyze(StreamSource src, Writer xrefOut)
             throws IOException, InterruptedException {
         AbstractAnalyzer fa;
 
         StreamSource gzSrc = wrap(src);
-        String path = doc.get("path");
+        String path = document.peek(QueryBuilder.PATH);
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith(".gz")) {
             String newname = path.substring(0, path.length() - 3);
             //System.err.println("GZIPPED OF = " + newname);
@@ -98,11 +97,17 @@ public class GZIPAnalyzer extends FileAnalyzer {
                 } else {
                     this.g = Genre.DATA;
                 }
-                fa.analyze(doc, gzSrc, xrefOut);
-                if (doc.get("t") != null) {
-                    doc.removeField("t");
+
+                fa.setDocument(document);
+                try {
+                    fa.analyze(gzSrc, xrefOut);
+                } finally {
+                    fa.setDocument(null);
+                }
+
+                if (document.peek(QueryBuilder.T) != null) {
                     if (g == Genre.XREFABLE) {
-                        doc.add(new Field("t", g.typeName(), AnalyzerGuru.string_ft_stored_nanalyzed_norms));
+                        document.addTypeName(g.typeName());
                     }
                 }
 

@@ -19,12 +19,13 @@
 
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.executables;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.StringReader;
 import java.io.Writer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -34,12 +35,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field.Store;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
-import org.opengrok.indexer.index.OGKTextField;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
@@ -86,15 +84,15 @@ public class ELFAnalyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
-        String fullpath = doc.get("fullpath");
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
+        String fullpath = document.peek(QueryBuilder.FULLPATH);
         String content;
         try (RandomAccessFile raf = new RandomAccessFile(fullpath, "r")) {
             content = parseELF(raf.getChannel());
         }
 
         if (content != null && !content.isEmpty()) {
-            doc.add(new OGKTextField(QueryBuilder.FULL, content, Store.NO));
+            document.addFullText(new StringReader(content));
             if (xrefOut != null) {
                 xrefOut.append("</pre>");
                 Util.htmlize(content, xrefOut);
@@ -103,7 +101,7 @@ public class ELFAnalyzer extends FileAnalyzer {
         }
     }
 
-    public String parseELF(FileChannel fch) throws IOException {
+    private String parseELF(FileChannel fch) throws IOException {
         MappedByteBuffer fmap = fch.map(FileChannel.MapMode.READ_ONLY, 0, fch.size());
         ELFHeader eh = new ELFHeader(fmap);
 
@@ -120,7 +118,7 @@ public class ELFAnalyzer extends FileAnalyzer {
             return null;
         }
 
-        HashMap<String, Integer> sectionMap = new HashMap<String, Integer>();
+        HashMap<String, Integer> sectionMap = new HashMap<>();
         ELFSection[] sections = new ELFSection[eh.e_shnum];
         int[] readables = new int[eh.e_shnum];
 

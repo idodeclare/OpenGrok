@@ -27,8 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.Writer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.StoredField;
+
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.analysis.ExpandTabsReader;
@@ -39,8 +38,6 @@ import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.analysis.TextAnalyzer;
 import org.opengrok.indexer.analysis.WriteXrefArgs;
 import org.opengrok.indexer.analysis.Xrefer;
-import org.opengrok.indexer.index.OGKTextField;
-import org.opengrok.indexer.index.OGKTextVecField;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.NullWriter;
 
@@ -96,31 +93,27 @@ public class PlainAnalyzer extends TextAnalyzer {
     }
     
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
+    public void analyze(StreamSource src, Writer xrefOut)
             throws IOException, InterruptedException {
         Definitions defs = null;
 
-        doc.add(new OGKTextField(QueryBuilder.FULL,
-            getReader(src.getStream())));
+        document.addFullText(getReader(src.getStream()));
 
-        String fullpath = doc.get(QueryBuilder.FULLPATH);
+        String fullpath = document.peek(QueryBuilder.FULLPATH);
         if (fullpath != null && ctags != null) {
             defs = ctags.doCtags(fullpath);
             if (defs != null && defs.numberOfSymbols() > 0) {
-                tryAddingDefs(doc, defs, src);
-                byte[] tags = defs.serialize();
-                doc.add(new StoredField(QueryBuilder.TAGS, tags));                
+                tryAddingDefs(defs, src);
+                document.addTags(defs);
             }
         }
         /*
          * This is to explicitly use appropriate analyzer's token stream to
          * work around #1376: symbols search works like full text search.
          */
-        OGKTextField ref = new OGKTextField(QueryBuilder.REFS,
-                this.symbolTokenizer);
-        this.symbolTokenizer.setReader(getReader(src.getStream()));
-        doc.add(ref);
-        
+        symbolTokenizer.setReader(getReader(src.getStream()));
+        document.addRefs(symbolTokenizer);
+
         if (scopesEnabled && xrefOut == null) {
             /*
              * Scopes are generated during xref generation. If xrefs are
@@ -139,22 +132,20 @@ public class PlainAnalyzer extends TextAnalyzer {
             
                 Scopes scopes = xref.getScopes();
                 if (scopes.size() > 0) {
-                    byte[] scopesSerialized = scopes.serialize();
-                    doc.add(new StoredField(QueryBuilder.SCOPES,
-                        scopesSerialized));
+                    document.addScopes(scopes);
                 }
 
-                addNumLines(doc, xref.getLineNumber());
-                addLOC(doc, xref.getLOC());
+                document.addNumLines(xref.getLineNumber());
+                document.addLOC(xref.getLOC());
             }
         }
     }
 
-    private void tryAddingDefs(Document doc, Definitions defs, StreamSource src)
+    private void tryAddingDefs(Definitions defs, StreamSource src)
             throws IOException {
 
         DefinitionsTokenStream defstream = new DefinitionsTokenStream();
-        defstream.initialize(defs, src, (reader) -> wrapReader(reader));
+        defstream.initialize(defs, src, this::wrapReader);
 
         /*
          *     Testing showed that UnifiedHighlighter will fall back to
@@ -173,7 +164,7 @@ public class PlainAnalyzer extends TextAnalyzer {
          * small subset of source text, it seems worth the cost to get
          * accurate highlighting for DEFS MTQs.
          */
-        doc.add(new OGKTextVecField(QueryBuilder.DEFS, defstream));
+        document.addDefinitions(defstream);
     }
 
     /**

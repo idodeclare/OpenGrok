@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * Use is subject to license terms.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -30,8 +30,8 @@ import java.io.StringReader;
 import java.io.Writer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Document;
 import org.opengrok.indexer.configuration.Project;
+import org.opengrok.indexer.index.OGKDocument;
 
 /**
  * Created on September 21, 2005
@@ -45,6 +45,7 @@ public abstract class AbstractAnalyzer extends Analyzer {
     protected JFlexTokenizer symbolTokenizer;
     protected Project project;
     protected Ctags ctags;
+    protected OGKDocument document;
     protected boolean scopesEnabled;
     protected boolean foldingEnabled;
 
@@ -66,6 +67,14 @@ public abstract class AbstractAnalyzer extends Analyzer {
 
     public void setCtags(Ctags ctags) {
         this.ctags = ctags;
+    }
+
+    public OGKDocument getDocument() {
+        return document;
+    }
+
+    public void setDocument(OGKDocument document) {
+        this.document = document;
     }
 
     public void setProject(Project project) {
@@ -97,17 +106,13 @@ public abstract class AbstractAnalyzer extends Analyzer {
 
     public abstract String getFileTypeName();
 
-    public abstract void analyze(Document doc, StreamSource src, Writer xrefOut)
+    public abstract void analyze(StreamSource src, Writer xrefOut)
             throws IOException, InterruptedException;
 
     public abstract Xrefer writeXref(WriteXrefArgs args) throws IOException;
 
     @Override
     protected abstract TokenStreamComponents createComponents(String fieldName);
-
-    protected abstract void addNumLines(Document doc, int value);
-
-    protected abstract void addLOC(Document doc, int value);
 
     @Override
     protected abstract TokenStream normalize(String fieldName, TokenStream in);

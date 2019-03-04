@@ -19,12 +19,11 @@
 
 /*
  * Copyright (c) 2016, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.clojure;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -37,6 +36,7 @@ import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.CtagsInstalled;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
+import org.opengrok.indexer.index.OGKDocument;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.TestRepository;
 
@@ -49,8 +49,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import static org.opengrok.indexer.analysis.AnalyzerGuru.string_ft_nstored_nanalyzed_norms;
 
 /**
  * @author Farid Zakaria
@@ -99,8 +97,6 @@ public class ClojureAnalyzerFactoryTest {
 
     /**
      * Test of writeXref method, of class CAnalyzerFactory.
-     *
-     * @throws java.lang.Exception
      */
     @Test
     public void testScopeAnalyzer() throws Exception {
@@ -110,13 +106,14 @@ public class ClojureAnalyzerFactoryTest {
             fail("clojure testfile " + f + " not found");
         }
 
-        Document doc = new Document();
-        doc.add(new Field(QueryBuilder.FULLPATH, path,
-                          string_ft_nstored_nanalyzed_norms));
+        OGKDocument document = new OGKDocument();
+        document.addFullPath(path);
         StringWriter xrefOut = new StringWriter();
         analyzer.setCtags(ctags);
-        analyzer.analyze(doc, getStreamSource(path), xrefOut);
+        analyzer.setDocument(document);
+        analyzer.analyze(getStreamSource(path), xrefOut);
 
+        Document doc = document.getDocument();
         Definitions definitions = Definitions.deserialize(doc.getField(QueryBuilder.TAGS).binaryValue().bytes);
 
         String[] type = new String[1];

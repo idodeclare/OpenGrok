@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2015, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.c;
 
@@ -27,7 +27,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.opengrok.indexer.analysis.AnalyzerGuru.string_ft_nstored_nanalyzed_norms;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,8 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexableField;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -51,6 +48,7 @@ import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.CtagsInstalled;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
+import org.opengrok.indexer.index.OGKDocument;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.TestRepository;
 
@@ -112,17 +110,17 @@ public class CxxAnalyzerFactoryTest {
             fail("cxx testfile " + f + " not found");
         }
 
-        Document doc = new Document();
-        doc.add(new Field(QueryBuilder.FULLPATH, path,
-                string_ft_nstored_nanalyzed_norms));
+        OGKDocument document = new OGKDocument();
+        document.addFullPath(path);
         StringWriter xrefOut = new StringWriter();
         analyzer.setCtags(ctags);
+        analyzer.setDocument(document);
         analyzer.setScopesEnabled(true);
         System.out.println(path);
 
-        analyzer.analyze(doc, getStreamSource(path), xrefOut);
+        analyzer.analyze(getStreamSource(path), xrefOut);
 
-        IndexableField scopesField = doc.getField(QueryBuilder.SCOPES);
+        IndexableField scopesField = document.getDocument().getField(QueryBuilder.SCOPES);
         assertNotNull(scopesField);
         Scopes scopes = Scopes.deserialize(scopesField.binaryValue().bytes);
         Scope globalScope = scopes.getScope(-1);

@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * Use is subject to license terms.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -32,8 +32,6 @@ import java.util.logging.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.StoredField;
 import org.opengrok.indexer.analysis.plain.PlainFullTokenizer;
 import org.opengrok.indexer.analysis.plain.PlainSymbolTokenizer;
 import org.opengrok.indexer.logger.LoggerFactory;
@@ -139,14 +137,13 @@ public class FileAnalyzer extends AbstractAnalyzer {
      * Lucene document with fields to add to the index, and writing the
      * cross-referenced data to the specified destination.
      *
-     * @param doc the Lucene document
      * @param src the input data source
      * @param xrefOut where to write the xref (may be {@code null})
      * @throws IOException if any I/O error
      * @throws InterruptedException if a timeout occurs
      */
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
+    public void analyze(StreamSource src, Writer xrefOut)
             throws IOException, InterruptedException {
         // not used
     }
@@ -186,26 +183,6 @@ public class FileAnalyzer extends AbstractAnalyzer {
                         Level.WARNING, "Have no analyzer for: {0}", fieldName);
                 return null;
         }
-    }
-
-    /**
-     * Add a field to store document number of lines.
-     * @param doc the target document
-     * @param value the number of lines
-     */
-    @Override
-    protected void addNumLines(Document doc, int value)  {
-        doc.add(new StoredField(QueryBuilder.NUML, value));
-    }
-
-    /**
-     * Add a field to store document lines-of-code.
-     * @param doc the target document
-     * @param value the loc
-     */
-    @Override
-    protected void addLOC(Document doc, int value)  {
-        doc.add(new StoredField(QueryBuilder.LOC, value));
     }
 
     private JFlexTokenizer createPlainSymbolTokenizer() {

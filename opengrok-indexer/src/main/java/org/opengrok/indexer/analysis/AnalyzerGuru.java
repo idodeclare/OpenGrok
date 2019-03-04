@@ -49,14 +49,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.lucene.document.DateTools;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.util.BytesRef;
 import org.opengrok.indexer.analysis.FileAnalyzerFactory.Matcher;
 import org.opengrok.indexer.analysis.ada.AdaAnalyzerFactory;
 import org.opengrok.indexer.analysis.archive.BZip2AnalyzerFactory;
@@ -109,6 +101,7 @@ import org.opengrok.indexer.history.Annotation;
 import org.opengrok.indexer.history.HistoryException;
 import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.history.HistoryReader;
+import org.opengrok.indexer.index.OGKDocument;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
@@ -223,8 +216,6 @@ public class AnalyzerGuru {
 
     public static final Reader dummyR = new StringReader("");
     public static final String dummyS = "";
-    public static final FieldType string_ft_stored_nanalyzed_norms = new FieldType(StringField.TYPE_STORED);
-    public static final FieldType string_ft_nstored_nanalyzed_norms = new FieldType(StringField.TYPE_NOT_STORED);
 
     private static final Map<String, String> fileTypeDescriptions = new TreeMap<>();
 
@@ -307,9 +298,6 @@ public class AnalyzerGuru {
                     fileTypeDescriptions.put(analyzer.getAnalyzer().getFileTypeName(), analyzer.getName());
                 }
             }
-
-            string_ft_stored_nanalyzed_norms.setOmitNorms(false);
-            string_ft_nstored_nanalyzed_norms.setOmitNorms(false);
         } catch (Throwable t) {
             LOGGER.log(Level.SEVERE,
                     "exception hit when constructing AnalyzerGuru static", t);
@@ -519,49 +507,44 @@ public class AnalyzerGuru {
     /**
      * Populate a Lucene document with the required fields.
      *
-     * @param doc The document to populate
      * @param file The file to index
      * @param path Where the file is located (from source root)
-     * @param fa The analyzer to use on the file
+     * @param fa The analyzer to use on the file -- with a defined document
      * @param xrefOut Where to write the xref (possibly {@code null})
      * @throws IOException If an exception occurs while collecting the data
      * @throws InterruptedException if a timeout occurs
      * @throws ForbiddenSymlinkException if symbolic-link checking encounters
      * an ineligible link
      */
-    public void populateDocument(Document doc, File file, String path,
-        AbstractAnalyzer fa, Writer xrefOut) throws IOException,
+    public void populateDocument(File file, String path,
+            AbstractAnalyzer fa, Writer xrefOut) throws IOException,
             InterruptedException, ForbiddenSymlinkException {
+
+        OGKDocument document = fa.getDocument();
 
         String date = DateTools.timeToString(file.lastModified(),
                 DateTools.Resolution.MILLISECOND);
         path = Util.fixPathIfWindows(path);
-        doc.add(new Field(QueryBuilder.U, Util.path2uid(path, date),
-                string_ft_stored_nanalyzed_norms));
-        doc.add(new Field(QueryBuilder.FULLPATH, file.getAbsolutePath(),
-                string_ft_nstored_nanalyzed_norms));
-        doc.add(new SortedDocValuesField(QueryBuilder.FULLPATH,
-                new BytesRef(file.getAbsolutePath())));
+        document.addUid(Util.path2uid(path, date));
+        document.addFullPath(file.getAbsolutePath());
 
         if (RuntimeEnvironment.getInstance().isHistoryEnabled()) {
             try {
                 HistoryReader hr = HistoryGuru.getInstance().getHistoryReader(file);
                 if (hr != null) {
-                    doc.add(new TextField(QueryBuilder.HIST, hr));
-                    // date = hr.getLastCommentDate() //RFE
+                    document.addHistory(hr);
                 }
             } catch (HistoryException e) {
                 LOGGER.log(Level.WARNING, "An error occurred while reading history: ", e);
             }
         }
-        doc.add(new Field(QueryBuilder.DATE, date, string_ft_stored_nanalyzed_norms));
-        doc.add(new SortedDocValuesField(QueryBuilder.DATE, new BytesRef(date)));
+        document.addDate(date);
 
         // `path' is not null, as it was passed to Util.path2uid() above.
-        doc.add(new TextField(QueryBuilder.PATH, path, Store.YES));
+        document.addPath(path);
         Project project = Project.getProject(path);
         if (project != null) {
-            doc.add(new TextField(QueryBuilder.PROJECT, project.getPath(), Store.YES));
+            document.addProject(project.getPath());
         }
 
         /*
@@ -573,41 +556,16 @@ public class AnalyzerGuru {
         String fileParent = fpath.getParent();
         if (fileParent != null && fileParent.length() > 0) {
             String normalizedPath = QueryBuilder.normalizeDirPath(fileParent);
-            StringField npstring = new StringField(QueryBuilder.DIRPATH,
-                normalizedPath, Store.NO);
-            doc.add(npstring);
+            document.addDirPath(normalizedPath);
         }
 
-        if (fa != null) {
-            AbstractAnalyzer.Genre g = fa.getGenre();
-            if (g == AbstractAnalyzer.Genre.PLAIN || g == AbstractAnalyzer.Genre.XREFABLE || g == AbstractAnalyzer.Genre.HTML) {
-                doc.add(new Field(QueryBuilder.T, g.typeName(), string_ft_stored_nanalyzed_norms));
-            }
-            fa.analyze(doc, StreamSource.fromFile(file), xrefOut);
-
-            String type = fa.getFileTypeName();
-            doc.add(new StringField(QueryBuilder.TYPE, type, Store.YES));
+        AbstractAnalyzer.Genre g = fa.getGenre();
+        if (g == AbstractAnalyzer.Genre.PLAIN || g == AbstractAnalyzer.Genre.XREFABLE || g == AbstractAnalyzer.Genre.HTML) {
+            document.addTypeName(g.typeName());
         }
-    }
 
-    /**
-     * Get the content type for a named file.
-     *
-     * @param in The input stream we want to get the content type for (if we
-     * cannot determine the content type by the filename)
-     * @param file The name of the file
-     * @return The contentType suitable for printing to
-     * response.setContentType() or null if the factory was not found
-     * @throws java.io.IOException If an error occurs while accessing the input
-     * stream.
-     */
-    public static String getContentType(InputStream in, String file) throws IOException {
-        AnalyzerFactory factory = find(in, file);
-        String type = null;
-        if (factory != null) {
-            type = factory.getContentType();
-        }
-        return type;
+        fa.analyze(StreamSource.fromFile(file), xrefOut);
+        document.addFileTypeName(fa.getFileTypeName());
     }
 
     /**
@@ -737,7 +695,7 @@ public class AnalyzerGuru {
     public static AnalyzerFactory findFactory(String factoryClassName)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, 
             InvocationTargetException {
-        Class<?> fcn = null;
+        Class<?> fcn;
         try {
             fcn = Class.forName(factoryClassName);
             

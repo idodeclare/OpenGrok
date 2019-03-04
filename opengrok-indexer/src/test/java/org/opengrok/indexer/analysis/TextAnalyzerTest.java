@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -34,7 +34,6 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-import org.apache.lucene.document.Document;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.plain.PlainAnalyzerFactory;
 
@@ -54,7 +53,7 @@ public class TextAnalyzerTest {
 
     @Test
     public void resetsStreamOnShortInput() throws IOException {
-        new TestableTextAnalyzer().analyze(new Document(),
+        new TestableTextAnalyzer().analyze(
                 getStreamSource("hi".getBytes()), null);
 
         assertEquals("hi", contents);
@@ -63,7 +62,7 @@ public class TextAnalyzerTest {
     @Test
     public void utf8WithBOM() throws IOException {
         byte[] buffer = new byte[]{(byte) 239, (byte) 187, (byte) 191, 'h', 'e', 'l', 'l', 'o'};
-        new TestableTextAnalyzer().analyze(new Document(),
+        new TestableTextAnalyzer().analyze(
                 getStreamSource(buffer), null);
 
         assertEquals("hello", contents);
@@ -76,7 +75,7 @@ public class TextAnalyzerTest {
         byte[] bytes = new byte[utf16str.remaining()];
         utf16str.get(bytes, 0, bytes.length);
 
-        new TestableTextAnalyzer().analyze(new Document(),
+        new TestableTextAnalyzer().analyze(
                 getStreamSource(bytes), null);
 
         assertEquals("UTF-16", encoding);
@@ -96,7 +95,7 @@ public class TextAnalyzerTest {
             bytes[i + 1] = b;
         }
 
-        new TestableTextAnalyzer().analyze(new Document(),
+        new TestableTextAnalyzer().analyze(
                 getStreamSource(bytes), null);
 
         assertEquals("UTF-16", encoding);
@@ -104,15 +103,15 @@ public class TextAnalyzerTest {
         assertEquals("hello", contents);
     }
 
-    public class TestableTextAnalyzer extends TextAnalyzer {
+    class TestableTextAnalyzer extends TextAnalyzer {
 
-        public TestableTextAnalyzer() {
+        TestableTextAnalyzer() {
             // Using PlainAnalyzerFactory.DEFAULT_INSTANCE is OK for this test.
             super(PlainAnalyzerFactory.DEFAULT_INSTANCE);
         }
 
         @Override
-        public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
+        public void analyze(StreamSource src, Writer xrefOut) throws IOException {
             try (Reader r = getReader(src.getStream())) {
                 encoding = ((InputStreamReader) r).getEncoding();
 

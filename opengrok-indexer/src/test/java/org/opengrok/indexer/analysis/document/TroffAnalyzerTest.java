@@ -20,6 +20,7 @@
 /*
  * Copyright (c) 2009, 2018, Oracle and/or its affiliates. All rights reserved.
  * Portions copyright 2009 - 2011 Jens Elkner. 
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.document;
 
@@ -33,14 +34,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 
-import org.apache.lucene.document.Document;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.index.OGKDocument;
 import org.opengrok.indexer.util.TestRepository;
 import org.opengrok.indexer.web.Util;
 
@@ -95,20 +94,6 @@ public class TroffAnalyzerTest {
     }
 
     /**
-     * @throws java.lang.Exception exception
-     */
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    /**
-     * @throws java.lang.Exception exception
-     */
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    /**
      * Test method for {@link org.opengrok.indexer.analysis.document
      *  .TroffAnalyzer#analyze(org.apache.lucene.document.Document,
      *      java.io.InputStream)}.
@@ -117,9 +102,10 @@ public class TroffAnalyzerTest {
      */
     @Test
     public void testAnalyze() throws IOException {
-        Document doc = new Document();
+        OGKDocument document = new OGKDocument();
         StringWriter xrefOut = new StringWriter();
-        analyzer.analyze(doc, new StreamSource() {
+        analyzer.setDocument(document);
+        analyzer.analyze(new StreamSource() {
             @Override
             public InputStream getStream() throws IOException {
                 return new ByteArrayInputStream(content.getBytes());

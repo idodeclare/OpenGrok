@@ -19,22 +19,19 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.plain;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import org.apache.lucene.document.Document;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.JFlexXref;
 import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.analysis.TextAnalyzer;
 import org.opengrok.indexer.analysis.WriteXrefArgs;
 import org.opengrok.indexer.analysis.Xrefer;
-import org.opengrok.indexer.index.OGKTextField;
-import org.opengrok.indexer.search.QueryBuilder;
 
 /**
  * Analyzes HTML files Created on September 30, 2005
@@ -63,9 +60,9 @@ public class XMLAnalyzer extends TextAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
-        doc.add(new OGKTextField(QueryBuilder.FULL,
-            getReader(src.getStream())));
+    @SuppressWarnings("Duplicates")
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
+        document.addFullText(getReader(src.getStream()));
 
         if (xrefOut != null) {
             try (Reader in = getReader(src.getStream())) {
@@ -73,8 +70,8 @@ public class XMLAnalyzer extends TextAnalyzer {
                 args.setProject(project);
                 Xrefer xref = writeXref(args);
 
-                addNumLines(doc, xref.getLineNumber());
-                addLOC(doc, xref.getLOC());
+                document.addNumLines(xref.getLineNumber());
+                document.addLOC(xref.getLOC());
             }
         }
     }

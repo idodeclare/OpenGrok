@@ -61,7 +61,6 @@ import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat;
 import org.apache.lucene.codecs.lucene70.Lucene70Codec;
 import org.apache.lucene.document.DateTools;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -98,7 +97,6 @@ import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
-import org.opengrok.indexer.util.IOUtils;
 import org.opengrok.indexer.util.ObjectPool;
 import org.opengrok.indexer.util.Statistics;
 import org.opengrok.indexer.util.TandemPath;
@@ -743,10 +741,11 @@ public class IndexDatabase {
      * @param file The file to add
      * @param path The path to the file (from source root)
      * @param ctags a defined instance to use (only if its binary is not null)
+     * @param document a defined instance
      * @throws java.io.IOException if an error occurs
      * @throws InterruptedException if a timeout occurs
      */
-    private void addFile(File file, String path, Ctags ctags)
+    private void addFile(File file, String path, Ctags ctags, OGKDocument document)
             throws IOException, InterruptedException {
         AbstractAnalyzer fa = getAnalyzerFor(file, path);
 
@@ -758,21 +757,21 @@ public class IndexDatabase {
         if (ctags.getBinary() != null) {
             fa.setCtags(ctags);
         }
+        fa.setDocument(document);
         fa.setProject(Project.getProject(path));
         fa.setScopesEnabled(RuntimeEnvironment.getInstance().isScopesEnabled());
         fa.setFoldingEnabled(RuntimeEnvironment.getInstance().isFoldingEnabled());
 
-        Document doc = new Document();
         try (Writer xrefOut = newXrefWriter(fa, path)) {
-            analyzerGuru.populateDocument(doc, file, path, fa, xrefOut);
+            analyzerGuru.populateDocument(file, path, fa, xrefOut);
         } catch (InterruptedException e) {
             LOGGER.log(Level.WARNING, "File ''{0}'' interrupted--{1}",
                 new Object[]{path, e.getMessage()});
-            cleanupResources(doc);
+            document.cleanupResources();
             throw e;
         } catch (ForbiddenSymlinkException e) {
             LOGGER.log(Level.FINER, e.getMessage());
-            cleanupResources(doc);
+            document.cleanupResources();
             return;
         } catch (Exception e) {
             LOGGER.log(Level.INFO,
@@ -783,16 +782,17 @@ public class IndexDatabase {
                 LOGGER.log(Level.FINE, "Exception from analyzer " +
                     fa.getClass().getName(), e);
             }
-            cleanupResources(doc);
+            document.cleanupResources();
             return;
         } finally {
             fa.setCtags(null);
+            fa.setDocument(null);
         }
 
         try {
-            writer.addDocument(doc);
+            writer.addDocument(document.getFixedDocument());
         } catch (Throwable t) {
-            cleanupResources(doc);
+            document.cleanupResources();
             throw t;
         }
 
@@ -808,27 +808,6 @@ public class IndexDatabase {
         try (InputStream in = new BufferedInputStream(
                 new FileInputStream(file))) {
             return AnalyzerGuru.getAnalyzer(in, path);
-        }
-    }
-
-    /**
-     * Do a best effort to clean up all resources allocated when populating
-     * a Lucene document. On normal execution, these resources should be
-     * closed automatically by the index writer once it's done with them, but
-     * we may not get that far if something fails.
-     *
-     * @param doc the document whose resources to clean up
-     */
-    private static void cleanupResources(Document doc) {
-        for (IndexableField f : doc) {
-            // If the field takes input from a reader, close the reader.
-            IOUtils.close(f.readerValue());
-
-            // If the field takes input from a token stream, close the
-            // token stream.
-            if (f instanceof Field) {
-                IOUtils.close(((Field) f).tokenStreamValue());
-            }
         }
     }
 
@@ -1179,6 +1158,7 @@ public class IndexDatabase {
         IndexerParallelizer parallelizer = RuntimeEnvironment.getInstance().
                 getIndexerParallelizer();
         ObjectPool<Ctags> ctagsPool = parallelizer.getCtagsPool();
+        ObjectPool<OGKDocument> documentsPool = parallelizer.getDocumentsPool();
 
         Map<Boolean, List<IndexFileWork>> bySuccess = null;
         try {
@@ -1187,6 +1167,7 @@ public class IndexDatabase {
                 Collectors.groupingByConcurrent((x) -> {
                     int tries = 0;
                     Ctags pctags = null;
+                    OGKDocument document = null;
                     boolean ret;
                     while (true) {
                         try {
@@ -1194,7 +1175,8 @@ public class IndexDatabase {
                                 ret = false;
                             } else {
                                 pctags = ctagsPool.get();
-                                addFile(x.file, x.path, pctags);
+                                document = documentsPool.get();
+                                addFile(x.file, x.path, pctags, document);
                                 successCounter.incrementAndGet();
                                 ret = true;
                             }
@@ -1223,6 +1205,9 @@ public class IndexDatabase {
                             if (pctags != null) {
                                 pctags.reset();
                                 ctagsPool.release(pctags);
+                            }
+                            if (document != null) {
+                                documentsPool.release(document);
                             }
                         }
 
@@ -1259,7 +1244,7 @@ public class IndexDatabase {
             LOGGER.log(Level.WARNING, exmsg);
         }
 
-        /**
+        /*
          * Encountering an AlreadyClosedException is severe enough to abort the
          * run, since it will fail anyway later upon trying to commit().
          */

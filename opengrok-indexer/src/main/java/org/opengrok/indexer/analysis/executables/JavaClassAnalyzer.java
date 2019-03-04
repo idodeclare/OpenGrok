@@ -19,12 +19,13 @@
 
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.executables;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -54,13 +55,10 @@ import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.LocalVariable;
 import org.apache.bcel.classfile.LocalVariableTable;
 import org.apache.bcel.classfile.Utility;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field.Store;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
-import org.opengrok.indexer.index.OGKTextField;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
@@ -98,14 +96,14 @@ public class JavaClassAnalyzer extends FileAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
         try (InputStream in = src.getStream()) {
-            analyze(doc, in, xrefOut, null);
+            analyze(in, xrefOut, null);
         }
     }
 
-    void analyze(Document doc, InputStream in, Writer xrefOut,
-            JFieldBuilder jfbuilder) throws IOException {
+    void analyze(InputStream in, Writer xrefOut, JFieldBuilder jfbuilder)
+            throws IOException {
         List<String> defs = new ArrayList<>();
         List<String> refs = new ArrayList<>();
         List<String> full = new ArrayList<>();
@@ -122,7 +120,7 @@ public class JavaClassAnalyzer extends FileAnalyzer {
         }
 
         ClassParser classparser = new ClassParser(in,
-            doc.get(QueryBuilder.PATH));
+                document.peek(QueryBuilder.PATH));
         StringWriter xout = new StringWriter();
         getContent(xout, fout, classparser.parse(), defs, refs, full);
         String xref = xout.toString();
@@ -141,14 +139,9 @@ public class JavaClassAnalyzer extends FileAnalyzer {
         appendValues(fout, full);
 
         if (jfbuilder == null) {
-            String dstr = dout.toString();
-            doc.add(new OGKTextField(QueryBuilder.DEFS, dstr, Store.NO));
-
-            String rstr = rout.toString();
-            doc.add(new OGKTextField(QueryBuilder.REFS, rstr, Store.NO));
-
-            String fstr = fout.toString();
-            doc.add(new OGKTextField(QueryBuilder.FULL, fstr, Store.NO));
+            document.addDefinitions(dout.toString());
+            document.addRefs(rout.toString());
+            document.addFullText(new StringReader(fout.toString()));
         }
     }
 

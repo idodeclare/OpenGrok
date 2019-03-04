@@ -23,7 +23,6 @@
  */
 package org.opengrok.indexer.analysis.document;
 
-import org.apache.lucene.document.Document;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.JFlexTokenizer;
 import org.opengrok.indexer.analysis.ScanningSymbolMatcher;
@@ -31,8 +30,6 @@ import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.analysis.TextAnalyzer;
 import org.opengrok.indexer.analysis.WriteXrefArgs;
 import org.opengrok.indexer.analysis.Xrefer;
-import org.opengrok.indexer.index.OGKTextField;
-import org.opengrok.indexer.search.QueryBuilder;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -56,13 +53,12 @@ public abstract class ManAnalyzerBase extends TextAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
-            throws IOException {
+    @SuppressWarnings("Duplicates")
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
         // This is to explicitly use appropriate analyzers token stream to
         // workaround #1376 symbols search works like full text search
         this.symbolTokenizer.setReader(getReader(src.getStream()));
-        OGKTextField full = new OGKTextField(QueryBuilder.FULL, symbolTokenizer);
-        doc.add(full);
+        document.addFullText(symbolTokenizer);
 
         if (xrefOut != null) {
             try (Reader in = getReader(src.getStream())) {
@@ -70,8 +66,8 @@ public abstract class ManAnalyzerBase extends TextAnalyzer {
                 args.setProject(project);
                 Xrefer xref = writeXref(args);
 
-                addNumLines(doc, xref.getLineNumber());
-                addLOC(doc, xref.getLOC());
+                document.addNumLines(xref.getLineNumber());
+                document.addLOC(xref.getLOC());
             }
         }
     }

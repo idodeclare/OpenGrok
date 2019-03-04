@@ -19,14 +19,13 @@
 
 /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis.uue;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import org.apache.lucene.document.Document;
 import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
 import org.opengrok.indexer.analysis.JFlexTokenizer;
@@ -34,8 +33,6 @@ import org.opengrok.indexer.analysis.JFlexXref;
 import org.opengrok.indexer.analysis.StreamSource;
 import org.opengrok.indexer.analysis.TextAnalyzer;
 import org.opengrok.indexer.analysis.WriteXrefArgs;
-import org.opengrok.indexer.index.OGKTextField;
-import org.opengrok.indexer.search.QueryBuilder;
 
 /**
  * Analyzes [tn]roff files
@@ -65,12 +62,10 @@ public class UuencodeAnalyzer extends TextAnalyzer {
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut) throws IOException {        
+    public void analyze(StreamSource src, Writer xrefOut) throws IOException {
         //this is to explicitly use appropriate analyzers tokenstream to workaround #1376 symbols search works like full text search 
-        OGKTextField full = new OGKTextField(QueryBuilder.FULL,
-            this.symbolTokenizer);
         this.symbolTokenizer.setReader(getReader(src.getStream()));
-        doc.add(full);
+        document.addFullText(symbolTokenizer);
                 
         if (xrefOut != null) {
             try (Reader in = getReader(src.getStream())) {
