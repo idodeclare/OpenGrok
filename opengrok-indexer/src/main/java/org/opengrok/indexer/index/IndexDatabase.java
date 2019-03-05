@@ -126,7 +126,7 @@ public class IndexDatabase {
     private Project project;
     private FSDirectory indexDirectory;
     private IndexReader reader;
-    private IndexWriter writer;
+    private OGKIndexWriter writer;
     private IndexAnalysisSettings settings;
     private PendingFileCompleter completer;
     private TermsEnum uidIter;
@@ -419,18 +419,21 @@ public class IndexDatabase {
 
         IOException finishingException = null;
         try {
+            ObjectPool<OGKDocument> documentsPool =
+                    env.getIndexerParallelizer().getDocumentsPool();
+
             Analyzer analyzer = AnalyzerGuru.getAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
             iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
             iwc.setRAMBufferSizeMB(env.getRamBufferSize());
-            /**
+            /*
              * Most data in OpenGrok is indexed but not stored, so use the best
              * compression on the minority of data that is stored, since it
              * should not have a detrimental impact on overall throughput.
              */
             iwc.setCodec(new Lucene70Codec(
                 Lucene50StoredFieldsFormat.Mode.BEST_COMPRESSION));
-            writer = new IndexWriter(indexDirectory, iwc);
+            writer = new OGKIndexWriter(documentsPool, indexDirectory, iwc);
             writer.commit(); // to make sure index exists on the disk
             completer = new PendingFileCompleter();
 
@@ -790,7 +793,7 @@ public class IndexDatabase {
         }
 
         try {
-            writer.addDocument(document.getFixedDocument());
+            writer.addDocument(document);
         } catch (Throwable t) {
             document.cleanupResources();
             throw t;
