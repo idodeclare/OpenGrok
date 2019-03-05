@@ -1167,7 +1167,7 @@ public class IndexDatabase {
                 Collectors.groupingByConcurrent((x) -> {
                     int tries = 0;
                     Ctags pctags = null;
-                    OGKDocument document = null;
+                    OGKDocument document;
                     boolean ret;
                     while (true) {
                         try {
@@ -1206,9 +1206,13 @@ public class IndexDatabase {
                                 pctags.reset();
                                 ctagsPool.release(pctags);
                             }
-                            if (document != null) {
-                                documentsPool.release(document);
-                            }
+                            /*
+                             * Unlike ctags, which are synchronously used,
+                             * OGKDocuments are not reusable until they are
+                             * flushed to the store. Therefore do not release
+                             * here; instead the customized OGKIndexWriter
+                             * manages their tracking and release.
+                             */
                         }
 
                         int ncount = currentCounter.incrementAndGet();

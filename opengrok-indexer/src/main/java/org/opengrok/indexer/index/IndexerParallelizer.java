@@ -36,6 +36,7 @@ import org.opengrok.indexer.util.LazilyInstantiate;
 import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
 import org.opengrok.indexer.util.ObjectValidator;
+import org.opengrok.indexer.util.UnboundedObjectPool;
 
 /**
  * Represents a container for executors that enable parallelism for indexing
@@ -231,8 +232,8 @@ public class IndexerParallelizer implements AutoCloseable {
 
     private void createLazyDocumentsPool() {
         lzDocumentsPool = LazilyInstantiate.using(() ->
-                new BoundedBlockingObjectPool<>(indexingParallelism,
-                        new DocumentValidator(), new DocumentsObjectFactory()));
+                new UnboundedObjectPool<>(new DocumentValidator(),
+                        new DocumentsObjectFactory()));
     }
 
     private void createLazyFixedExecutor() {
