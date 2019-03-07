@@ -97,9 +97,12 @@ import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
+import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
+import org.opengrok.indexer.util.ObjectValidator;
 import org.opengrok.indexer.util.Statistics;
 import org.opengrok.indexer.util.TandemPath;
+import org.opengrok.indexer.util.UnboundedObjectPool;
 import org.opengrok.indexer.web.Util;
 
 /**
@@ -131,6 +134,7 @@ public class IndexDatabase {
     private PendingFileCompleter completer;
     private TermsEnum uidIter;
     private PostingsEnum postsIter;
+    private ObjectPool<OGKDocument> documentsPool;
     private IgnoredNames ignoredNames;
     private Filter includedNames;
     private AnalyzerGuru analyzerGuru;
@@ -415,12 +419,13 @@ public class IndexDatabase {
         settings = null;
         uidIter = null;
         postsIter = null;
+        documentsPool = null;
         acceptedNonlocalSymlinks.clear();
 
         IOException finishingException = null;
         try {
-            ObjectPool<OGKDocument> documentsPool =
-                    env.getIndexerParallelizer().getDocumentsPool();
+            documentsPool = new UnboundedObjectPool<>(new DocumentValidator(),
+                    new DocumentsObjectFactory());
 
             Analyzer analyzer = AnalyzerGuru.getAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
@@ -807,7 +812,6 @@ public class IndexDatabase {
 
     private AbstractAnalyzer getAnalyzerFor(File file, String path)
             throws IOException {
-        AbstractAnalyzer fa;
         try (InputStream in = new BufferedInputStream(
                 new FileInputStream(file))) {
             return AnalyzerGuru.getAnalyzer(in, path);
@@ -1161,7 +1165,6 @@ public class IndexDatabase {
         IndexerParallelizer parallelizer = RuntimeEnvironment.getInstance().
                 getIndexerParallelizer();
         ObjectPool<Ctags> ctagsPool = parallelizer.getCtagsPool();
-        ObjectPool<OGKDocument> documentsPool = parallelizer.getDocumentsPool();
 
         Map<Boolean, List<IndexFileWork>> bySuccess = null;
         try {
@@ -1397,7 +1400,7 @@ public class IndexDatabase {
      */
     public int getNumFiles() throws IOException {
         IndexReader ireader = null;
-        int numDocs = 0;
+        int numDocs;
 
         try {
             ireader = DirectoryReader.open(indexDirectory); // open existing index
@@ -1826,6 +1829,29 @@ public class IndexDatabase {
         IndexFileWork(File file, String path) {
             this.file = file;
             this.path = path;
+        }
+    }
+
+    private static class DocumentsObjectFactory
+            implements ObjectFactory<OGKDocument> {
+
+        @Override
+        public OGKDocument createNew() {
+            return new OGKDocument();
+        }
+    }
+
+    private static class DocumentValidator
+            implements ObjectValidator<OGKDocument> {
+
+        @Override
+        public boolean isValid(OGKDocument document) {
+            return document != null;
+        }
+
+        @Override
+        public void invalidate(OGKDocument ogkDocument) {
+            // nothing
         }
     }
 }

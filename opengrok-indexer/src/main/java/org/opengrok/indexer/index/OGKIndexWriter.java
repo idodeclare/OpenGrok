@@ -108,18 +108,7 @@ class OGKIndexWriter extends IndexWriter {
 
     @Override
     protected void doAfterFlush() {
-        if (!isOpen()) {
-            /*
-             * The instance might not be open anymore, as a final flush is done
-             * upon shutdown.
-             */
-            synchronized (syncRoot) {
-                sequence.clear();
-            }
-            return;
-        }
-
-        long seqNo = getMaxCompletedSequenceNumber();
+        long seqNo = isOpen() ? getMaxCompletedSequenceNumber() : Long.MAX_VALUE;
         SequencedDocument searchTerm = new SequencedDocument(null, seqNo);
 
         synchronized (syncRoot) {
