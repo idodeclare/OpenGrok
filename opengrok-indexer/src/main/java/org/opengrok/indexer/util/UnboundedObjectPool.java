@@ -12,7 +12,7 @@ package org.opengrok.indexer.util;
 import org.opengrok.indexer.logger.LoggerFactory;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -30,7 +30,7 @@ public final class UnboundedObjectPool<T> extends AbstractObjectPool<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(
             UnboundedObjectPool.class);
 
-    private final ConcurrentLinkedDeque<T> objects;
+    private final ConcurrentLinkedQueue<T> objects;
     private final ObjectValidator<T> validator;
     private final ObjectFactory<T> objectFactory;
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -42,13 +42,13 @@ public final class UnboundedObjectPool<T> extends AbstractObjectPool<T> {
         this.objectFactory = objectFactory;
         this.validator = validator;
 
-        objects = new ConcurrentLinkedDeque<>();
+        objects = new ConcurrentLinkedQueue<>();
     }
 
     @Override
     public T get() {
         if (!shutdownCalled) {
-            T ret = objects.pollFirst();
+            T ret = objects.poll();
             if (ret == null) {
                 ret = objectFactory.createNew();
             }
@@ -94,17 +94,17 @@ public final class UnboundedObjectPool<T> extends AbstractObjectPool<T> {
     }
 
     private static class ObjectReturner<E> implements Callable<Void> {
-        private final ConcurrentLinkedDeque<E> queue;
+        private final ConcurrentLinkedQueue<E> queue;
         private final E e;
 
-        ObjectReturner(ConcurrentLinkedDeque<E> queue, E e) {
+        ObjectReturner(ConcurrentLinkedQueue<E> queue, E e) {
             this.queue = queue;
             this.e = e;
         }
 
         @Override
         public Void call() {
-            queue.push(e);
+            queue.add(e);
             return null;
         }
     }

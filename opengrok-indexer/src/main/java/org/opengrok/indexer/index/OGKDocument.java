@@ -34,7 +34,6 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.opengrok.indexer.analysis.Definitions;
@@ -47,6 +46,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -73,6 +73,7 @@ public class OGKDocument {
     private final Document luceneDocument = new Document();
     private final Map<String, FieldCollection> addedFields = new HashMap<>();
     private final Set<String> usedFields = new HashSet<>();
+    private int fixedCount;
 
     static {
         STRING_FT_STORED_NANALYZED_NORMS = new FieldType(StringField.TYPE_STORED);
@@ -89,9 +90,15 @@ public class OGKDocument {
      * @return a defined instance
      */
     public Document getFixedDocument() {
-        for (String fieldName : addedFields.keySet()) {
+        ++fixedCount;
+
+        Set<String> addedKeys = addedFields.keySet();
+        Iterator<String> addedIt = addedKeys.iterator();
+        while (addedIt.hasNext()) {
+            String fieldName = addedIt.next();
             if (!usedFields.contains(fieldName)) {
                 luceneDocument.removeFields(fieldName);
+                addedIt.remove();
             }
         }
         usedFields.clear();
@@ -105,6 +112,15 @@ public class OGKDocument {
      */
     public Document getDocument() {
         return luceneDocument;
+    }
+
+    /**
+     * Gets the number of times {@link #getFixedDocument()} has been called for
+     * the instance
+     * @return a non-negative number
+     */
+    public int getFixedCount() {
+        return fixedCount;
     }
 
     /**
@@ -165,8 +181,8 @@ public class OGKDocument {
     }
 
     /**
-     * Adds {@code normalizedPath} as a non-stored string value for field name,
-     * {@link QueryBuilder#DIRPATH}.
+     * Adds {@code normalizedPath} as a non-stored string value and a sorted
+     * doc-values field for field name, {@link QueryBuilder#DIRPATH}.
      */
     public void addDirPath(String normalizedPath) {
         addSortedString(QueryBuilder.DIRPATH, normalizedPath,
@@ -178,8 +194,7 @@ public class OGKDocument {
      * {@link QueryBuilder#TYPE}.
      */
     public void addFileTypeName(String fileTypeName) {
-        addUnsortedString(QueryBuilder.TYPE, fileTypeName,
-                STRING_FT_STORED_NANALYZED_NORMS);
+        addUnsortedString(QueryBuilder.TYPE, fileTypeName);
     }
 
     /**
@@ -197,13 +212,30 @@ public class OGKDocument {
      */
     public void addFullText(Reader full) {
         String key = QueryBuilder.FULL;
+        addText(key, full);
+    }
+
+    /**
+     * Adds {@code full} as a non-stored text field value for field name,
+     * {@link QueryBuilder#FULL}.
+     */
+    public void addFullText(TokenStream full) {
+        addText(QueryBuilder.FULL, full);
+    }
+
+    /**
+     * Adds {@code full} as a non-stored text field value for field name,
+     * {@link QueryBuilder#FULL}.
+     */
+    public void addFullText(String full) {
+        String key = QueryBuilder.FULL;
         FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
-            fieldCollection.field1.setReaderValue(full);
+            fieldCollection.field1.setStringValue(full);
         } else {
-            Field field = new OGKTextField(key, full);
+            Field field = new OGKTextField(key, full, Field.Store.NO);
             luceneDocument.add(field);
             addedFields.put(key, new FieldCollection(field));
         }
@@ -211,19 +243,12 @@ public class OGKDocument {
     }
 
     /**
-     * Adds {@code tokens} as a non-stored text field value for field name,
-     * {@link QueryBuilder#FULL}.
-     */
-    public void addFullText(TokenStream tokens) {
-        addText(QueryBuilder.FULL, tokens);
-    }
-
-    /**
      * Adds {@code history} as a non-stored text field value for field name,
      * {@link QueryBuilder#HIST}.
      */
     public void addHistory(Reader history) {
-        addText(QueryBuilder.HIST, history);
+        final String key = QueryBuilder.HIST;
+        addText(key, history);
     }
 
     /**
@@ -297,8 +322,7 @@ public class OGKDocument {
      * {@link QueryBuilder#T}.
      */
     public void addTypeName(String typeName) {
-        addUnsortedString(QueryBuilder.T, typeName,
-                STRING_FT_STORED_NANALYZED_NORMS);
+        addUnsortedString(QueryBuilder.T, typeName);
     }
 
     /**
@@ -306,8 +330,7 @@ public class OGKDocument {
      * {@link QueryBuilder#U}.
      */
     public void addUid(String uid) {
-        addUnsortedString(QueryBuilder.U, uid,
-                STRING_FT_STORED_NANALYZED_NORMS);
+        addUnsortedString(QueryBuilder.U, uid);
     }
 
     /**
@@ -331,7 +354,6 @@ public class OGKDocument {
 
     private void addSortedString(String key, String value, FieldType fieldType) {
         FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
-
         final BytesRef bytesValue = new BytesRef(value);
 
         if (fieldCollection != null) {
@@ -375,20 +397,6 @@ public class OGKDocument {
         usedFields.add(key);
     }
 
-    private void addText(String key, Reader value) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
-
-        if (fieldCollection != null) {
-            assertNullField2(key, fieldCollection);
-            fieldCollection.field1.setReaderValue(value);
-        } else {
-            Field field = new TextField(key, value);
-            luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
-        }
-        usedFields.add(key);
-    }
-
     private void addText(String key, String value, Field.Store fieldStore) {
         FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
 
@@ -396,7 +404,7 @@ public class OGKDocument {
             assertNullField2(key, fieldCollection);
             fieldCollection.field1.setStringValue(value);
         } else {
-            Field field = new TextField(key, value, fieldStore);
+            Field field = new OGKTextField(key, value, fieldStore);
             luceneDocument.add(field);
             addedFields.put(key, new FieldCollection(field));
         }
@@ -417,14 +425,32 @@ public class OGKDocument {
         usedFields.add(key);
     }
 
-    private void addUnsortedString(String key, String value, FieldType fieldType) {
+    private void addText(String key, Reader history) {
+        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+
+        if (fieldCollection != null) {
+            assertNullField2(key, fieldCollection);
+            fieldCollection.field1.setReaderValue(history);
+        } else {
+            Field field = new OGKTextField(key, history);
+            luceneDocument.add(field);
+            addedFields.put(key, new FieldCollection(field));
+        }
+        usedFields.add(key);
+    }
+
+    /**
+     * Adds {@code value} as a stored string for field name, {@code key}.
+     */
+    private void addUnsortedString(String key, String value) {
         FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
             fieldCollection.field1.setStringValue(value);
         } else {
-            Field field = new Field(key, value, fieldType);
+            Field field = new Field(key, value,
+                    OGKDocument.STRING_FT_STORED_NANALYZED_NORMS);
             luceneDocument.add(field);
             addedFields.put(key, new FieldCollection(field));
         }
@@ -439,11 +465,12 @@ public class OGKDocument {
     }
 
     static class FieldCollection {
-        Field field1;
-        Field field2;
+        final Field field1;
+        final Field field2;
 
-        FieldCollection(Field field) {
-            field1 = field;
+        FieldCollection(Field field1) {
+            this.field1 = field1;
+            field2 = null;
         }
 
         FieldCollection(Field field1, Field field2) {

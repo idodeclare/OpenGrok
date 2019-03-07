@@ -26,6 +26,7 @@ package org.opengrok.indexer.index;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
+import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.ObjectPool;
 
 import java.io.IOException;
@@ -33,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a subclass of {@link IndexWriter} customized to allow re-using
@@ -45,6 +48,9 @@ import java.util.List;
  * eventually cause release back to the {@link ObjectPool}.
  */
 class OGKIndexWriter extends IndexWriter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            OGKIndexWriter.class);
 
     private final ObjectPool<OGKDocument> documentPool;
     private final List<SequencedDocument> sequence = new ArrayList<>();
@@ -75,6 +81,8 @@ class OGKIndexWriter extends IndexWriter {
         }
 
         long sequenceNo = super.addDocument(document.getFixedDocument());
+        LOGGER.log(Level.FINEST, "OGKDocument fixed count={0}",
+                document.getFixedCount());
 
         SequencedDocument seq = new SequencedDocument(document, sequenceNo);
         synchronized (syncRoot) {
@@ -83,13 +91,32 @@ class OGKIndexWriter extends IndexWriter {
         return sequenceNo;
     }
 
+    /**
+     * {@inheritDoc}
+     * Afterward, any remaining, tracked documents are discarded.
+     */
+    @Override
+    public void close() {
+        super.close();
+        synchronized (syncRoot) {
+            sequence.clear();
+        }
+    }
+
     @Override
     protected void doAfterFlush() {
-        /*
-         * The instance might not be open anymore, as a final flush is done
-         * upon shutdown.
-         */
-        long seqNo = isOpen() ? getMaxCompletedSequenceNumber() : Long.MAX_VALUE;
+        if (!isOpen()) {
+            /*
+             * The instance might not be open anymore, as a final flush is done
+             * upon shutdown.
+             */
+            synchronized (syncRoot) {
+                sequence.clear();
+            }
+            return;
+        }
+
+        long seqNo = getMaxCompletedSequenceNumber();
         SequencedDocument searchTerm = new SequencedDocument(null, seqNo);
 
         synchronized (syncRoot) {
@@ -113,11 +140,12 @@ class OGKIndexWriter extends IndexWriter {
                 itemOffset = -(1 + searchResult) - 1;
             }
 
-            while (itemOffset >= 0) {
+            for (int i = 0; i <= itemOffset; ++i) {
                 OGKDocument document = sequence.get(itemOffset).document;
                 documentPool.release(document);
-                sequence.remove(itemOffset);
-                --itemOffset;
+            }
+            if (itemOffset >= 0) {
+                sequence.subList(0, itemOffset + 1).clear();
             }
         }
     }

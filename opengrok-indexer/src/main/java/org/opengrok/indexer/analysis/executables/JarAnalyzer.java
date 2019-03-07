@@ -25,7 +25,6 @@ package org.opengrok.indexer.analysis.executables;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.zip.ZipEntry;
@@ -98,7 +97,7 @@ public class JarAnalyzer extends FileAnalyzer {
 
         if (jfbuilder.hasField(QueryBuilder.FULL)) {
             String fullStr = jfbuilder.write(QueryBuilder.FULL).toString();
-            document.addFullText(new StringReader(fullStr));
+            document.addFullText(fullStr);
         }
         if (jfbuilder.hasField(QueryBuilder.DEFS)) {
             String defsStr = jfbuilder.write(QueryBuilder.DEFS).toString();
