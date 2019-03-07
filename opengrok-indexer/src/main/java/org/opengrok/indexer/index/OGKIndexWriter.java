@@ -94,9 +94,10 @@ class OGKIndexWriter extends IndexWriter {
     /**
      * {@inheritDoc}
      * Afterward, any remaining, tracked documents are discarded.
+     * @throws IOException if there is a low-level I/O error
      */
     @Override
-    public void close() {
+    public void close() throws IOException {
         super.close();
         synchronized (syncRoot) {
             sequence.clear();
