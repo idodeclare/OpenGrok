@@ -125,7 +125,11 @@ public class IndexerParallelizer implements AutoCloseable {
     }
 
     /**
-     * @return the documentsPool
+     * Gets the shared object pool for {@link OGKDocument} instances. Only a
+     * single active {@link org.apache.lucene.index.IndexWriter} is supported
+     * for a parallelizer instance or else the intermingled writers' sequence
+     * numbers will result in misused, reused documents.
+     * @return a defined instance
      */
     public ObjectPool<OGKDocument> getDocumentsPool() {
         ObjectPool<OGKDocument> result = lzDocumentsPool.get();

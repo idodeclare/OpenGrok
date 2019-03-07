@@ -93,7 +93,9 @@ class OGKIndexWriter extends IndexWriter {
 
     /**
      * {@inheritDoc}
-     * Afterward, any remaining, tracked documents are discarded.
+     * Afterward, any remaining, tracked documents are discarded, because the
+     * saved sequence numbers were relevant for one particular instance of
+     * {@link IndexWriter}.
      * @throws IOException if there is a low-level I/O error
      */
     @Override
