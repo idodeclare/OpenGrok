@@ -97,12 +97,9 @@ import org.opengrok.indexer.history.HistoryGuru;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
-import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
-import org.opengrok.indexer.util.ObjectValidator;
 import org.opengrok.indexer.util.Statistics;
 import org.opengrok.indexer.util.TandemPath;
-import org.opengrok.indexer.util.UnboundedObjectPool;
 import org.opengrok.indexer.web.Util;
 
 /**
@@ -134,7 +131,6 @@ public class IndexDatabase {
     private PendingFileCompleter completer;
     private TermsEnum uidIter;
     private PostingsEnum postsIter;
-    private ObjectPool<OGKDocument> documentsPool;
     private IgnoredNames ignoredNames;
     private Filter includedNames;
     private AnalyzerGuru analyzerGuru;
@@ -419,14 +415,10 @@ public class IndexDatabase {
         settings = null;
         uidIter = null;
         postsIter = null;
-        documentsPool = null;
         acceptedNonlocalSymlinks.clear();
 
         IOException finishingException = null;
         try {
-            documentsPool = new UnboundedObjectPool<>(new DocumentValidator(),
-                    new DocumentsObjectFactory());
-
             Analyzer analyzer = AnalyzerGuru.getAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
             iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
@@ -438,7 +430,7 @@ public class IndexDatabase {
              */
             iwc.setCodec(new Lucene70Codec(
                 Lucene50StoredFieldsFormat.Mode.BEST_COMPRESSION));
-            writer = new OGKIndexWriter(documentsPool, indexDirectory, iwc);
+            writer = new OGKIndexWriter(indexDirectory, iwc);
             writer.commit(); // to make sure index exists on the disk
             completer = new PendingFileCompleter();
 
@@ -1181,7 +1173,7 @@ public class IndexDatabase {
                                 ret = false;
                             } else {
                                 pctags = ctagsPool.get();
-                                document = documentsPool.get();
+                                document = writer.newOrUsedDocument();
                                 addFile(x.file, x.path, pctags, document);
                                 successCounter.incrementAndGet();
                                 ret = true;
@@ -1829,29 +1821,6 @@ public class IndexDatabase {
         IndexFileWork(File file, String path) {
             this.file = file;
             this.path = path;
-        }
-    }
-
-    private static class DocumentsObjectFactory
-            implements ObjectFactory<OGKDocument> {
-
-        @Override
-        public OGKDocument createNew() {
-            return new OGKDocument();
-        }
-    }
-
-    private static class DocumentValidator
-            implements ObjectValidator<OGKDocument> {
-
-        @Override
-        public boolean isValid(OGKDocument document) {
-            return document != null;
-        }
-
-        @Override
-        public void invalidate(OGKDocument ogkDocument) {
-            // nothing
         }
     }
 }

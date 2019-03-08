@@ -27,7 +27,10 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.opengrok.indexer.logger.LoggerFactory;
+import org.opengrok.indexer.util.ObjectFactory;
 import org.opengrok.indexer.util.ObjectPool;
+import org.opengrok.indexer.util.ObjectValidator;
+import org.opengrok.indexer.util.UnboundedObjectPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,19 +55,27 @@ class OGKIndexWriter extends IndexWriter {
     private static final Logger LOGGER = LoggerFactory.getLogger(
             OGKIndexWriter.class);
 
-    private final ObjectPool<OGKDocument> documentPool;
+    private final ObjectPool<OGKDocument> documentPool =
+            new UnboundedObjectPool<>(new DocumentValidator(),
+                    new DocumentsObjectFactory());
+
     private final List<SequencedDocument> sequence = new ArrayList<>();
     private final Object syncRoot = new Object();
 
-    OGKIndexWriter(ObjectPool<OGKDocument> documentPool, Directory directory,
-            IndexWriterConfig conf) throws IOException {
-
+    OGKIndexWriter(Directory directory, IndexWriterConfig conf)
+            throws IOException {
         super(directory, conf);
+    }
 
-        if (documentPool == null) {
-            throw new IllegalArgumentException("documentPool is null");
-        }
-        this.documentPool = documentPool;
+    /**
+     * Gets a new instance if a shared, reusable document is not available, or
+     * else gets the reusable instance. The document submitted to
+     * {@link #addDocument(OGKDocument)} will be eligible for reuse after it is
+     * flushed to the directory.
+     * @return a defined instance
+     */
+    public OGKDocument newOrUsedDocument() {
+        return documentPool.get();
     }
 
     /**
@@ -149,6 +160,29 @@ class OGKIndexWriter extends IndexWriter {
         SequencedDocument(OGKDocument document, long sequenceNumber) {
             this.document = document;
             this.sequenceNumber = sequenceNumber;
+        }
+    }
+
+    private static class DocumentsObjectFactory
+            implements ObjectFactory<OGKDocument> {
+
+        @Override
+        public OGKDocument createNew() {
+            return new OGKDocument();
+        }
+    }
+
+    private static class DocumentValidator
+            implements ObjectValidator<OGKDocument> {
+
+        @Override
+        public boolean isValid(OGKDocument document) {
+            return document != null;
+        }
+
+        @Override
+        public void invalidate(OGKDocument ogkDocument) {
+            // nothing
         }
     }
 }
