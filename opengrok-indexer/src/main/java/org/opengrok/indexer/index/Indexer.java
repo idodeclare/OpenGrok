@@ -342,7 +342,7 @@ public final class Indexer {
 
             env.getIndexerParallelizer().bounce();
         } catch (ParseException e) {
-            System.err.println("** " +e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             System.exit(1);
         } catch (IndexerException ex) {
             LOGGER.log(Level.SEVERE, "Exception running indexer", ex);
@@ -443,7 +443,7 @@ public final class Indexer {
             parser.setPrologue(
                 String.format("\nUsage: java -jar %s [options] [subDir1 [...]]\n", program));
 
-            parser.on(HELP_OPT_3, Indexer.HELP_OPT_2, HELP_OPT_1,
+            parser.on(HELP_OPT_3, HELP_OPT_2, HELP_OPT_1,
                     "Display this usage summary.").Do(v -> {
                 help = true;
                 helpUsage = parser.getUsage();
@@ -510,6 +510,10 @@ public final class Indexer {
                 "Scanning depth for repositories in directory structure relative to",
                 "source root. Default is " + Configuration.defaultScanningDepth + ".").Do(depth -> {
                 cfg.setScanningDepth((Integer)depth);
+            });
+
+            parser.on("--disable-history", "Disable history.").Do(v -> {
+                cfg.setHistoryEnabled(false);
             });
 
             parser.on("-e", "--economical",
