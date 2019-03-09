@@ -177,7 +177,7 @@ class OGKIndexWriter extends IndexWriter {
 
         @Override
         public boolean isValid(OGKDocument document) {
-            return document != null;
+            return document != null && !document.isForcedClean();
         }
 
         @Override

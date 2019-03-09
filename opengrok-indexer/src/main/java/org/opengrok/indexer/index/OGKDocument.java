@@ -39,6 +39,7 @@ import org.apache.lucene.util.BytesRef;
 import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.analysis.Scopes;
 import org.opengrok.indexer.analysis.plain.DefinitionsTokenStream;
+import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.util.IOUtils;
 
@@ -49,6 +50,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a wrapper for a reusable Lucene document which accommodates that
@@ -67,6 +70,9 @@ import java.util.Set;
  */
 public class OGKDocument {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            OGKDocument.class);
+
     private static final FieldType STRING_FT_STORED_NANALYZED_NORMS;
     private static final FieldType STRING_FT_NSTORED_NANALYZED_NORMS;
 
@@ -74,6 +80,7 @@ public class OGKDocument {
     private final Map<String, FieldCollection> addedFields = new HashMap<>();
     private final Set<String> usedFields = new HashSet<>();
     private int fixedCount;
+    private boolean isForcedClean;
 
     static {
         STRING_FT_STORED_NANALYZED_NORMS = new FieldType(StringField.TYPE_STORED);
@@ -124,6 +131,16 @@ public class OGKDocument {
     }
 
     /**
+     * Gets a value indicating if the instance has been forced clean by a call
+     * to {@link #cleanupResources()}.
+     * @return {@code true} if {@link #cleanupResources()} has been called.
+     * Default is {@code false}.
+     */
+    public boolean isForcedClean() {
+        return isForcedClean;
+    }
+
+    /**
      * Gets a {@code String} value from the underlying Lucene document without
      * modifying this instance or fixing the document fields.
      * @param fieldName a defined instance
@@ -148,7 +165,8 @@ public class OGKDocument {
      */
     public void addDefinitions(DefinitionsTokenStream tokens) {
         String key = QueryBuilder.DEFS;
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.STREAM;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -156,7 +174,7 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextVecField(key, tokens);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(DataType.STREAM, field));
         }
         usedFields.add(key);
     }
@@ -167,7 +185,8 @@ public class OGKDocument {
      */
     public void addDefinitions(String text) {
         String key = QueryBuilder.DEFS;
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -175,7 +194,7 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextVecField(key, text, Field.Store.NO);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
@@ -229,7 +248,8 @@ public class OGKDocument {
      */
     public void addFullText(String full) {
         String key = QueryBuilder.FULL;
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -237,7 +257,7 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextField(key, full, Field.Store.NO);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
@@ -334,12 +354,14 @@ public class OGKDocument {
     }
 
     /**
-     * Do a best effort to clean up all resources allocated when populating
-     * a Lucene document. On normal execution, these resources should be
-     * closed automatically by the index writer once it's done with them, but
-     * we may not get that far if something fails.
+     * Does a best effort to clean up all resources allocated when populating
+     * a Lucene document, and sets {@link #isForcedClean} to {@code true}. On
+     * normal execution, these resources should be closed automatically by the
+     * index writer once it's done with them, but we may not get that far if
+     * something fails.
      */
     public void cleanupResources() {
+        isForcedClean = true;
         for (IndexableField f : luceneDocument) {
             // If the field takes input from a reader, close the reader.
             IOUtils.close(f.readerValue());
@@ -353,7 +375,8 @@ public class OGKDocument {
     }
 
     private void addSortedString(String key, String value, FieldType fieldType) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
         final BytesRef bytesValue = new BytesRef(value);
 
         if (fieldCollection != null) {
@@ -364,13 +387,14 @@ public class OGKDocument {
             Field field2 = new SortedDocValuesField(key, bytesValue);
             luceneDocument.add(field1);
             luceneDocument.add(field2);
-            addedFields.put(key, new FieldCollection(field1, field2));
+            addedFields.put(key, new FieldCollection(dataType, field1, field2));
         }
         usedFields.add(key);
     }
 
     private void addStoredBytes(String key, byte[] bytes) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -378,13 +402,14 @@ public class OGKDocument {
         } else {
             Field field = new StoredField(key, bytes);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
 
     private void addStoredInteger(String key, int value) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -392,13 +417,14 @@ public class OGKDocument {
         } else {
             Field field = new StoredField(key, value);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
 
     private void addText(String key, String value, Field.Store fieldStore) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -406,13 +432,14 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextField(key, value, fieldStore);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
 
     private void addText(String key, TokenStream tokens) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.STREAM;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -420,13 +447,14 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextField(key, tokens);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
 
     private void addText(String key, Reader history) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -434,7 +462,7 @@ public class OGKDocument {
         } else {
             Field field = new OGKTextField(key, history);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
@@ -443,7 +471,8 @@ public class OGKDocument {
      * Adds {@code value} as a stored string for field name, {@code key}.
      */
     private void addUnsortedString(String key, String value) {
-        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+        DataType dataType = DataType.POD;
+        FieldCollection fieldCollection = getButValidate(key, dataType);
 
         if (fieldCollection != null) {
             assertNullField2(key, fieldCollection);
@@ -452,7 +481,7 @@ public class OGKDocument {
             Field field = new Field(key, value,
                     OGKDocument.STRING_FT_STORED_NANALYZED_NORMS);
             luceneDocument.add(field);
-            addedFields.put(key, new FieldCollection(field));
+            addedFields.put(key, new FieldCollection(dataType, field));
         }
         usedFields.add(key);
     }
@@ -464,16 +493,39 @@ public class OGKDocument {
         }
     }
 
-    static class FieldCollection {
+    private FieldCollection getButValidate(String key, DataType dataType) {
+        FieldCollection fieldCollection = addedFields.getOrDefault(key, null);
+
+        // Match DataType or else expunge fields from the Lucene document.
+        if (fieldCollection != null && fieldCollection.dataType != dataType) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, "{0} type switch: {1} v {2}",
+                        new Object[] {dataType, fieldCollection.dataType});
+            }
+            luceneDocument.removeFields(key);
+            addedFields.remove(key);
+            fieldCollection = null;
+        }
+        return fieldCollection;
+    }
+
+    private enum DataType {
+        POD, READER, STREAM
+    }
+
+    private static class FieldCollection {
         final Field field1;
         final Field field2;
+        final DataType dataType;
 
-        FieldCollection(Field field1) {
+        FieldCollection(DataType src, Field field1) {
+            dataType = src;
             this.field1 = field1;
             field2 = null;
         }
 
-        FieldCollection(Field field1, Field field2) {
+        FieldCollection(DataType src, Field field1, Field field2) {
+            dataType = src;
             this.field1 = field1;
             this.field2 = field2;
         }
