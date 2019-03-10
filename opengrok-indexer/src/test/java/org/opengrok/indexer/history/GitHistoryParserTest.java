@@ -35,6 +35,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.SortedSet;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -92,6 +93,35 @@ public class GitHistoryParserTest {
 
         HistoryEntry e0 = entries.get(0);
         assertEquals("entries[0] revision", "3595fbc9", e0.getRevision());
+    }
+
+    @Test
+    public void shouldHandleMergeCommits() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+        try (InputStream in = HistoryGuru.class.getResourceAsStream(
+                "/history/git-log-merged-file.txt")) {
+            instance.processStream(in);
+        }
+
+        History gitHistory = instance.getHistory();
+        assertNotNull("should parse git-log-merged-file.txt", gitHistory);
+        List<HistoryEntry> entries = gitHistory.getHistoryEntries();
+        assertEquals("git-log-merged-file.txt entries", 2, entries.size());
+
+        final String MERGE_REV = "4c3d5e8e";
+        HistoryEntry e1 = entries.get(1);
+        assertEquals("entries[1] revision", MERGE_REV, e1.getRevision());
+
+        HistoryEntry e0 = entries.get(0);
+        assertEquals("entries[0] revision", MERGE_REV, e0.getRevision());
+
+        SortedSet<String> f1 = e1.getFiles();
+        assertEquals("e[1] files size", 1, f1.size());
+        assertEquals("e[1] files[0]", "/contrib/serf/STATUS", f1.first());
+
+        SortedSet<String> f0 = e0.getFiles();
+        assertEquals("e[0] files size", 1, f0.size());
+        assertEquals("e[0] files[0]", "/contrib/serf/STATUS", f0.first());
     }
 
     /**

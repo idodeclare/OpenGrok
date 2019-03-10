@@ -76,7 +76,12 @@ public class GitRepositoryOctopusTest {
 
         List<HistoryEntry> entries = history.getHistoryEntries();
         assertNotNull("git-octopus getHistoryEntries()", entries);
-        assertEquals("git-octopus four log entries", 4, entries.size());
+
+        /*
+         * git-octopus has four-way merge, so there are three more history
+         * entries with `git log -m`
+         */
+        assertEquals("git-octopus log entries", 7, entries.size());
 
         SortedSet<String> allFiles = new TreeSet<>();
         for (HistoryEntry entry : entries) {

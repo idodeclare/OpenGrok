@@ -152,6 +152,8 @@ class GitHistoryParser extends HistoryParserBase
                         //
                         throw new IOException("Failed to parse author date: " + s, pe);
                     }
+                } else if (s.startsWith("Merge:") && entry != null) {
+                    // ignore for now
                 } else if (StringUtils.isOnlyWhitespace(s)) {
                     // We are done reading the heading, start to read the message
                     state = ParseState.MESSAGE;
