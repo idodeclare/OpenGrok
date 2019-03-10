@@ -24,12 +24,12 @@
 package org.opengrok.indexer.history;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -60,16 +60,29 @@ class GitHistoryParser extends HistoryParserBase
     private String myDir;
     private GitRepository repository = new GitRepository();
     private List<HistoryEntry> entries = new ArrayList<>();
+    private History history;
 
     private final boolean handleRenamedFiles;
-    
-    GitHistoryParser(boolean flag) {
-        handleRenamedFiles = flag;
+
+    /**
+     * Initializes an instance, with the user specifying whether renamed-files
+     * handling should be done by {@link #parse(File, GitRepository, String)}.
+     */
+    GitHistoryParser(boolean handleRenamedFiles) {
+        this.handleRenamedFiles = handleRenamedFiles;
+    }
+
+    /**
+     * Gets the instance from the most recent processing or parsing.
+     * @return a defined instance or {@code null} if not yet processed
+     */
+    public History getHistory() {
+        return history;
     }
     
     /**
      * Process the output from the log command and insert the HistoryEntries
-     * into the history field.
+     * into the {@link #getHistory()} property.
      *
      * @param input The output from the process
      * @throws java.io.IOException If an error occurs while reading the stream
@@ -77,10 +90,22 @@ class GitHistoryParser extends HistoryParserBase
     @Override
     public void processStream(InputStream input) throws IOException {
         try (BufferedReader in = new BufferedReader(GitRepository.newLogReader(input))) {
-            process(in);
+            processStream(in);
         }
     }
-    
+
+    /**
+     * Process the output from the log command and insert the HistoryEntries
+     * into the {@link #getHistory()} property.
+     *
+     * @param input The output from the process
+     * @throws java.io.IOException If an error occurs while reading the stream
+     */
+    public void processStream(BufferedReader input) throws IOException {
+        process(input);
+        history = new History(entries);
+    }
+
     private void process(BufferedReader in) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         entries = new ArrayList<>();
@@ -99,6 +124,19 @@ class GitHistoryParser extends HistoryParserBase
                     entry = new HistoryEntry();
                     entry.setActive(true);
                     String commit = s.substring("commit".length()).trim();
+
+                    /*
+                     * Git might show branch labels for a commit. E.g.
+                     *   commit 3595fbc9 (HEAD -> master, origin/master, origin/HEAD)
+                     * or it might show a merge parent. E.g.
+                     *   commit 4c3d5e8e (from 06b00dcb)
+                     * So trim those off too.
+                     */
+                    int offset = commit.indexOf(' ');
+                    if (offset >= 1) {
+                        commit = commit.substring(0, offset);
+                    }
+
                     entry.setRevision(commit);
                 } else if (s.startsWith("Author:") && entry != null) {
                     entry.setAuthor(s.substring("Author:".length()).trim());
@@ -172,9 +210,9 @@ class GitHistoryParser extends HistoryParserBase
      *                      {@code null} if all changesets should be returned
      * @return object representing the file's history
      */
-    History parse(File file, Repository repos, String sinceRevision) throws HistoryException {
+    History parse(File file, GitRepository repos, String sinceRevision) throws HistoryException {
         myDir = repos.getDirectoryName() + File.separator;
-        repository = (GitRepository) repos;
+        repository = repos;
         RenamedFilesParser parser = new RenamedFilesParser();
         try {
             Executor executor = repository.getHistoryLogExecutor(file, sinceRevision);
@@ -204,7 +242,8 @@ class GitHistoryParser extends HistoryParserBase
                     e);
         }
 
-        return new History(entries, parser.getRenamedFiles());
+        history = new History(entries, parser.getRenamedFiles());
+        return history;
     }
 
     /**
@@ -216,8 +255,8 @@ class GitHistoryParser extends HistoryParserBase
      */
     History parse(String buffer) throws IOException {
         myDir = RuntimeEnvironment.getInstance().getSourceRootPath();
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
-        return new History(entries);
+        processStream(new BufferedReader(new StringReader(buffer)));
+        return history;
     }
 
     /**
@@ -268,8 +307,6 @@ class GitHistoryParser extends HistoryParserBase
              * A foo2.f
              * A main.c
              */
-            RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
             try (BufferedReader in = new BufferedReader(new InputStreamReader(input))) {
                 String line;
                 Pattern pattern = Pattern.compile("^R\\d+\\s.*");

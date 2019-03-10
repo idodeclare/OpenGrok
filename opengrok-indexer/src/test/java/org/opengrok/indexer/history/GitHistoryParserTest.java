@@ -30,9 +30,12 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -69,6 +72,26 @@ public class GitHistoryParserTest {
         History result = instance.parse("");
         assertNotNull(result);
         assertEquals("Should not contain any history entries", 0, result.getHistoryEntries().size());
+    }
+
+    @Test
+    public void shouldAccommodateBranchLabels() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+        try (InputStream in = HistoryGuru.class.getResourceAsStream(
+                "/history/git-log-HEAD.txt")) {
+            instance.processStream(in);
+        }
+
+        History gitHistory = instance.getHistory();
+        assertNotNull("should parse git-log-HEAD.txt", gitHistory);
+        List<HistoryEntry> entries = gitHistory.getHistoryEntries();
+        assertEquals("git-log-HEAD.txt entries", 2, entries.size());
+
+        HistoryEntry e1 = entries.get(1);
+        assertEquals("entries[1] revision", "90691f35", e1.getRevision());
+
+        HistoryEntry e0 = entries.get(0);
+        assertEquals("entries[0] revision", "3595fbc9", e0.getRevision());
     }
 
     /**
