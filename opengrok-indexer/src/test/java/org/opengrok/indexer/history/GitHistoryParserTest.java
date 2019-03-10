@@ -19,35 +19,32 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.util.TestRepository;
 
-import static org.junit.Assert.*;
-
 /**
- *
  * @author austvik
  */
 public class GitHistoryParserTest {
 
     private final String gitISODatePattern = "yyyy-MM-dd'T'HH:mm:ssXXX";
-    GitHistoryParser instance;
     private static TestRepository repository = new TestRepository();
-
-    public GitHistoryParserTest() {
-    }
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -56,17 +53,9 @@ public class GitHistoryParserTest {
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
-    }
-
-    @Before
-    public void setUp() {
-        instance = new GitHistoryParser(false);
-    }
-
-    @After
-    public void tearDown() {
-        instance = null;
+    public static void tearDownClass() {
+        repository.destroy();
+        repository = null;
     }
 
     /**
@@ -75,17 +64,20 @@ public class GitHistoryParserTest {
      */
     @Test
     public void parseEmpty() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+
         History result = instance.parse("");
         assertNotNull(result);
-        assertTrue("Should not contain any history entries", 0 == result.getHistoryEntries().size());
+        assertEquals("Should not contain any history entries", 0, result.getHistoryEntries().size());
     }
 
     /**
      * Parse something that could come out from the Memcached repository
-     * @throws java.lang.Exception exception
      */
     @Test
     public void parseALaMemcached() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+
         String commitId1 = "1a23456789abcdef123456789abcderf123456789";
         String commitId2 = "2a2323487092314kjsdafsad7829342kjhsdf3289";
         String commitId3 = "3asdfq234242871934g2sadfsa327894234sa2389";
@@ -131,7 +123,7 @@ public class GitHistoryParserTest {
 
         History result = instance.parse(output);
         assertNotNull(result);
-        assertTrue("Should contain three history entries", 3 == result.getHistoryEntries().size());
+        assertEquals("Should contain three history entries", 3, result.getHistoryEntries().size());
         HistoryEntry e0 = result.getHistoryEntries().get(0);
         assertEquals(commitId1, e0.getRevision());
         assertEquals(author1, e0.getAuthor());
@@ -151,11 +143,11 @@ public class GitHistoryParserTest {
 
     /**
      * Parse something that could come out from the git repository
-     * 
-     * @throws java.lang.Exception
      */
     @Test
     public void parseALaGit() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+
         String commitId1 = "1a23456789abcdef123456789abcderf123456789";
         String commitId2 = "2a2323487092314kjsdafsad7829342kjhsdf3289";
         String author1 = "username <username@example.com>";
@@ -197,7 +189,7 @@ public class GitHistoryParserTest {
 
         History result = instance.parse(output);
         assertNotNull(result);
-        assertTrue("Should contain two history entries", 2 == result.getHistoryEntries().size());
+        assertEquals("Should contain two history entries", 2, result.getHistoryEntries().size());
         HistoryEntry e0 = result.getHistoryEntries().get(0);
         assertEquals(commitId1, e0.getRevision());
         assertEquals(author1, e0.getAuthor());
@@ -218,11 +210,11 @@ public class GitHistoryParserTest {
 
     /**
      * Parse something that could come out from the linux kernel repository
-     *
-     * @throws java.lang.Exception exception
      */
     @Test
     public void parseALaLK() throws Exception {
+        GitHistoryParser instance = new GitHistoryParser(false);
+
         String commitId1 = "1a23456789abcdef123456789abcderf123456789";
         String commitId2 = "2a2323487092314kjsdafsad7829342kjhsdf3289";
         String author1 = "username <username@example.com>";
@@ -284,7 +276,7 @@ public class GitHistoryParserTest {
                 filename2 + "\n";
         History result = instance.parse(output);
         assertNotNull(result);
-        assertTrue("Should contain two history entries", 2 == result.getHistoryEntries().size());
+        assertEquals("Should contain two history entries", 2, result.getHistoryEntries().size());
         HistoryEntry e0 = result.getHistoryEntries().get(0);
         assertEquals(commitId1, e0.getRevision());
         assertEquals(author1, e0.getAuthor());
@@ -306,6 +298,8 @@ public class GitHistoryParserTest {
 
     @Test
     public void testDateFormats() {
+        GitHistoryParser instance = new GitHistoryParser(false);
+
         String[][] dates = new String[][]{
             new String[]{"2017-07-25T13:17:44+02:00", gitISODatePattern},
             };
@@ -333,7 +327,7 @@ public class GitHistoryParserTest {
 
                 History result = instance.parse(output);
                 assertNotNull(result);
-                assertTrue("Should contain one history entry", 1 == result.getHistoryEntries().size());
+                assertEquals("Should contain one history entry", 1, result.getHistoryEntries().size());
                 HistoryEntry e0 = result.getHistoryEntries().get(0);
                 assertEquals(commitId, e0.getRevision());
                 assertEquals(author, e0.getAuthor());
