@@ -19,11 +19,12 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.util;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -326,5 +327,40 @@ public final class StringUtils {
             }
         }
         return 0;
+    }
+
+    /**
+     * Joins the specified {@code argv} by space characters, and wrap in
+     * sufficient bracketing.
+     * <p>On its own, Java will serialize a list of Strings wrapped in brackets
+     * and separated by commas. The bracket wrapping is nice, but the commas
+     * are inconvenient to represent a command-line in the logs, since the
+     * commas have to be removed to run it in a shell.
+     * @return {@code argv} joined with space characters and enclosed in either
+     * simple square brackets or brackets with additional equal sign characters
+     * added when {@code argv} already contains the simpler trailing sequence.
+     * <p>E.g. {@code "[ls abc]"} or {@code "=[mv [abc]]="}
+     */
+    public static String joinArgv(List<String> argv) {
+        StringBuilder leftMark = new StringBuilder("[");
+        StringBuilder rightMark = new StringBuilder("]");
+        while (argv.stream().anyMatch(s -> s.contains(rightMark.toString()))) {
+            leftMark.insert(0, "=");
+            rightMark.append("=");
+        }
+
+        StringBuilder joined = new StringBuilder(leftMark);
+        for (String arg : argv) {
+            joined.append(arg);
+            joined.append(" ");
+        }
+
+        if (joined.length() > leftMark.length()) {
+            // Remove superfluous space.
+            joined.setLength(joined.length() - 1);
+        }
+
+        joined.append(rightMark);
+        return joined.toString();
     }
 }

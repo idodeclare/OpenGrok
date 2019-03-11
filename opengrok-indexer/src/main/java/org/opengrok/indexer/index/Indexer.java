@@ -67,6 +67,7 @@ import org.opengrok.indexer.logger.LoggerUtil;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.OptionParser;
 import org.opengrok.indexer.util.Statistics;
+import org.opengrok.indexer.util.StringUtils;
 
 /**
  * Creates and updates an inverted source index as well as generates Xref, file
@@ -806,7 +807,7 @@ public final class Indexer {
         // so that options may be overwritten later.
         configure.parse(argv);
 
-        LOGGER.log(Level.INFO, "Indexer options: {0}", Arrays.toString(argv));
+        LOGGER.log(Level.INFO, "Indexer options {0}", StringUtils.joinArgv(Arrays.asList(argv)));
 
         if (cfg == null) {
             cfg = new Configuration();

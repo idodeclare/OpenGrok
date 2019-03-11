@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.util;
@@ -147,7 +148,7 @@ public class Executor {
     public int exec(final boolean reportExceptions, StreamHandler handler) {
         int ret = -1;
         ProcessBuilder processBuilder = new ProcessBuilder(cmdList);
-        final String cmd_str = processBuilder.command().toString();
+        final String cmd_str = StringUtils.joinArgv(processBuilder.command());
         final String dir_str;
         Timer timer = null; // timer for timing out the process
 
@@ -254,9 +255,7 @@ public class Executor {
                     ret = process.exitValue();
                 }
             } catch (IllegalThreadStateException e) {
-                if (process != null) {
-                    process.destroy();
-                }
+                process.destroy();
             }
         }
 

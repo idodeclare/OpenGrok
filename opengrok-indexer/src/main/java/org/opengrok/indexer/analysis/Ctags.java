@@ -19,7 +19,7 @@
 
  /*
  * Copyright (c) 2005, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.analysis;
 
@@ -40,6 +40,7 @@ import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.IOUtils;
 import org.opengrok.indexer.util.SourceSplitter;
+import org.opengrok.indexer.util.StringUtils;
 
 /**
  * Provides Ctags by having a running subprocess of ctags.
@@ -182,12 +183,8 @@ public class Ctags implements Resettable {
             command.add("--options=" + CTagsExtraOptionsFile);
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (String s : command) {
-            sb.append(s).append(" ");
-        }
-        String commandStr = sb.toString();
-        LOGGER.log(Level.FINE, "Executing ctags command [{0}]", commandStr);
+        String commandStr = StringUtils.joinArgv(command);
+        LOGGER.log(Level.FINE, "Executing ctags command {0}", commandStr);
 
         processBuilder = new ProcessBuilder(command);
 
