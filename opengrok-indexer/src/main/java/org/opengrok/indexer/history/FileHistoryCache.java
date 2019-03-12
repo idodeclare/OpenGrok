@@ -365,6 +365,8 @@ class FileHistoryCache implements HistoryCache {
             repo.assignTagsInHistory(history);
         }
 
+        repo.deduplicateRevisions(history);
+
         writeHistoryToFile(dir, history, cacheFile);
     }
 

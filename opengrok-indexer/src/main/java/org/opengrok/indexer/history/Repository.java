@@ -23,6 +23,8 @@
  */
 package org.opengrok.indexer.history;
 
+import static org.opengrok.indexer.history.HistoryEntry.TAGS_SEP;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -109,7 +111,7 @@ public abstract class Repository extends RepositoryInfo {
 
     /**
      * Gets the instance's repository command, primarily for testing purposes.
-     * @return null if not {@link isWorking}, or otherwise a defined command
+     * @return null if not {@link #isWorking()}, or otherwise a defined command
      */
     public String getRepoCommand() {
         isWorking();
@@ -166,6 +168,15 @@ public abstract class Repository extends RepositoryInfo {
         removeAndVerifyOldestChangeset(partial, sinceRevision);
         history.setHistoryEntries(partial);
         return history;
+    }
+
+    /**
+     * Does nothing, but subclasses can override to remove duplicates that may
+     * exist in a list of history assumed to be sorted with most recent
+     * changeset first.
+     */
+    void deduplicateRevisions(History history) {
+        // nothing
     }
 
     /**
@@ -274,7 +285,7 @@ public abstract class Repository extends RepositoryInfo {
      * tags to changesets which actually exist in the history of given file.
      * Must be implemented repository-specific.
      *
-     * @see getTagList
+     * @see #getTagList()
      * @param hist History we want to assign tags to.
      */
     void assignTagsInHistory(History hist) throws HistoryException {
@@ -300,7 +311,7 @@ public abstract class Repository extends RepositoryInfo {
                     if (ent.getTags() == null) {
                         ent.setTags(lastTagEntry.getTags());
                     } else {
-                        ent.setTags(ent.getTags() + ", " + lastTagEntry.getTags());
+                        ent.setTags(ent.getTags() + TAGS_SEP + lastTagEntry.getTags());
                     }
                 } else {
                     break;

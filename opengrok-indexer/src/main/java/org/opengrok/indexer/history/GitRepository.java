@@ -586,6 +586,28 @@ public class GitRepository extends Repository {
         return result;
     }
 
+    /**
+     * Expunge entries which have revisions (i.e. commit hashes) identical to
+     * their immediately preceding neighbor's to accommodate `git log -m`
+     * returning an entry for each commit of a merge (possibly with distinct
+     * file lists).
+     */
+    @Override
+    void deduplicateRevisions(History history) {
+        HistoryEntry last = null;
+        for (int i = 0; i < history.count(); ++i) {
+            HistoryEntry entry = history.getHistoryEntry(i);
+            if (last == null || last.getRevision() == null ||
+                    !last.getRevision().equals(entry.getRevision())) {
+                last = entry;
+            } else {
+                last.merge(entry);
+                history.removeHistoryEntry(i);
+                --i;
+            }
+        }
+    }
+
     @Override
     boolean hasFileBasedTags() {
         return true;

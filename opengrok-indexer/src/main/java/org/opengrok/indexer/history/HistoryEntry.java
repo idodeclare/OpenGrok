@@ -24,11 +24,15 @@
  */
 package org.opengrok.indexer.history;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
@@ -38,7 +42,10 @@ import org.opengrok.indexer.logger.LoggerFactory;
  */
 public class HistoryEntry {
 
+    static final String TAGS_SEP = ", ";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(HistoryEntry.class);
+    private static final String TAGS_SEP_ESC = Pattern.quote(TAGS_SEP);
 
     private String revision;
     private Date date;
@@ -203,5 +210,44 @@ public class HistoryEntry {
      */
     public void stripTags() {
         tags = null;
+    }
+
+    public void merge(HistoryEntry other) {
+        // Merge files if necessary.
+        if (other.files != null) {
+            if (files == null) {
+                files = other.files;
+                other.files = null;
+            } else {
+                files.addAll(other.files);
+            }
+        }
+        // Merge tags if necessary.
+        if (other.tags != null) {
+            if (tags == null) {
+                tags = other.tags;
+                other.tags = null;
+            } else {
+                tags = mergeTags(tags, other.tags);
+            }
+        }
+    }
+
+    private static String mergeTags(String l, String r) {
+        Set<String> distinct = new TreeSet<>();
+        distinct.addAll(Arrays.asList(l.split(TAGS_SEP_ESC)));
+        distinct.addAll(Arrays.asList(r.split(TAGS_SEP_ESC)));
+
+        StringBuilder merged = new StringBuilder();
+        for (String rev : distinct) {
+            merged.append(rev);
+            merged.append(TAGS_SEP);
+        }
+        if (merged.length() > 0) {
+            // Remove last trailing separator.
+            merged.setLength(merged.length() - TAGS_SEP.length());
+        }
+
+        return merged.toString();
     }
 }

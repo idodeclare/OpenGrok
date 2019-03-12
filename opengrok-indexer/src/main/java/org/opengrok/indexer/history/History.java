@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -51,7 +52,15 @@ public class History {
         this.entries = entries;
         this.renamedFiles = renamed;
     }
-    
+
+    /**
+     * Gets the number of history entries.
+     * @return a non-negative number
+     */
+    public int count() {
+        return entries == null ? 0 : entries.size();
+    }
+
     /**
      * Set the list of log entries for the file. The first entry is the most
      * recent one.
@@ -69,6 +78,28 @@ public class History {
      */
     public List<HistoryEntry> getHistoryEntries() {
         return entries;
+    }
+
+    /**
+     * Returns the entry at the specified position.
+     * @param index index of the entry to return
+     * @return the element at the specified position
+     * @throws IndexOutOfBoundsException if the index is out of range
+     * ({@code index < 0 || index >= size()})
+     */
+    HistoryEntry getHistoryEntry(int index) {
+        return entries.get(index);
+    }
+
+    /**
+     * Removes the entry at the specified position.
+     * @param index the index of the entry to be removed
+     * @return the entry previously at the specified position
+     * @throws IndexOutOfBoundsException if the index is out of range
+     * ({@code index < 0 || index > count()})
+     */
+    HistoryEntry removeHistoryEntry(int index) {
+        return entries.remove(index);
     }
 
     /**
