@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -41,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -464,13 +465,6 @@ public final class HistoryGuru {
         return repoList;
     }
 
-    private Collection<RepositoryInfo>
-        addRepositories(File[] files, Collection<RepositoryInfo> repos,
-                IgnoredNames ignoredNames, int depth) {
-
-        return HistoryGuru.this.addRepositories(files, ignoredNames, true, null, depth);
-    }
-
     /**
      * Recursively search for repositories in given directories, add those found
      * to the internally used repository map.
@@ -610,12 +604,8 @@ public final class HistoryGuru {
         Statistics elapsed = new Statistics();
         ExecutorService executor = RuntimeEnvironment.getInstance().
                 getIndexerParallelizer().getHistoryExecutor();
-        // Since we know each repository object from the repositories
-        // collection is unique, we can abuse HashMap to create a list of
-        // repository,revision tuples with repository as key (as the revision
-        // string does not have to be unique - surely it is not unique
-        // for the initial index case).
-        HashMap<Repository, String> repos2process = new HashMap<>();
+
+        List<CreateCacheWork> repos2process = new ArrayList<>();
 
         // Collect the list of <latestRev,repo> pairs first so that we
         // do not have to deal with latch decrementing in the cycle below.
@@ -624,7 +614,7 @@ public final class HistoryGuru {
 
             try {
                 latestRev = historyCache.getLatestCachedRevision(repo);
-                repos2process.put(repo, latestRev);
+                repos2process.add(new CreateCacheWork(repo, latestRev));
             } catch (HistoryException he) {
                 LOGGER.log(Level.WARNING,
                         String.format(
@@ -636,21 +626,22 @@ public final class HistoryGuru {
         LOGGER.log(Level.INFO, "Creating historycache for {0} repositories",
                 repos2process.size());
         final CountDownLatch latch = new CountDownLatch(repos2process.size());
-        for (final Map.Entry<Repository, String> entry : repos2process.entrySet()) {
-            executor.submit(new Runnable() {
+        for (final CreateCacheWork entry : repos2process) {
+            Future<?> submission = executor.submit(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        createCache(entry.getKey(), entry.getValue());
+                        createCache(entry.repo, entry.latestRev);
                     } catch (Exception ex) {
                         // We want to catch any exception since we are in thread.
-                        LOGGER.log(Level.WARNING,
-                                "createCacheReal() got exception{0}", ex);
+                        LOGGER.log(Level.SEVERE, "Failed historycache for " +
+                                entry.repo.getDirectoryName(), ex);
                     } finally {
                         latch.countDown();
                     }
                 }
             });
+            entry.submission = submission;
         }
 
         /*
@@ -661,9 +652,17 @@ public final class HistoryGuru {
         try {
             latch.await();
         } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "latch exception{0}", ex);
+            LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
             return;
+        }
+
+        for (CreateCacheWork entry : repos2process) {
+            try {
+                entry.submission.get();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Failed historycache for " +
+                        entry.repo.getDirectoryName(), ex);
+            }
         }
 
         // The cache has been populated. Now, optimize how it is stored on
@@ -973,7 +972,7 @@ public final class HistoryGuru {
         try {
             latch.await();
         } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "latch exception{0}", ex);
+            LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
         }
         executor.shutdown();
 
@@ -995,5 +994,16 @@ public final class HistoryGuru {
         String repoDirParent = repoDirectoryFile.getParent();
         repositoryRoots.put(repoDirParent, "");
         repositories.put(repoDirectoryName, repository);
+    }
+
+    private static class CreateCacheWork {
+        final Repository repo;
+        final String latestRev;
+        Future<?> submission;
+
+        CreateCacheWork(Repository repo, String latestRev) {
+            this.repo = repo;
+            this.latestRev = latestRev;
+        }
     }
 }

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -553,12 +553,11 @@ class FileHistoryCache implements HistoryCache {
             });
         }
 
-        // Wait for the executors to finish.
         try {
             // Wait for the executors to finish.
             latch.await();
         } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "latch exception ",ex);
+            LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
         }
         LOGGER.log(Level.FINE, "Stored history for {0} renamed files",
                 renamedFileHistoryCount.intValue());
