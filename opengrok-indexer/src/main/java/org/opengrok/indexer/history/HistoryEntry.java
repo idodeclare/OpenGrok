@@ -19,9 +19,8 @@
 
 /*
  * Copyright (c) 2006, 2018 Oracle and/or its affiliates. All rights reserved.
- */
-/*
  * Copyright 2006 Trond Norbye.  All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -46,15 +45,14 @@ public class HistoryEntry {
     private String author;
     private String tags;
 
-    @SuppressWarnings("PMD.AvoidStringBufferField")
-    private final StringBuffer message;
+    private final StringBuilder message;
 
     private boolean active;
     private SortedSet<String> files;
 
     /** Creates a new instance of HistoryEntry */
     public HistoryEntry() {
-        message = new StringBuffer();
+        message = new StringBuilder();
         files = new TreeSet<>();
     }
     
@@ -78,7 +76,7 @@ public class HistoryEntry {
         setDate(date);
         this.author = author;
         this.tags = tags;
-        this.message = new StringBuffer(message);
+        this.message = new StringBuilder(message);
         this.active = active;
         this.files = new TreeSet<>();
     }
