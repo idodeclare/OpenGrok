@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2009, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -33,7 +33,9 @@ import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
@@ -46,7 +48,8 @@ import org.opengrok.indexer.util.ForbiddenSymlinkException;
  *
  * @author Trond Norbye
  */
-class MonotoneHistoryParser implements Executor.StreamHandler {
+class MonotoneHistoryParser extends HistoryParserBase
+        implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MonotoneHistoryParser.class);
 
@@ -98,10 +101,11 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
     public void processStream(InputStream input) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        String s;
-
+        Map<String, String> relCache = new HashMap<>();
         HistoryEntry entry = null;
         int state = 0;
+
+        String s;
         while ((s = in.readLine()) != null) {
             s = s.trim();
             // Later versions of monotone (such as 1.0) output even more dashes so lets require
@@ -164,9 +168,9 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
                         for (String f : files) {
                             File file = new File(mydir, f);
                             try {
-                                String path = env.getPathRelativeToSourceRoot(
-                                    file);
-                                entry.addFile(path.intern());
+                                String path = getCachedPathRelativeToSourceRoot(
+                                        file, env, relCache);
+                                entry.addFile(path);
                             } catch (ForbiddenSymlinkException e) {
                                 LOGGER.log(Level.FINER, e.getMessage());
                                 // ignore

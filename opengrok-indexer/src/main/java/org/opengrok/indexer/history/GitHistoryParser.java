@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -33,7 +33,9 @@ import java.io.InputStreamReader;
 import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -46,7 +48,8 @@ import org.opengrok.indexer.util.StringUtils;
 /**
  * Parse a stream of Git log comments.
  */
-class GitHistoryParser implements Executor.StreamHandler {
+class GitHistoryParser extends HistoryParserBase
+        implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHistoryParser.class);
 
@@ -81,7 +84,9 @@ class GitHistoryParser implements Executor.StreamHandler {
     private void process(BufferedReader in) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         entries = new ArrayList<>();
+        Map<String, String> relCache = new HashMap<>();
         HistoryEntry entry = null;
+
         ParseState state = ParseState.HEADER;
         String s = in.readLine();
         while (s != null) {
@@ -136,8 +141,9 @@ class GitHistoryParser implements Executor.StreamHandler {
                 if (entry != null) {
                     try {
                         File f = new File(myDir, s);
-                        String path = env.getPathRelativeToSourceRoot(f);
-                        entry.addFile(path.intern());
+                        String path = getCachedPathRelativeToSourceRoot(f, env,
+                                relCache);
+                        entry.addFile(path);
                     } catch (ForbiddenSymlinkException e) {
                         LOGGER.log(Level.FINER, e.getMessage());
                         // ignore

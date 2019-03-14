@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -33,7 +33,9 @@ import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
@@ -44,7 +46,8 @@ import org.opengrok.indexer.util.ForbiddenSymlinkException;
 /**
  * Parse a stream of mercurial log comments.
  */
-class MercurialHistoryParser implements Executor.StreamHandler {
+class MercurialHistoryParser extends HistoryParserBase
+        implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MercurialHistoryParser.class);
 
@@ -111,9 +114,11 @@ class MercurialHistoryParser implements Executor.StreamHandler {
     public void processStream(InputStream input) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        entries = new ArrayList<HistoryEntry>();
-        String s;
+        entries = new ArrayList<>();
+        Map<String, String> relCache = new HashMap<>();
         HistoryEntry entry = null;
+
+        String s;
         while ((s = in.readLine()) != null) {
             if (s.startsWith(MercurialRepository.CHANGESET)) {
                 entry = new HistoryEntry();
@@ -140,8 +145,9 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     if (strings[ii].length() > 0) {
                         File f = new File(mydir, strings[ii]);
                         try {
-                            String path = env.getPathRelativeToSourceRoot(f);
-                            entry.addFile(path.intern());
+                            String path = getCachedPathRelativeToSourceRoot(f,
+                                    env, relCache);
+                            entry.addFile(path);
                         } catch (ForbiddenSymlinkException e) {
                             LOGGER.log(Level.FINER, e.getMessage());
                             // ignore

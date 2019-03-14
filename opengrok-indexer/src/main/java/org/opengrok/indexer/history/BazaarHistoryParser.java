@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -33,7 +33,9 @@ import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
@@ -44,7 +46,8 @@ import org.opengrok.indexer.util.ForbiddenSymlinkException;
 /**
  * Parse a stream of Bazaar log comments.
  */
-class BazaarHistoryParser implements Executor.StreamHandler {
+class BazaarHistoryParser extends HistoryParserBase
+        implements Executor.StreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BazaarHistoryParser.class);
 
@@ -92,12 +95,12 @@ class BazaarHistoryParser implements Executor.StreamHandler {
     @Override
     public void processStream(InputStream input) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        String s;
-
+        Map<String, String> relCache = new HashMap<>();
         HistoryEntry entry = null;
         int state = 0;
+
+        String s;
         while ((s = in.readLine()) != null) {
             if ("------------------------------------------------------------".equals(s)) {
                 if (entry != null && state > 2) {
@@ -168,8 +171,9 @@ class BazaarHistoryParser implements Executor.StreamHandler {
 
                         File f = new File(myDir, s);
                         try {
-                            String name = env.getPathRelativeToSourceRoot(f);
-                            entry.addFile(name.intern());
+                            String path = getCachedPathRelativeToSourceRoot(f, env,
+                                    relCache);
+                            entry.addFile(path);
                         } catch (ForbiddenSymlinkException e) {
                             LOGGER.log(Level.FINER, e.getMessage());
                             // ignored
