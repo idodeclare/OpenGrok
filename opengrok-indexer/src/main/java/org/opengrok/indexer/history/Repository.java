@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -85,7 +85,7 @@ public abstract class Repository extends RepositoryInfo {
     abstract boolean fileHasHistory(File file);
 
     /**
-     * Check if the repository supports {@code getHistory()} requests for whole
+     * Check if the repository supports {@link #getHistory(File)} requests for whole
      * directories at once.
      *
      * @return {@code true} if the repository can get history for directories
@@ -173,7 +173,7 @@ public abstract class Repository extends RepositoryInfo {
      * changeset first) and verify that it is the changeset we expected to find
      * there.
      *
-     * @param entries a list of {@code HistoryEntry} objects
+     * @param entries a list of {@link HistoryEntry} objects
      * @param revision the revision we expect the oldest entry to have
      * @throws HistoryException if the oldest entry was not the one we expected
      */
@@ -269,8 +269,8 @@ public abstract class Repository extends RepositoryInfo {
     }
 
     /**
-     * Assign tags to changesets they represent The complete list of tags must
-     * be pre-built using {@code getTagList()}. Then this function squeeze all
+     * Assign tags to changesets they represent. The complete list of tags must
+     * be pre-built using {@link #getTagList()}. Then this function squeezes all
      * tags to changesets which actually exist in the history of given file.
      * Must be implemented repository-specific.
      *
@@ -347,8 +347,8 @@ public abstract class Repository extends RepositoryInfo {
 
     /**
      * Create a history log cache for all files in this repository.
-     * {@code getHistory()} is used to fetch the history for the entire
-     * repository. If {@code hasHistoryForDirectories()} returns {@code false},
+     * {@link #getHistory(File, String)} is used to fetch the history for the entire
+     * repository. If {@link #hasHistoryForDirectories()} returns {@code false},
      * this method is a no-op.
      *
      * @param cache the cache instance in which to store the history log

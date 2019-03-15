@@ -136,11 +136,6 @@ class FileHistoryCache implements HistoryCache {
             }
         }
 
-        // Assign tags to changesets they represent.
-        if (env.isTagsEnabled() && repository.hasFileBasedTags()) {
-            repository.assignTagsInHistory(hist);
-        }
-
         // Only store directory history for the top-level.
         if (!file.isDirectory() || filename.equals(repository.getDirectoryName())) {
             storeFile(hist, file, repository, !renamed);
@@ -238,7 +233,6 @@ class FileHistoryCache implements HistoryCache {
      * @param dir directory where the file will be saved
      * @param history history to store
      * @param cacheFile the file to store the history to
-     * @throws HistoryException
      */
     private void writeHistoryToFile(File dir, History history, File cacheFile) throws HistoryException {
         // We have a problem that multiple threads may access the cache layer
@@ -287,11 +281,11 @@ class FileHistoryCache implements HistoryCache {
      * @param cacheFile file to where the history object will be stored
      * @param histNew history object with new history entries
      * @param repo repository to where pre pre-image of the cacheFile belong
+     * @param env a defined instance
      * @return merged history (can be null if merge failed for some reason)
-     * @throws HistoryException
      */
-    private History mergeOldAndNewHistory(File cacheFile, History histNew, Repository repo)
-            throws HistoryException {
+    private History mergeOldAndNewHistory(File cacheFile, History histNew,
+              Repository repo, RuntimeEnvironment env) {
 
         History histOld;
         History history = null;
@@ -301,7 +295,6 @@ class FileHistoryCache implements HistoryCache {
             // Merge old history with the new history.
             List<HistoryEntry> listOld = histOld.getHistoryEntries();
             if (!listOld.isEmpty()) {
-                RuntimeEnvironment env = RuntimeEnvironment.getInstance();
                 List<HistoryEntry> listNew = histNew.getHistoryEntries();
                 ListIterator<HistoryEntry> li = listNew.listIterator(listNew.size());
                 while (li.hasPrevious()) {
@@ -309,9 +302,9 @@ class FileHistoryCache implements HistoryCache {
                 }
                 history = new History(listOld);
 
-                // Retag the last changesets in case there have been some new
+                // Un-tag the last changesets in case there have been some new
                 // tags added to the repository. Technically we should just
-                // retag the last revision from the listOld however this
+                // re-tag the last revision from the listOld however this
                 // does not solve the problem when listNew contains new tags
                 // retroactively tagging changesets from listOld so we resort
                 // to this somewhat crude solution.
@@ -319,7 +312,6 @@ class FileHistoryCache implements HistoryCache {
                     for (HistoryEntry ent : history.getHistoryEntries()) {
                         ent.setTags(null);
                     }
-                    repo.assignTagsInHistory(history);
                 }
             }
         } catch (IOException ex) {
@@ -338,7 +330,6 @@ class FileHistoryCache implements HistoryCache {
      * @param repo repository for the file
      * @param mergeHistory whether to merge the history with existing or
      *                     store the histNew as is
-     * @throws HistoryException
      */
     private void storeFile(History histNew, File file, Repository repo,
             boolean mergeHistory) throws HistoryException {
@@ -350,7 +341,6 @@ class FileHistoryCache implements HistoryCache {
             LOGGER.log(Level.FINER, e.getMessage());
             return;
         }
-        History history = histNew;
 
         File dir = cacheFile.getParentFile();
         if (!dir.isDirectory() && !dir.mkdirs()) {
@@ -358,17 +348,24 @@ class FileHistoryCache implements HistoryCache {
                     "Unable to create cache directory '" + dir + "'.");
         }
 
+        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
+        History history = null;
         if (mergeHistory && cacheFile.exists()) {
-            history = mergeOldAndNewHistory(cacheFile, histNew, repo);
+            history = mergeOldAndNewHistory(cacheFile, histNew, repo, env);
         }
 
-        // If the merge failed, null history will be returned.
-        // In such case store at least new history as a best effort.
-        if (history != null) {
-            writeHistoryToFile(dir, history, cacheFile);
-        } else {
-            writeHistoryToFile(dir, histNew, cacheFile);
+        // If the merge failed, null history will be returned. In such case, or
+        // if merge was not done, store at least new history as a best effort.
+        if (history == null) {
+            history = histNew;
         }
+
+        // Assign tags to changesets they represent.
+        if (env.isTagsEnabled() && repo.hasFileBasedTags()) {
+            repo.assignTagsInHistory(history);
+        }
+
+        writeHistoryToFile(dir, history, cacheFile);
     }
 
     private void storeFile(History histNew, File file, Repository repo)
@@ -401,7 +398,6 @@ class FileHistoryCache implements HistoryCache {
      *
      * @param history history object to process into per-file histories
      * @param repository repository object
-     * @throws HistoryException
      */
     @Override
     public void store(History history, Repository repository)
@@ -672,7 +668,7 @@ class FileHistoryCache implements HistoryCache {
         }
     }
 
-    public String getRepositoryHistDataDirname(Repository repository) {
+    String getRepositoryHistDataDirname(Repository repository) {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         String repoDirBasename;
 
@@ -729,7 +725,7 @@ class FileHistoryCache implements HistoryCache {
 
     @Override
     public String getLatestCachedRevision(Repository repository) {
-        String rev = null;
+        String rev;
         BufferedReader input;
 
         String revPath = getRepositoryCachedRevPath(repository);
