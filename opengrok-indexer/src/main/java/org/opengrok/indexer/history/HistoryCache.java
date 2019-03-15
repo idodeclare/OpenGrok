@@ -19,11 +19,13 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
 import java.io.File;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Map;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
 
@@ -66,7 +68,19 @@ interface HistoryCache {
             throws HistoryException, ForbiddenSymlinkException;
 
     /**
-     * Store the history for a repository.
+     * Stores the history enumeration for a repository, where
+     * {@code historyElements} must be ordered from most recent to earlier
+     * between each element and within each element.
+     * @param historySequence The history series to store
+     * @param repository The repository whose history to store
+     * @throws HistoryException if the history cannot be stored
+     */
+    void store(Enumeration<History> historySequence, Repository repository)
+            throws HistoryException;
+
+    /**
+     * Store the history for a repository, where {@code history} must be
+     * ordered from most recent to earlier.
      *
      * @param history The history to store
      * @param repository The repository whose history to store

@@ -45,6 +45,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -90,14 +91,13 @@ class FileHistoryCache implements HistoryCache {
      * Generate history for single file.
      * @param filename name of the file
      * @param historyEntries list of HistoryEntry objects forming the (incremental) history of the file
-     * @param env runtime environment
      * @param repository repository object in which the file belongs
      * @param srcFile file object
      * @param root root of the source repository
      * @param renamed true if the file was renamed in the past
      */
     private void doFileHistory(String filename, List<HistoryEntry> historyEntries,
-            RuntimeEnvironment env, Repository repository,
+            Repository repository,
             File srcFile, File root, boolean renamed) throws HistoryException {
 
         History hist = null;
@@ -110,7 +110,7 @@ class FileHistoryCache implements HistoryCache {
          * will be saved.
          */
         if (renamed) {
-            hist = repository.getHistory(srcFile);
+            hist = new History(repository.getHistory(srcFile));
         }
 
         File file = new File(root, filename);
@@ -136,8 +136,9 @@ class FileHistoryCache implements HistoryCache {
             }
         }
 
-        // Only store directory history for the top-level.
-        if (!file.isDirectory() || filename.equals(repository.getDirectoryName())) {
+        // Store history for file -- or for the top-level directory.
+        if (file.isFile() || (file.isDirectory() &&
+                filename.equals(repository.getDirectoryName()))) {
             storeFile(hist, file, repository, !renamed);
         }
     }
@@ -393,6 +394,19 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
+     * Stores the history enumeration for a repository, where
+     * {@code historyElements} must be ordered from most recent to earlier
+     * between each element and within each element.
+     * @param historySequence The history series to store
+     * @param repository The repository whose history to store
+     * @throws HistoryException if the history cannot be stored
+     */
+    public void store(Enumeration<History> historySequence, Repository repository)
+            throws HistoryException {
+        throw new HistoryException(new UnsupportedOperationException());
+    }
+
+    /**
      * Store history for the whole repository in directory hierarchy resembling
      * the original repository structure. History of individual files will be
      * stored under this hierarchy, each file containing history of
@@ -421,7 +435,7 @@ class FileHistoryCache implements HistoryCache {
 
         // Firstly store the history for the top-level directory.
         doFileHistory(repository.getDirectoryName(), history.getHistoryEntries(),
-                env, repository, env.getSourceRootFile(), null, false);
+                repository, env.getSourceRootFile(), null, false);
 
         HashMap<String, List<HistoryEntry>> map =
                 new HashMap<>();
@@ -485,7 +499,7 @@ class FileHistoryCache implements HistoryCache {
             }
 
             doFileHistory(map_entry.getKey(), map_entry.getValue(),
-                env, repository, null, root, false);
+                    repository, null, root, false);
             fileHistoryCount++;
         }
 
@@ -537,7 +551,7 @@ class FileHistoryCache implements HistoryCache {
             env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
                     try {
                         doFileHistory(map_entry.getKey(), map_entry.getValue(),
-                            env, repositoryF,
+                            repositoryF,
                             new File(env.getSourceRootPath() + map_entry.getKey()),
                             root, true);
                         renamedFileHistoryCount.getAndIncrement();
@@ -593,7 +607,7 @@ class FileHistoryCache implements HistoryCache {
         long time;
         try {
             time = System.currentTimeMillis();
-            history = repository.getHistory(file);
+            history = new History(repository.getHistory(file));
             time = System.currentTimeMillis() - time;
         } catch (UnsupportedOperationException e) {
             // In this case, we've found a file for which the SCM has no history
@@ -608,9 +622,7 @@ class FileHistoryCache implements HistoryCache {
             // a sub-directory change. This will cause us to present a stale
             // history log until a the current directory is updated and
             // invalidates the cache entry.
-            if ((cache != null) &&
-                        (cache.exists() ||
-                             (time > env.getHistoryReaderTimeLimit()))) {
+            if (cache.exists() || time > env.getHistoryReaderTimeLimit()) {
                 // retrieving the history takes too long, cache it!
                 storeFile(history, file, repository);
             }

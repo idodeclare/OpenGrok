@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -90,8 +90,6 @@ public class SCCSRepository extends Repository {
     }
 
     private Map<String,String> getAuthors(File file) throws IOException {
-        Map<String, String> authors = new HashMap<>();
-
         ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
@@ -190,8 +188,8 @@ public class SCCSRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new SCCSHistoryParser(this).parse(file);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new SCCSHistoryParser(this).parse(file));
     }
 
     @Override
@@ -230,7 +228,7 @@ public class SCCSRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

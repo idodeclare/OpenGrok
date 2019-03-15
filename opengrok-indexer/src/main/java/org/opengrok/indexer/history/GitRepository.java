@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
@@ -83,7 +85,7 @@ public class GitRepository extends Repository {
 
     /**
      * All git commands that emit date that needs to be parsed by
-     * {@code getDateFormat()} should use this option.
+     * {@link #getDateFormat()} should use this option.
      */
     private static final String GIT_DATE_OPT = "--date=iso8601-strict";
 
@@ -247,7 +249,7 @@ public class GitRepository extends Repository {
             return false;
         }
 
-        HistoryRevResult result = getHistoryRev(sink::write, fullpath, rev);
+        HistoryRevResult result = getHistoryRev(sink, fullpath, rev);
         if (!result.success && result.iterations < 1) {
             /*
              * If we failed to get the contents it might be that the file was
@@ -284,14 +286,13 @@ public class GitRepository extends Repository {
      *
      * @param input a stream with the output from a log or blame command
      * @return a reader that reads the input
-     * @throws IOException if the reader cannot be created
      */
-    static Reader newLogReader(InputStream input) throws IOException {
+    static Reader newLogReader(InputStream input) {
         // Bug #17731: Git always encodes the log output using UTF-8 (unless
         // overridden by i18n.logoutputencoding, but let's assume that hasn't
         // been done for now). Create a reader that uses UTF-8 instead of the
         // platform's default encoding.
-        return new InputStreamReader(input, "UTF-8");
+        return new InputStreamReader(input, StandardCharsets.UTF_8);
     }
 
     private String getPathRelativeToRepositoryRoot(String fullpath) {
@@ -568,12 +569,12 @@ public class GitRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
+    Enumeration<History> getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    History getHistory(File file, String sinceRevision)
+    Enumeration<History> getHistory(File file, String sinceRevision)
             throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         History result = new GitHistoryParser(isHandleRenamedFiles()).parse(file, this, sinceRevision);
@@ -583,7 +584,7 @@ public class GitRepository extends Repository {
         if (env.isTagsEnabled()) {
             assignTagsInHistory(result);
         }
-        return result;
+        return new SingleHistory(result);
     }
 
     /**
@@ -613,7 +614,7 @@ public class GitRepository extends Repository {
         return true;
     }
 
-    private TagEntry buildTagEntry(File directory, String tag, boolean interactive) {
+    private TagEntry buildTagEntry(File directory, String tags, boolean interactive) {
         ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
@@ -621,12 +622,12 @@ public class GitRepository extends Repository {
         argv.add("--format=commit:%H%nDate:%at");
         argv.add("-n");
         argv.add("1");
-        argv.add(tag);
-        
+        argv.add(tags);
+
         Executor executor = new Executor(argv, directory, interactive ?
                 RuntimeEnvironment.getInstance().getInteractiveCommandTimeout() :
                 RuntimeEnvironment.getInstance().getCommandTimeout());
-        GitTagParser parser = new GitTagParser(tag);
+        GitTagParser parser = new GitTagParser(tags);
         executor.exec(true, parser);
         return parser.getEntries().first();
     }
@@ -659,6 +660,7 @@ public class GitRepository extends Repository {
             LOGGER.log(Level.WARNING,
                     "Failed to read tag list: {0}", e.getMessage());
             this.tagList = null;
+            return;
         }
 
         if (status != 0) {
@@ -666,9 +668,10 @@ public class GitRepository extends Repository {
                 "Failed to get tags for: \"{0}\" Exit code: {1}",
                     new Object[]{directory.getAbsolutePath(), String.valueOf(status)});
             this.tagList = null;
+            return;
         }
-        
-        // Now get hash & date for each tag.
+
+        // Now get hash & date for each tag
         for (String tag : tagsList) {
             TagEntry tagEntry = buildTagEntry(directory, tag, interactive);
             // Reverse the order of the list

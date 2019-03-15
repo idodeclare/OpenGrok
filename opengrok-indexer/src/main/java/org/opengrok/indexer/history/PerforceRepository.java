@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  * Portions Copyright (c) 2019, Chris Ross <cross@distal.com>.
  */
 package org.opengrok.indexer.history;
@@ -27,6 +27,7 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +81,7 @@ public class PerforceRepository extends Repository {
     }
 
     @Override
-    public Annotation annotate(File file, String rev) throws IOException {
+    public Annotation annotate(File file, String rev) {
         ArrayList<String> cmd = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         cmd.add(RepoCommand);
@@ -215,18 +216,19 @@ public class PerforceRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new PerforceHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new PerforceHistoryParser().parse(file, this));
     }
 
     @Override
-    History getHistory(File file, String sinceRevision)
+    Enumeration<History> getHistory(File file, String sinceRevision)
             throws HistoryException {
-        return new PerforceHistoryParser().parse(file, sinceRevision, this);
+        return new SingleHistory(new PerforceHistoryParser().parse(file,
+                sinceRevision, this));
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         return null;
     }
 

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
@@ -128,7 +129,7 @@ public class SSCMRepository extends Repository {
      *                  {@code null} if all changesets should be returned
      * @return An Executor ready to be started
      */
-    Executor getHistoryLogExecutor(final File file, String sinceRevision) throws IOException {
+    Executor getHistoryLogExecutor(final File file, String sinceRevision) {
 
         List<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
@@ -158,14 +159,14 @@ public class SSCMRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
+    Enumeration<History> getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    History getHistory(File file, String sinceRevision)
+    Enumeration<History> getHistory(File file, String sinceRevision)
             throws HistoryException {
-        return new SSCMHistoryParser(this).parse(file, sinceRevision);
+        return new SingleHistory(new SSCMHistoryParser(this).parse(file, sinceRevision));
     }
 
     @Override
@@ -305,7 +306,7 @@ public class SSCMRepository extends Repository {
         return parseAnnotation(exec.getOutputReader(), file.getName());
     }
 
-    protected Annotation parseAnnotation(Reader input, String fileName)
+    private Annotation parseAnnotation(Reader input, String fileName)
             throws IOException {
         BufferedReader in = new BufferedReader(input);
         Annotation ret = new Annotation(fileName);
@@ -373,7 +374,7 @@ public class SSCMRepository extends Repository {
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         return null;
     }
 
@@ -383,7 +384,7 @@ public class SSCMRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

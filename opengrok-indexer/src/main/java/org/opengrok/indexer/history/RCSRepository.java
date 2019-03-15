@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -29,6 +29,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -92,7 +93,7 @@ public class RCSRepository extends Repository {
     }
 
     @Override
-    Annotation annotate(File file, String revision) throws IOException {
+    Annotation annotate(File file, String revision) {
         List<String> argv = new ArrayList<>();
         ensureCommand(CMD_BLAME_PROPERTY_KEY, CMD_BLAME_FALLBACK);
 
@@ -117,9 +118,7 @@ public class RCSRepository extends Repository {
      */
     static IOException wrapInIOException(String message, Throwable t) {
         // IOException's constructor takes a Throwable, but only in JDK 6
-        IOException ioe = new IOException(message + ": " + t.getMessage());
-        ioe.initCause(t);
-        return ioe;
+        return new IOException(message + ": " + t.getMessage(), t);
     }
 
     @Override
@@ -170,22 +169,22 @@ public class RCSRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new RCSHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new RCSHistoryParser().parse(file, this));
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         return null;
     }
 
     @Override
-    String determineBranch(boolean interactive) throws IOException {
+    String determineBranch(boolean interactive) {
         return null;
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

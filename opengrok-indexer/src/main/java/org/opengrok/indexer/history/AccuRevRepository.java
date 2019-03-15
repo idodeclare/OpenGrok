@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -109,7 +110,7 @@ public class AccuRevRepository extends Repository {
     }
 
     @Override
-    public Annotation annotate(File file, String rev) throws IOException {
+    public Annotation annotate(File file, String rev) {
 
         ArrayList<String> cmd = new ArrayList<>();
 
@@ -142,7 +143,7 @@ public class AccuRevRepository extends Repository {
      * @param file file for which history is to be retrieved.
      * @return An Executor ready to be started
      */
-    Executor getHistoryLogExecutor(File file) throws IOException {
+    Executor getHistoryLogExecutor(File file) {
 
         // Do not use absolute paths because symbolic links will cause havoc.
         String path = getDepotRelativePath( file );
@@ -477,12 +478,12 @@ public class AccuRevRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new AccuRevHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new AccuRevHistoryParser().parse(file, this));
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         getAccuRevInfo(new File(getDirectoryName()), interactive);
         return parentInfo;
     }
@@ -493,7 +494,7 @@ public class AccuRevRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

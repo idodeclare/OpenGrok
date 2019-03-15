@@ -25,6 +25,7 @@
 package org.opengrok.indexer.history;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 /**
@@ -38,10 +39,10 @@ public class History {
      * SCMs) during cache creation.
      * These are relative to repository root.
      */
-    private List<String> renamedFiles = new ArrayList<String>();
+    private List<String> renamedFiles = new ArrayList<>();
     
     public History() {
-        this(new ArrayList<HistoryEntry>());
+        this(new ArrayList<>());
     }
 
     History(List<HistoryEntry> entries) {
@@ -51,6 +52,20 @@ public class History {
     History(List<HistoryEntry> entries, List<String> renamed) {
         this.entries = entries;
         this.renamedFiles = renamed;
+    }
+
+    /**
+     * Initialize an instance as the union of a sequence.
+     * @param sequence a defined sequence
+     */
+    History(Enumeration<History> sequence) {
+        this.entries = new ArrayList<>();
+
+        while (sequence.hasMoreElements()) {
+            History that = sequence.nextElement();
+            this.entries.addAll(that.entries);
+            this.renamedFiles.addAll(that.renamedFiles);
+        }
     }
 
     /**
@@ -112,7 +127,7 @@ public class History {
      */
     public List<HistoryEntry> getHistoryEntries(int limit, int offset) {
         offset = offset < 0 ? 0 : offset;
-        limit = offset + limit > entries.size() ? limit = entries.size() - offset : limit;
+        limit = offset + limit > entries.size() ? entries.size() - offset : limit;
         return entries.subList(offset, offset + limit);
     }    
     

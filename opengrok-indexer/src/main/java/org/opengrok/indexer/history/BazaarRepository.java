@@ -19,13 +19,14 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -75,7 +76,7 @@ public class BazaarRepository extends Repository {
             throws IOException {
         String filename = getRepoRelativePath(file);
 
-        List<String> cmd = new ArrayList<String>();
+        List<String> cmd = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         cmd.add(RepoCommand);
         cmd.add("log");
@@ -224,7 +225,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file, String sinceRevision) throws HistoryException {
+    Enumeration<History> getHistory(File file, String sinceRevision) throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         History result = new BazaarHistoryParser(this).parse(file, sinceRevision);
         // Assign tags to changesets they represent
@@ -232,11 +233,11 @@ public class BazaarRepository extends Repository {
         if (env.isTagsEnabled()) {
             assignTagsInHistory(result);
         }
-        return result;
+        return new SingleHistory(result);
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
+    Enumeration<History> getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
@@ -295,7 +296,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

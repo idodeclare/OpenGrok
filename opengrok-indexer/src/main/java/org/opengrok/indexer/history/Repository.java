@@ -38,9 +38,11 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -98,10 +100,13 @@ public abstract class Repository extends RepositoryInfo {
      * Get the history log for the specified file or directory.
      *
      * @param file the file to get the history for
-     * @return history log for file
+     * @return history log for file or directory as an enumeration ordered from
+     * most recent to earlier between each element and within each element to
+     * allow for efficiency where possible to avoid bringing the entire history
+     * into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    abstract History getHistory(File file) throws HistoryException;
+    abstract Enumeration<History> getHistory(File file) throws HistoryException;
 
     public Repository() {
         super();
@@ -134,40 +139,28 @@ public abstract class Repository extends RepositoryInfo {
      * @param file the file to get the history for
      * @param sinceRevision the revision right before the first one to return,
      * or {@code null} to return the full history
-     * @return partial history for file
+     * @return partial history log for file or directory as an enumeration
+     * ordered from most recent to earlier between each element and within each
+     * element to allow for efficiency where possible to avoid bringing the
+     * entire history into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    History getHistory(File file, String sinceRevision)
+    Enumeration<History> getHistory(File file, String sinceRevision)
             throws HistoryException {
 
         // If we want an incremental history update and get here, warn that
         // it may be slow.
         if (sinceRevision != null) {
+            String repoSimpleName = getClass().getSimpleName();
             LOGGER.log(Level.WARNING,
                     "Incremental history retrieval is not implemented for {0}.",
-                    getClass().getSimpleName());
+                    repoSimpleName);
             LOGGER.log(Level.WARNING,
-                    "Falling back to slower full history retrieval.");
+                    "Falling back to slower full history retrieval for {0}.",
+                    repoSimpleName);
         }
 
-        History history = getHistory(file);
-
-        if (sinceRevision == null) {
-            return history;
-        }
-
-        List<HistoryEntry> partial = new ArrayList<>();
-        for (HistoryEntry entry : history.getHistoryEntries()) {
-            partial.add(entry);
-            if (sinceRevision.equals(entry.getRevision())) {
-                // Found revision right before the first one to return.
-                break;
-            }
-        }
-
-        removeAndVerifyOldestChangeset(partial, sinceRevision);
-        history.setHistoryEntries(partial);
-        return history;
+        return new FilteredHistorySequence(getHistory(file), sinceRevision);
     }
 
     /**
@@ -281,11 +274,11 @@ public abstract class Repository extends RepositoryInfo {
 
     /**
      * Assign tags to changesets they represent. The complete list of tags must
-     * be pre-built using {@link #getTagList()}. Then this function squeezes all
+     * be pre-built using {@link #buildTagList(File, boolean)}, and then this function squeezes all
      * tags to changesets which actually exist in the history of given file.
-     * Must be implemented repository-specific.
+     * The {@link TagEntry} instances must be implemented repository-specific.
      *
-     * @see #getTagList()
+     * @see #buildTagList(File, boolean)
      * @param hist History we want to assign tags to.
      */
     void assignTagsInHistory(History hist) throws HistoryException {
@@ -293,7 +286,7 @@ public abstract class Repository extends RepositoryInfo {
             return;
         }
         if (this.getTagList() == null) {
-            throw new HistoryException("Tag list was not created before assigning tags to changesets!");
+            throw new HistoryException("getTagList() is null");
         }
         Iterator<TagEntry> it = this.getTagList().descendingIterator();
         TagEntry lastTagEntry = null;
@@ -302,19 +295,19 @@ public abstract class Repository extends RepositoryInfo {
             // Assign all tags created since the last revision
             // Revision in this HistoryEntry must be already specified!
             // TODO is there better way to do this? We need to "repeat"
-            // last element returned by call to next()
+            //   last element returned by call to next()
             while (lastTagEntry != null || it.hasNext()) {
                 if (lastTagEntry == null) {
                     lastTagEntry = it.next();
                 }
-                if (lastTagEntry.compareTo(ent) >= 0) {
-                    if (ent.getTags() == null) {
-                        ent.setTags(lastTagEntry.getTags());
-                    } else {
-                        ent.setTags(ent.getTags() + TAGS_SEP + lastTagEntry.getTags());
-                    }
-                } else {
+                if (lastTagEntry.compareTo(ent) < 0) {
                     break;
+                }
+
+                if (ent.getTags() == null) {
+                    ent.setTags(lastTagEntry.getTags());
+                } else {
+                    ent.setTags(ent.getTags() + TAGS_SEP + lastTagEntry.getTags());
                 }
                 if (it.hasNext()) {
                     lastTagEntry = it.next();
@@ -388,9 +381,9 @@ public abstract class Repository extends RepositoryInfo {
 
         File directory = new File(getDirectoryName());
 
-        History history;
+        Enumeration<History> historySequence;
         try {
-            history = getHistory(directory, sinceRevision);
+            historySequence = getHistory(directory, sinceRevision);
         } catch (HistoryException he) {
             if (sinceRevision == null) {
                 // Failed to get full history, so fail.
@@ -403,12 +396,12 @@ public abstract class Repository extends RepositoryInfo {
             LOGGER.log(Level.WARNING,
                     "Failed to get partial history. Attempting to "
                     + "recreate the history cache from scratch.", he);
-            history = null;
+            historySequence = null;
         }
 
-        if (sinceRevision != null && history == null) {
+        if (sinceRevision != null && historySequence == null) {
             // Failed to get partial history, now get full history instead.
-            history = getHistory(directory);
+            historySequence = getHistory(directory);
             // Got full history successfully. Clear the history cache so that
             // we can recreate it from scratch.
             cache.clear(this);
@@ -416,12 +409,12 @@ public abstract class Repository extends RepositoryInfo {
 
         // We need to refresh list of tags for incremental reindex.
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        if (env.isTagsEnabled() && this.hasFileBasedTags()) {
-            this.buildTagList(new File(this.getDirectoryName()), false);
+        if (env.isTagsEnabled() && hasFileBasedTags()) {
+            buildTagList(new File(getDirectoryName()), false);
         }
 
-        if (history != null) {
-            cache.store(history, this);
+        if (historySequence != null) {
+            cache.store(historySequence, this);
         }
     }
 
@@ -517,7 +510,7 @@ public abstract class Repository extends RepositoryInfo {
         return false;
     }
 
-    private DateFormat getDateFormat() {
+    protected DateFormat getDateFormat() {
         return new RepositoryDateFormat();
     }
 
@@ -620,8 +613,8 @@ public abstract class Repository extends RepositoryInfo {
     }
 
     static class HistoryRevResult {
-        public boolean success;
-        public int iterations;
+        boolean success;
+        int iterations;
     }
 
     private class RepositoryDateFormat extends DateFormat {
@@ -680,6 +673,37 @@ public abstract class Repository extends RepositoryInfo {
         @Override
         public Date parse(String source, ParsePosition pos) {
             throw new UnsupportedOperationException("not implemented");
+        }
+    }
+
+    /**
+     * Represents a history sequence for a single item. This is used for older
+     * repository implementations that read all history at once with no
+     * sequencing.
+     */
+    static class SingleHistory implements Enumeration<History> {
+        final History element;
+        boolean didYield;
+
+        SingleHistory(History element) {
+            if (element == null) {
+                throw new IllegalArgumentException("element is null");
+            }
+            this.element = element;
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return !didYield;
+        }
+
+        @Override
+        public History nextElement() {
+            if (didYield) {
+                throw new NoSuchElementException();
+            }
+            didYield = true;
+            return element;
         }
     }
 }

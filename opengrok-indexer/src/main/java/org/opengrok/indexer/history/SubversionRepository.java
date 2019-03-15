@@ -19,13 +19,14 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,7 +70,7 @@ public class SubversionRepository extends Repository {
 
     private static final String URLattr = "url";
 
-    protected String reposPath;
+    String reposPath;
 
     public SubversionRepository() {
         type = "Subversion";
@@ -277,13 +278,13 @@ public class SubversionRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return getHistory(file, null, 0, false);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(getHistory(file, null, 0, false));
     }
 
     @Override
-    History getHistory(File file, String sinceRevision) throws HistoryException {
-        return getHistory(file, sinceRevision, 0, false);
+    Enumeration<History> getHistory(File file, String sinceRevision) throws HistoryException {
+        return new SingleHistory(getHistory(file, sinceRevision, 0, false));
     }
 
     private History getHistory(File file, String sinceRevision, int numEntries,
@@ -404,7 +405,7 @@ public class SubversionRepository extends Repository {
     }
 
     @Override
-    String determineBranch(boolean interactive) throws IOException {
+    String determineBranch(boolean interactive) {
         String branch = null;
         Document document = getInfoDocument();
 
@@ -421,7 +422,7 @@ public class SubversionRepository extends Repository {
     }
 
     @Override
-    public String determineCurrentVersion(boolean interactive) throws IOException {
+    public String determineCurrentVersion(boolean interactive) {
         String curVersion = null;
 
         try {

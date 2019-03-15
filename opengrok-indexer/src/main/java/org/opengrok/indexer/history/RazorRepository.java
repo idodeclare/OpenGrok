@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright 2008 Peter Bray
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -162,31 +163,6 @@ public class RazorRepository extends Repository {
                 = directory.getParentFile().getAbsolutePath();
         razorGroupBaseDirectoryPath
                 = new File(directory, RAZOR_DIR).getAbsolutePath();
-    }
-
-    public String getOpengrokSourceRootDirectoryPath() {
-        return opengrokSourceRootDirectoryPath;
-    }
-
-    public void setOpengrokSourceRootDirectoryPath(String opengrokSourceRootDirectoryPath) {
-        this.opengrokSourceRootDirectoryPath = opengrokSourceRootDirectoryPath;
-    }
-
-    public String getRazorGroupBaseDirectoryPath() {
-        return razorGroupBaseDirectoryPath;
-    }
-
-    public void setRazorGroupBaseDirectoryPath(String razorGroupBaseDirectoryPath) {
-        this.razorGroupBaseDirectoryPath = razorGroupBaseDirectoryPath;
-    }
-
-    String getOpenGrokFileNameFor(File file) {
-        return file.getAbsolutePath()
-                .substring(opengrokSourceRootDirectoryPath.length());
-    }
-
-    File getSourceNameForOpenGrokName(String path) {
-        return new File(opengrokSourceRootDirectoryPath + path);
     }
 
     File getRazorHistoryFileFor(File file) throws IOException {
@@ -347,12 +323,12 @@ public class RazorRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new RazorHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new RazorHistoryParser().parse(file, this));
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         return null;
     }
 
@@ -362,7 +338,7 @@ public class RazorRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }

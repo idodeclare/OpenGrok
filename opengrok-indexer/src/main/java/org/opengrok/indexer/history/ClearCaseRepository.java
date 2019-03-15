@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -144,10 +145,9 @@ public class ClearCaseRepository extends Repository {
      * @param file file to annotate
      * @param revision revision to annotate
      * @return file annotation
-     * @throws java.io.IOException if I/O exception occurred
      */
     @Override
-    public Annotation annotate(File file, String revision) throws IOException {
+    public Annotation annotate(File file, String revision) {
         ArrayList<String> argv = new ArrayList<>();
 
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
@@ -209,7 +209,7 @@ public class ClearCaseRepository extends Repository {
             executor = new Executor(Arrays.asList(argv), directory);
             try (BufferedReader in = new BufferedReader(
                     new InputStreamReader(executor.getOutputStream()))) {
-                while ((line = in.readLine()) != null) {
+                while (in.readLine() != null) {
                     // do nothing
                 }
             }
@@ -262,13 +262,13 @@ public class ClearCaseRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 
     private static class VobsHolder {
 
-        public static String[] vobs = runLsvob();
+        static String[] vobs = runLsvob();
     }
 
     private static String[] getAllVobs() {
@@ -309,12 +309,12 @@ public class ClearCaseRepository extends Repository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new ClearCaseHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new ClearCaseHistoryParser().parse(file, this));
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         return null;
     }
 

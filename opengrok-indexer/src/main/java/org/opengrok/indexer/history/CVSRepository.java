@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -157,7 +158,7 @@ public class CVSRepository extends RCSRepository {
     }
 
     @Override
-    String determineBranch(boolean interactive) throws IOException {
+    String determineBranch(boolean interactive) {
         String branch = null;
 
         File tagFile = new File(getDirectoryName(), "CVS/Tag");
@@ -263,12 +264,12 @@ public class CVSRepository extends RCSRepository {
     }
 
     @Override
-    History getHistory(File file) throws HistoryException {
-        return new CVSHistoryParser().parse(file, this);
+    Enumeration<History> getHistory(File file) throws HistoryException {
+        return new SingleHistory(new CVSHistoryParser().parse(file, this));
     }
 
     @Override
-    Annotation annotate(File file, String revision) throws IOException {
+    Annotation annotate(File file, String revision) {
         ArrayList<String> cmd = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         cmd.add(RepoCommand);
@@ -297,7 +298,7 @@ public class CVSRepository extends RCSRepository {
     }
 
     @Override
-    String determineParent(boolean interactive) throws IOException {
+    String determineParent(boolean interactive) {
         File rootFile = new File(getDirectoryName() + File.separator + "CVS"
                 + File.separator + "Root");
         String parent = null;

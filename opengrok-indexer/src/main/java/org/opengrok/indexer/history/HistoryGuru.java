@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,14 +156,17 @@ public final class HistoryGuru {
         Repository repo = getRepository(file);
         if (repo != null) {
             ret = repo.annotate(file, rev);
-            History hist = null;
-            try {
-                hist = repo.getHistory(file);
-            } catch (HistoryException ex) {
-                LOGGER.log(Level.FINEST,
-                        "Cannot get messages for tooltip: ", ex);
+            Enumeration<History> historySequence = null;
+            if (ret != null) {
+                try {
+                    historySequence = repo.getHistory(file);
+                } catch (HistoryException ex) {
+                    LOGGER.log(Level.FINEST,
+                            "Cannot get messages for tooltip: ", ex);
+                }
             }
-            if (hist != null && ret != null) {
+            if (historySequence != null) {
+                History hist = new History(historySequence);
                 Set<String> revs = ret.getRevisions();
                 int revsMatched = 0;
              // !!! cannot do this because of not matching rev ids (keys)
@@ -261,7 +265,7 @@ public final class HistoryGuru {
                     return null;
                 }
             }
-            return repo.getHistory(file);
+            return new History(repo.getHistory(file));
         }
 
         return null;

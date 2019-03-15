@@ -20,7 +20,7 @@
 /*
  * Author: James Service <jas2701@googlemail.com>
  * Portions by: Oracle and/or its affiliates.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -28,6 +28,7 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -167,7 +168,7 @@ public class BitKeeperRepository extends Repository {
      * @return null
      */
     @Override
-    String determineBranch(boolean interactive) throws IOException {
+    String determineBranch(boolean interactive) {
         return null;
     }
 
@@ -180,7 +181,7 @@ public class BitKeeperRepository extends Repository {
     String determineParent(boolean interactive) throws IOException {
         final File directory = new File(getDirectoryName());
 
-        final ArrayList<String> argv = new ArrayList<String>();
+        final ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
         argv.add("parent");
@@ -232,7 +233,7 @@ public class BitKeeperRepository extends Repository {
         final File directory = absolute.getParentFile();
         final String basename = absolute.getName();
 
-        final ArrayList<String> argv = new ArrayList<String>();
+        final ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
         argv.add("files");
@@ -251,10 +252,10 @@ public class BitKeeperRepository extends Repository {
      * Construct a History for a file in this repository.
      *
      * @param file a file in the repository
-     * @return history a history object
+     * @return history a history sequence
      */
     @Override
-    History getHistory(File file) throws HistoryException {
+    Enumeration<History> getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
@@ -263,15 +264,15 @@ public class BitKeeperRepository extends Repository {
      *
      * @param file a file in the repository
      * @param sinceRevision omit history from before, and including, this revision
-     * @return history a history object
+     * @return history a history sequence
      */
     @Override
-    History getHistory(File file, String sinceRevision) throws HistoryException {
+    Enumeration<History> getHistory(File file, String sinceRevision) throws HistoryException {
         final File absolute = file.getAbsoluteFile();
         final File directory = absolute.getParentFile();
         final String basename = absolute.getName();
 
-        final ArrayList<String> argv = new ArrayList<String>();
+        final ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
         argv.add("log");
@@ -297,7 +298,7 @@ public class BitKeeperRepository extends Repository {
             assignTagsInHistory(history);
         }
 
-        return history;
+        return new SingleHistory(history);
     }
 
     @Override
@@ -305,7 +306,7 @@ public class BitKeeperRepository extends Repository {
             BufferSink sink, String parent, String basename, String revision) {
 
         final File directory = new File(parent).getAbsoluteFile();
-        final ArrayList<String> argv = new ArrayList<String>();
+        final ArrayList<String> argv = new ArrayList<>();
         ensureCommand(CMD_PROPERTY_KEY, CMD_FALLBACK);
         argv.add(RepoCommand);
         argv.add("get");
@@ -445,7 +446,7 @@ public class BitKeeperRepository extends Repository {
     }
 
     @Override
-    String determineCurrentVersion(boolean interactive) throws IOException {
+    String determineCurrentVersion(boolean interactive) {
         return null;
     }
 }
