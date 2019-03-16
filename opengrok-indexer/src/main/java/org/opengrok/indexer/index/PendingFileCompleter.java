@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.index;
@@ -47,26 +47,26 @@ import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.TandemPath;
 
 /**
- * Represents a tracker of pending file deletions and renamings that can later
- * be executed.
+ * Represents a tracker of pending file deletions, renamings, and linkages that
+ * can later be executed.
  * <p>
  * {@link PendingFileCompleter} is not generally thread-safe, as only
- * {@link #add(org.opengrok.indexer.index.PendingFileRenaming)} is expected
+ * {@link #add(PendingFileRenaming)} is expected
  * to be run in parallel; that method is thread-safe -- but only among other
  * callers of the same method.
  * <p>
  * No methods are thread-safe between each other. E.g.,
  * {@link #complete()} should only be called by a single thread after all
- * additions of {@link PendingFileDeletion}s and {@link PendingFileRenaming}s
- * are indicated.
+ * additions of {@link PendingFileDeletion}, {@link PendingFileRenaming}, and
+ * {@link PendingSymlinkage} are indicated.
  * <p>
- * {@link #add(org.opengrok.indexer.index.PendingSymlinkage)} should only
+ * {@link #add(PendingSymlinkage)} should only
  * be called in serial from a single thread in an isolated stage.
  * <p>
- * {@link #add(org.opengrok.indexer.index.PendingFileDeletion)} should only
+ * {@link #add(PendingFileDeletion)} should only
  * be called in serial from a single thread in an isolated stage.
  * <p>
- * {@link #add(org.opengrok.indexer.index.PendingFileRenaming)}, as noted,
+ * {@link #add(PendingFileRenaming)}, as noted,
  * can be called in parallel in an isolated stage.
  */
 class PendingFileCompleter {
@@ -76,7 +76,7 @@ class PendingFileCompleter {
      * {@link PendingFileRenaming} actions.
      * <p>Value is {@code ".org_opengrok"}.
      */
-    public static final String PENDING_EXTENSION = ".org_opengrok";
+    static final String PENDING_EXTENSION = ".org_opengrok";
 
     private static final Logger LOGGER =
         LoggerFactory.getLogger(PendingFileCompleter.class);
@@ -179,7 +179,6 @@ class PendingFileCompleter {
      * Attempts to rename all the tracked elements, catching any failures, and
      * throwing an exception if any failed.
      * @return the number of successful renamings
-     * @throws java.io.IOException
      */
     private int completeRenamings() throws IOException {
         int numPending = renames.size();
@@ -226,7 +225,6 @@ class PendingFileCompleter {
      * Attempts to delete all the tracked elements, catching any failures, and
      * throwing an exception if any failed.
      * @return the number of successful deletions
-     * @throws java.io.IOException
      */
     private int completeDeletions() throws IOException {
         int numPending = deletions.size();
@@ -244,13 +242,8 @@ class PendingFileCompleter {
         Map<Boolean, List<PendingFileDeletionExec>> bySuccess =
             pendingExecs.parallelStream().collect(
             Collectors.groupingByConcurrent((x) -> {
-                try {
-                    doDelete(x);
-                    return true;
-                } catch (IOException e) {
-                    x.exception = e;
-                    return false;
-                }
+                doDelete(x);
+                return true;
             }));
         deletions.clear();
 
@@ -319,10 +312,9 @@ class PendingFileCompleter {
         return numPending - numFailures;
     }
 
-    private void doDelete(PendingFileDeletionExec del) throws IOException {
+    private void doDelete(PendingFileDeletionExec del) {
         File f = new File(TandemPath.join(del.absolutePath, PENDING_EXTENSION));
-        File parent = f.getParentFile();
-        del.absoluteParent = parent;
+        del.absoluteParent = f.getParentFile();
 
         doDelete(f);
         f = new File(del.absolutePath);
@@ -411,10 +403,7 @@ class PendingFileCompleter {
             return true;
         }
         // not needed if source's canonical matches re-resolved target canonical
-        if (tgtCanonical.equals(srcCanonical)) {
-            return false;
-        }
-        return true;
+        return !tgtCanonical.equals(srcCanonical);
     }
 
     /**
@@ -456,15 +445,13 @@ class PendingFileCompleter {
      */
     private void tryDeleteParents(List<PendingFileDeletionExec> dels) {
         Set<File> parents = new TreeSet<>(DESC_PATHLEN_COMPARATOR);
-        dels.forEach((del) -> { parents.add(del.absoluteParent); });
+        dels.forEach((del) -> parents.add(del.absoluteParent));
 
         SkeletonDirs skels = new SkeletonDirs();
         for (File dir : parents) {
             skels.reset();
             findFilelessChildren(skels, dir);
-            skels.childDirs.forEach((childDir) -> {
-                tryDeleteDirectory(childDir);
-            });
+            skels.childDirs.forEach(this::tryDeleteDirectory);
             tryDeleteDirectory(dir);
         }
     }
@@ -531,7 +518,6 @@ class PendingFileCompleter {
 
     /**
      * Counts segments arising from {@code File.separatorChar} or '\\'
-     * @param path
      * @return a natural number
      */
     private static int countPathSegments(String path) {
@@ -546,18 +532,18 @@ class PendingFileCompleter {
     }
 
     private class PendingFileDeletionExec {
-        public String absolutePath;
-        public File absoluteParent;
-        public IOException exception;
+        final String absolutePath;
+        File absoluteParent;
+        IOException exception;
         PendingFileDeletionExec(String absolutePath) {
             this.absolutePath = absolutePath;
         }
     }
 
     private class PendingFileRenamingExec {
-        public String source;
-        public String target;
-        public IOException exception;
+        final String source;
+        final String target;
+        IOException exception;
         PendingFileRenamingExec(String source, String target) {
             this.source = source;
             this.target = target;
@@ -565,9 +551,9 @@ class PendingFileCompleter {
     }
 
     private class PendingSymlinkageExec {
-        public String source;
-        public String targetRel;
-        public IOException exception;
+        final String source;
+        final String targetRel;
+        IOException exception;
         PendingSymlinkageExec(String source, String relTarget) {
             this.source = source;
             this.targetRel = relTarget;
@@ -579,9 +565,8 @@ class PendingFileCompleter {
      * deleted for cleanliness.
      */
     private class SkeletonDirs {
-        public boolean ineligible; // a flag used during recursion
-        public final Set<File> childDirs = new TreeSet<>(
-            DESC_PATHLEN_COMPARATOR);
+        final Set<File> childDirs = new TreeSet<>(DESC_PATHLEN_COMPARATOR);
+        boolean ineligible; // a flag used during recursion
 
         public void reset() {
             ineligible = false;
