@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -37,6 +38,6 @@ public class BazaarTagEntry extends TagEntry {
     @Override
     public int compareTo(HistoryEntry that) {
         assert this.revision != NOREV : "BazaarTagEntry created without tag specified.specified";
-        return ((Integer) this.revision).compareTo(Integer.parseInt(that.getRevision()));
+        return Integer.compare(this.revision, Integer.parseInt(that.getRevision()));
     }
 }

@@ -19,41 +19,38 @@
 
 /*
  * Copyright (c) 2012, 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
 import java.util.Date;
 
 /**
- * Class representing tag as Pair&lt;revision, tag string&gt;. Has overloaded
- * equals() using only revision string.
+ * Abstract base class representing tag data supporting SCMs that use a
+ * distinct, ordered changeset integer or SCMs that use distinct, unordered
+ * commit hashes and so use proxy {@link Date} values for ordering.
  *
  * @author Stanislav Kozina
  */
 public abstract class TagEntry implements Comparable<TagEntry> {
 
-    protected int revision;
     /**
      * If repo uses linear revision numbering
      */
-    protected Date date;
+    protected int revision;
     /**
-     * If repo does not use linear numbering
+     * If repo does not use linear revision numbering
      */
-    protected String tags;
+    protected Date date;
     /**
      * Tag of the revision
      */
+    protected String tags;
 
     protected static final int NOREV = -1;
 
     /**
-     * Revision number not present
-     */
-
-    /**
-     * Revision number not present
+     * Revision number is present
      *
      * @param revision revision number
      * @param tags string representing tags
@@ -64,6 +61,9 @@ public abstract class TagEntry implements Comparable<TagEntry> {
         this.tags = tags;
     }
 
+    /**
+     * Revision number is not present
+     */
     public TagEntry(Date date, String tags) {
         if (date == null) {
             throw new IllegalArgumentException("`date' is null");
@@ -98,7 +98,7 @@ public abstract class TagEntry implements Comparable<TagEntry> {
         }
 
         if (this.revision != NOREV) {
-            return ((Integer) this.revision).compareTo(that.revision);
+            return Integer.compare(this.revision, that.revision);
         }
         assert this.date != null : "date == null";
         return this.date.compareTo(that.date);
