@@ -44,6 +44,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.opengrok.indexer.history.MercurialRepositoryTest.runHgCommand;
 
@@ -62,8 +63,6 @@ public class FileHistoryCacheTest {
 
     /**
      * Set up the test environment with repositories and a cache instance.
-     *
-     * @throws java.lang.Exception
      */
     @Before
     public void setUp() throws Exception {
@@ -138,7 +137,7 @@ public class FileHistoryCacheTest {
     public void testStoreAndGetNotRenamed() throws Exception {
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
 
         cache.store(historyToStore, repo);
 
@@ -167,7 +166,7 @@ public class FileHistoryCacheTest {
 
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
 
         // Store the history.
         cache.store(historyToStore, repo);
@@ -204,7 +203,7 @@ public class FileHistoryCacheTest {
         HistoryEntry e2 = entries.get(2);
         assertEquals("Unexpected revision for entry 2", "1:f24a5fd7a85d",
                 e2.getRevision());
-        assertEquals("Invalid tag list for revision 1", null, e2.getTags());
+        assertNull("Invalid tag list for revision 1", e2.getTags());
 
         // Reindex from scratch.
         File dir = new File(cache.getRepositoryHistDataDirname(repo));
@@ -213,7 +212,7 @@ public class FileHistoryCacheTest {
         // We cannot call cache.get() here since it would read the history anew.
         // Instead check that the data directory does not exist anymore.
         assertFalse(dir.exists());
-        History freshHistory = repo.getHistory(reposRoot);
+        History freshHistory = new History(repo.getHistory(reposRoot));
         cache.store(freshHistory, repo);
         History updatedHistoryFromScratch = cache.get(reposRoot, repo, true);
         assertEquals("Unexpected number of history entries",
@@ -243,7 +242,7 @@ public class FileHistoryCacheTest {
         RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
 
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
 
         cache.store(historyToStore, repo);
 
@@ -290,7 +289,7 @@ public class FileHistoryCacheTest {
         // test get history for directory
         // Need to refresh history to store since the file lists were stripped
         // from it in the call to cache.store() above.
-        historyToStore = repo.getHistory(reposRoot);
+        historyToStore = new History(repo.getHistory(reposRoot));
         History dirHistory = cache.get(reposRoot, repo, true);
         assertSameEntries(
                 historyToStore.getHistoryEntries(),
@@ -339,7 +338,7 @@ public class FileHistoryCacheTest {
 
         cache.store(historyToStore, repo);
         // check that the data directory is non-empty
-        assertEquals(true, dir.list().length > 0);
+        assertTrue("dir.list().length is positive", dir.list().length > 0);
         updatedHistory = cache.get(reposRoot, repo, true);
         assertSameEntries(updatedHistory.getHistoryEntries(),
                 cache.get(reposRoot, repo, true).getHistoryEntries(), true);
@@ -374,7 +373,7 @@ public class FileHistoryCacheTest {
         // It is necessary to call getRepository() only after tags were enabled
         // to produce list of tags.
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
         cache.store(historyToStore, repo);
 
         // Import changesets which rename one of the files in the repository.
@@ -513,7 +512,7 @@ public class FileHistoryCacheTest {
         // It is necessary to call getRepository() only after tags were enabled
         // to produce list of tags.
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
         cache.store(historyToStore, repo);
 
         /* quick sanity check */

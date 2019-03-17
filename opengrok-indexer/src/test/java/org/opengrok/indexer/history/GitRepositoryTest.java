@@ -97,7 +97,6 @@ public class GitRepositoryTest {
 
     /**
      * Test of parseAnnotation method, of class GitRepository.
-     * @throws java.lang.Exception
      */
     @Test
     public void parseAnnotation() throws Exception {
@@ -119,7 +118,7 @@ public class GitRepositoryTest {
         assertNotNull(result);
         assertEquals(3, result.size());
         for (int i = 1; i <= 3; i++) {
-            assertEquals(true, result.isEnabled(i));
+            assertTrue("isEnabled()", result.isEnabled(i));
         }
         assertEquals(revId1, result.getRevision(1));
         assertEquals(revId2, result.getRevision(2));
@@ -203,7 +202,6 @@ public class GitRepositoryTest {
                 = (GitRepository) RepositoryFactory.getRepository(root);
         gitrepo.setHandleRenamedFiles(true);
 
-        int i = 0;
         for (String[] test : tests) {
             String file = Paths.get(root.getCanonicalPath(), test[0]).toString();
             String changeset = test[1];
@@ -212,9 +210,8 @@ public class GitRepositoryTest {
                 String originalName = gitrepo.findOriginalName(file, changeset);
                 Assert.assertEquals(expectedName, originalName);
             } catch (IOException ex) {
-                Assert.fail(String.format("Looking for original name of {} in {} shouldn't fail", file, changeset));
+                Assert.fail(String.format("Looking for original name of %s in %s shouldn't fail", file, changeset));
             }
-            i++;
         }
     }
 
@@ -292,7 +289,6 @@ public class GitRepositoryTest {
      * Test that {@code getHistoryGet()} returns historical contents of renamed
      * file.
      *
-     * @throws java.lang.Exception
      * @see #testRenamedFiles for git repo structure info
      */
     @Test
@@ -369,7 +365,6 @@ public class GitRepositoryTest {
      * Test that {@code getHistoryGet()} returns historical contents of renamed
      * file.
      *
-     * @throws java.lang.Exception
      * @see #testRenamedFiles for git repo structure info
      */
     @Test
@@ -443,7 +438,7 @@ public class GitRepositoryTest {
         GitRepository gitrepo
                 = (GitRepository) RepositoryFactory.getRepository(root);
 
-        History history = gitrepo.getHistory(root);
+        History history = new History(gitrepo.getHistory(root));
         Assert.assertNotNull(history);
         Assert.assertNotNull(history.getHistoryEntries());
         Assert.assertEquals(8, history.getHistoryEntries().size());
@@ -474,7 +469,7 @@ public class GitRepositoryTest {
         GitRepository gitrepo
                 = (GitRepository) RepositoryFactory.getRepository(root);
 
-        History history = gitrepo.getHistory(new File(root.getAbsolutePath(), "moved2/renamed2.c"));
+        History history = new History(gitrepo.getHistory(new File(root.getAbsolutePath(), "moved2/renamed2.c")));
         Assert.assertNotNull(history);
         Assert.assertNotNull(history.getHistoryEntries());
         Assert.assertEquals(5, history.getHistoryEntries().size());

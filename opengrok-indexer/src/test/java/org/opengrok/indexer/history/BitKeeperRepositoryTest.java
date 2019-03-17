@@ -95,7 +95,7 @@ public class BitKeeperRepositoryTest {
         bkFiles = null;
     }
 
-    static private void validateHistory(History history) throws Exception {
+    static private void validateHistory(History history) {
         final List<HistoryEntry> entries = history.getHistoryEntries();
         final List<String> renames = history.getRenamedFiles();
 
@@ -113,12 +113,12 @@ public class BitKeeperRepositoryTest {
 
         // Validate that the renamed files list corresponds
         // to all the file names we know of for this file.
-        final TreeSet<String> fileNames = new TreeSet<String>();
+        final TreeSet<String> fileNames = new TreeSet<>();
         for (final HistoryEntry entry : entries) {
             fileNames.addAll(entry.getFiles());
         }
         final String currentName = entries.get(0).getFiles().first();
-        final TreeSet<String> pastNames = new TreeSet<String>(renames);
+        final TreeSet<String> pastNames = new TreeSet<>(renames);
         pastNames.add(currentName);
         assertEquals("File history has incorrect rename list.", fileNames, pastNames);
     }
@@ -129,8 +129,8 @@ public class BitKeeperRepositoryTest {
 
         for (final String bkFile : bkFiles) {
             final File file = new File(bkRepo.getDirectoryName(), bkFile);
-            final History fullHistory = bkRepo.getHistory(file);
-            final History partHistory = bkRepo.getHistory(file, "1.2");
+            final History fullHistory = new History(bkRepo.getHistory(file));
+            final History partHistory = new History(bkRepo.getHistory(file, "1.2"));
             // I made sure that each file had a 1.2
 
             validateHistory(fullHistory);
@@ -144,14 +144,14 @@ public class BitKeeperRepositoryTest {
     }
 
     @Test
-    public void testGetHistoryInvalid() throws Exception {
+    public void testGetHistoryInvalid() {
         assertNotNull("Couldn't read bitkeeper test repository.", bkRepo);
 
         final File file = new File(bkRepo.getDirectoryName(), "fakename.cpp");
 
         boolean caughtFull = false;
         try {
-            final History fullHistory = bkRepo.getHistory(file);
+            new History(bkRepo.getHistory(file));
         } catch (final HistoryException e) {
             caughtFull = true;
         }
@@ -159,20 +159,20 @@ public class BitKeeperRepositoryTest {
 
         boolean caughtPart = false;
         try {
-            final History partHistory = bkRepo.getHistory(file, "1.2");
+            new History(bkRepo.getHistory(file, "1.2"));
         } catch (final HistoryException e) {
             caughtPart = true;
         }
         assertTrue("No exception thrown by getHistory with fake file", caughtPart);
     }
 
-    static private String readStream(InputStream stream) throws IOException {
+    static private String readStream(InputStream stream) {
         final Scanner scanner = new Scanner(stream).useDelimiter("\\A");
         return scanner.hasNext() ? scanner.next() : "";
     }
 
     @Test
-    public void testGetHistoryGet() throws Exception {
+    public void testGetHistoryGet() {
         assertNotNull("Couldn't read bitkeeper test repository.", bkRepo);
 
         for (final String bkFile : bkFiles) {
@@ -186,7 +186,7 @@ public class BitKeeperRepositoryTest {
     }
 
     @Test
-    public void testGetHistoryGetInvalid() throws Exception {
+    public void testGetHistoryGetInvalid() {
         assertNotNull("Couldn't read bitkeeper test repository.", bkRepo);
 
         assertNull("Something returned by getHistoryGet with fake file",
@@ -207,19 +207,19 @@ public class BitKeeperRepositoryTest {
             assertEquals("Wrong file returned by annotate.", currentVersion.getFilename(), file.getName());
             assertEquals("Wrong file returned by annotate.", firstVersion.getFilename(), file.getName());
             assertTrue("Incorrect revisions returned by annotate.", currentVersion.getRevisions().size() > 1);
-            assertTrue("Incorrect revisions returned by annotate.", firstVersion.getRevisions().size() == 1);
+            assertEquals("Incorrect revisions returned by annotate.", 1, firstVersion.getRevisions().size());
         }
     }
 
     @Test
-    public void testAnnotationInvalid() throws Exception {
+    public void testAnnotationInvalid() {
         assertNotNull("Couldn't read bitkeeper test repository.", bkRepo);
 
         final File file = new File(bkRepo.getDirectoryName(), "fakename.cpp");
 
         boolean caughtCurrent = false;
         try {
-            final Annotation currentVersion = bkRepo.annotate(file, "+");
+            bkRepo.annotate(file, "+");
         } catch (final IOException e) {
             caughtCurrent = true;
         }
@@ -227,7 +227,7 @@ public class BitKeeperRepositoryTest {
 
         boolean caughtFirst = false;
         try {
-            final Annotation firstVersion = bkRepo.annotate(file, "1.1");
+            bkRepo.annotate(file, "1.1");
         } catch (final IOException e) {
             caughtFirst = true;
         }

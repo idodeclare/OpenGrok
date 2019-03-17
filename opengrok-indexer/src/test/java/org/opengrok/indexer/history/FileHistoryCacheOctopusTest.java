@@ -73,7 +73,7 @@ public class FileHistoryCacheOctopusTest {
     public void testStoreAndGet() throws Exception {
         File reposRoot = new File(repositories.getSourceRoot(), "git-octopus");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = repo.getHistory(reposRoot);
+        History historyToStore = new History(repo.getHistory(reposRoot));
 
         cache.store(historyToStore, repo);
 

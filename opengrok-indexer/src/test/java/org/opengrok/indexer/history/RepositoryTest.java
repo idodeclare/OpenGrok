@@ -24,9 +24,9 @@
 package org.opengrok.indexer.history;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.Arrays;
+import java.util.Enumeration;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opengrok.indexer.util.BufferSink;
@@ -153,7 +153,7 @@ public class RepositoryTest {
         }
 
         @Override
-        public History getHistory(File file) throws HistoryException {
+        public Enumeration<History> getHistory(File file) {
             return null;
         }
 
@@ -169,12 +169,12 @@ public class RepositoryTest {
         }
 
         @Override
-        public Annotation annotate(File file, String revision) throws IOException {
+        public Annotation annotate(File file, String revision) {
             return null;
         }
 
         @Override
-        public void update() throws IOException {
+        public void update() {
         }
 
         @Override
@@ -183,17 +183,17 @@ public class RepositoryTest {
         }
 
         @Override
-        public String determineParent(boolean interactive) throws IOException {
+        public String determineParent(boolean interactive) {
             return "";
         }
 
         @Override
-        public String determineBranch(boolean interactive) throws IOException {
+        public String determineBranch(boolean interactive) {
             return "";
         }
 
         @Override
-        String determineCurrentVersion(boolean interactive) throws IOException {
+        String determineCurrentVersion(boolean interactive) {
             return null;
         }
     }
