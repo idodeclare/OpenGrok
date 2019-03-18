@@ -381,7 +381,6 @@ class FileHistoryCache implements HistoryCache {
     @Override
     public void store(History history, Repository repository)
             throws HistoryException {
-
         store(new SingleHistory(history), repository);
     }
 
