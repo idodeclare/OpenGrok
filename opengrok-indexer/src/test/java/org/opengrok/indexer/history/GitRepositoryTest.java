@@ -446,11 +446,11 @@ public class GitRepositoryTest {
         Assert.assertNotNull(history.getRenamedFiles());
         Assert.assertEquals(3, history.getRenamedFiles().size());
 
-        Assert.assertTrue(history.isRenamed("moved/renamed2.c"));
-        Assert.assertTrue(history.isRenamed("moved2/renamed2.c"));
-        Assert.assertTrue(history.isRenamed("moved/renamed.c"));
-        Assert.assertFalse(history.isRenamed("non-existent.c"));
-        Assert.assertFalse(history.isRenamed("renamed.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved/renamed2.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved2/renamed2.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved/renamed.c"));
+        Assert.assertFalse(history.isRenamedBySlowLookup("non-existent.c"));
+        Assert.assertFalse(history.isRenamedBySlowLookup("renamed.c"));
 
         Assert.assertEquals("84599b3c", history.getHistoryEntries().get(0).getRevision());
         Assert.assertEquals("67dfbe26", history.getHistoryEntries().get(1).getRevision());
@@ -477,11 +477,11 @@ public class GitRepositoryTest {
         Assert.assertNotNull(history.getRenamedFiles());
         Assert.assertEquals(3, history.getRenamedFiles().size());
 
-        Assert.assertTrue(history.isRenamed("moved/renamed2.c"));
-        Assert.assertTrue(history.isRenamed("moved2/renamed2.c"));
-        Assert.assertTrue(history.isRenamed("moved/renamed.c"));
-        Assert.assertFalse(history.isRenamed("non-existent.c"));
-        Assert.assertFalse(history.isRenamed("renamed.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved/renamed2.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved2/renamed2.c"));
+        Assert.assertTrue(history.isRenamedBySlowLookup("moved/renamed.c"));
+        Assert.assertFalse(history.isRenamedBySlowLookup("non-existent.c"));
+        Assert.assertFalse(history.isRenamedBySlowLookup("renamed.c"));
 
         Assert.assertEquals("84599b3c", history.getHistoryEntries().get(0).getRevision());
         Assert.assertEquals("67dfbe26", history.getHistoryEntries().get(1).getRevision());

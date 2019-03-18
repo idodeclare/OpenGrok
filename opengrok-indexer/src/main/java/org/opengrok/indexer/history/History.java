@@ -178,6 +178,10 @@ public class History {
         return false;
     }
     
+    public boolean isRenamedBySlowLookup(String file) {
+        return renamedFiles.contains(file);
+    }
+
     public List<String> getRenamedFiles() {
         return renamedFiles;
     }
