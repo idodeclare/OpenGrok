@@ -353,7 +353,19 @@ class FileHistoryCache implements HistoryCache {
         }
 
         if (latestRev != null) {
-            fooDone(latestRev, repository, historyRenamedFiles, completer);
+            if (env.isHandleHistoryOfRenamedFiles()) {
+                storeRenames(historyRenamedFiles, repository, completer);
+            }
+
+            int fileCount = 0;
+            try {
+                fileCount = completer.complete(false);
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Error while finishing completer", e);
+            }
+
+            LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
+            finishStore(repository, latestRev);
         }
     }
 
@@ -370,43 +382,7 @@ class FileHistoryCache implements HistoryCache {
     public void store(History history, Repository repository)
             throws HistoryException {
 
-        List<HistoryEntry> entries = history.getHistoryEntries();
-        String latestRev;
-
-        if (entries.isEmpty()) {
-            // Return immediately when there is nothing to do.
-            return;
-        } else {
-            latestRev = entries.get(0).getRevision();
-        }
-
-        LOGGER.log(Level.FINE, "Storing history for repository {0}",
-                repository.getDirectoryName());
-
-        Set<String> repoRenamedFiles = new HashSet<>(history.getRenamedFiles());
-        Map<String, List<HistoryEntry>> historyRenamedFiles = new HashMap<>();
-
-        PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
-        storePending(historyRenamedFiles, history, repository,
-                repoRenamedFiles, completer);
-
-        fooDone(latestRev, repository, historyRenamedFiles, completer);
-    }
-
-    private void fooDone(String latestRev, Repository repository, Map<String, List<HistoryEntry>> historyRenamedFiles, PendingHistoryCompleter completer) throws HistoryException {
-        if (env.isHandleHistoryOfRenamedFiles()) {
-            storeRenames(historyRenamedFiles, repository, completer);
-        }
-
-        int fileCount = 0;
-        try {
-            fileCount = completer.complete(false);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error while finishing completer", e);
-        }
-
-        LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
-        finishStore(repository, latestRev);
+        store(new SingleHistory(history), repository);
     }
 
     /**

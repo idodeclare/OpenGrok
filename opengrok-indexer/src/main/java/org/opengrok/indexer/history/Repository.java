@@ -42,7 +42,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -676,34 +675,4 @@ public abstract class Repository extends RepositoryInfo {
         }
     }
 
-    /**
-     * Represents a history sequence for a single item. This is used for older
-     * repository implementations that read all history at once with no
-     * sequencing.
-     */
-    static class SingleHistory implements Enumeration<History> {
-        final History element;
-        boolean didYield;
-
-        SingleHistory(History element) {
-            if (element == null) {
-                throw new IllegalArgumentException("element is null");
-            }
-            this.element = element;
-        }
-
-        @Override
-        public boolean hasMoreElements() {
-            return !didYield;
-        }
-
-        @Override
-        public History nextElement() {
-            if (didYield) {
-                throw new NoSuchElementException();
-            }
-            didYield = true;
-            return element;
-        }
-    }
 }
