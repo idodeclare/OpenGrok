@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -293,7 +293,7 @@ public class IndexerTest {
                 RuntimeEnvironment env = RuntimeEnvironment.getInstance();
                 File f = new File(env.getDataRootPath(),
                         TandemPath.join("historycache" + path, ".gz"));
-                Assert.assertTrue("history cache file should be preserved", f.exists());
+                Assert.assertTrue("historycache file should be preserved", f.exists());
             }
             removedFiles.add(path);
         }

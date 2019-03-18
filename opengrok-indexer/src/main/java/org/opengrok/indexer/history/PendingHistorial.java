@@ -24,14 +24,15 @@
 package org.opengrok.indexer.history;
 
 /**
- * Represents the metadata for a pending finalization of persisted SCM history.
+ * Represents the metadata for a pending finalization of persisted SCM history
+ * for a single file, dubbed an "historial".
  */
 final class PendingHistorial {
     private final String absolutePath;
     private final String transientPath;
 
     /**
-     * Initializes an instance
+     * Initializes an instance.
      * @param absolutePath a defined instance
      * @param transientPath a defined instance
      */

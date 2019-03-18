@@ -19,17 +19,23 @@
 
 /*
  * Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
+ * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
  */
 
 package org.opengrok.indexer.history;
 
+import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -38,57 +44,74 @@ import java.util.stream.Collectors;
  * Represents a tracker of pending history operations which can later be executed.
  * <p>
  * {@link PendingHistoryCompleter} is not generally thread-safe, as only
- * {@link #add(PendingHistorial)} is expected to be run in parallel; that method is
- * thread-safe -- but only among other callers of the same method.
+ * {@link #add(PendingHistorial, boolean)} is expected to be run in parallel;
+ * that method is thread-safe -- but only among other callers of the same method.
  * <p>
- * No methods are thread-safe between each other. E.g., {@link #complete()}
+ * No methods are thread-safe between each other. E.g., {@link #complete(boolean)}
  * should only be called by a single thread after all additions of
  * {@link PendingHistorial} are indicated.
  * <p>
- * {@link #add(PendingHistorial)}, as noted, can be called in parallel in an
- * isolated stage.
+ * {@link #add(PendingHistorial, boolean)}, as noted, can be called in parallel
+ * in an isolated stage.
  */
-public class PendingHistoryCompleter {
+class PendingHistoryCompleter {
 
     /**
      * An extension that should be used as the suffix of files for
      * {@link PendingHistorial} actions.
-     * <p>Value is {@code ".org_opengrok_hist"}.
+     * <p>Value is {@code ".org_opengrok"}.
      */
-    public static final String PENDING_EXTENSION = ".org_opengrok_hist";
+    public static final String PENDING_EXTENSION = ".org_opengrok";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(PendingHistoryCompleter.class);
 
     private final Object INSTANCE_LOCK = new Object();
 
-    private final Set<PendingHistorial> historials = new HashSet<>();
+    private final Map<PendingHistorial, Boolean> historials = new HashMap<>();
+
+    private final Repository repo;
+    private final RuntimeEnvironment env;
+
+    PendingHistoryCompleter(Repository repo) {
+        if (repo == null) {
+            throw new IllegalArgumentException("repo is null");
+        }
+        this.repo = repo;
+        env = RuntimeEnvironment.getInstance();
+    }
 
     /**
      * Adds the specified element to this instance's set if it is not already
      * present -- all in a thread-safe manner among other callers of this same
      * method (and only this method).
      * @param e element to be added to this set
+     * @param forceOverwrite a value indicating whether the specific historial
+     * should overwrite its target file
      * @return {@code true} if this instance's set did not already contain the
      * specified element
      */
-    public boolean add(PendingHistorial e) {
-        synchronized(INSTANCE_LOCK) {
-            return historials.add(e);
+    public boolean add(PendingHistorial e, boolean forceOverwrite) {
+        synchronized (INSTANCE_LOCK) {
+            Boolean former = historials.put(e, forceOverwrite);
+            return former == null;
         }
     }
 
     /**
-     * Complete all the tracked file operations.
+     * Completes all the tracked file operations.
      * <p>
      * All operations in each stage are tried in parallel, and any failure is
      * caught and raises an exception (after all items in the stage have been
      * tried).
+     * @param forceOverwrite a value indicating whether all pending
+     * historials should overwrite their target file instead of possibly
+     * merging on a file-specific basis
      * @return the number of successful operations
      * @throws IOException if an I/O error occurs
      */
-    public int complete() throws IOException {
-        int numHistorials = completeHistorials();
+    public int complete(boolean forceOverwrite) throws IOException {
+        int numHistorials = completeHistorials(forceOverwrite);
         LOGGER.log(Level.FINE, "finalized {0} file(s)", numHistorials);
         return numHistorials;
     }
@@ -97,26 +120,27 @@ public class PendingHistoryCompleter {
      * Attempts to finalize all the tracked elements, catching any failures, and
      * throwing an exception if any failed.
      * @return the number of successful finalization of file histories
+     * @param forceOverwrite a value indicating whether all pending
+     * historials should overwrite their target file instead of possibly
+     * merging on a file-specific basis
      */
-    private int completeHistorials() throws IOException {
+    private int completeHistorials(boolean forceOverwrite) throws IOException {
         int numPending = historials.size();
-        int numFailures = 0;
-
         if (numPending < 1) {
             return 0;
         }
 
-        List<PendingHistorialExec> pendingExecs = historials.
+        List<PendingHistorialExec> pendingExecs = historials.keySet().
                 parallelStream().map(f ->
                 new PendingHistorialExec(f.getTransientPath(),
-                        f.getAbsolutePath())).collect(
-                Collectors.toList());
+                        f.getAbsolutePath(), historials.get(f))).collect(
+                                Collectors.toList());
 
         Map<Boolean, List<PendingHistorialExec>> bySuccess =
                 pendingExecs.parallelStream().collect(
                         Collectors.groupingByConcurrent((x) -> {
                             try {
-                                doFinalize(x);
+                                doFinalize(x, forceOverwrite);
                                 return true;
                             } catch (IOException e) {
                                 x.exception = e;
@@ -125,6 +149,7 @@ public class PendingHistoryCompleter {
                         }));
         historials.clear();
 
+        int numFailures = 0;
         List<PendingHistorialExec> failures = bySuccess.getOrDefault(
                 Boolean.FALSE, null);
         if (failures != null && failures.size() > 0) {
@@ -139,29 +164,98 @@ public class PendingHistoryCompleter {
         return numPending - numFailures;
     }
 
-    private void doFinalize(PendingHistorialExec hist) throws IOException {
+    private void doFinalize(PendingHistorialExec work, boolean forceOverwrite)
+            throws IOException {
+
+        final File cacheFile = new File(work.target);
+        final File transientFile = new File(work.temporary);
+
         try {
-            if (hist != null) {
-                throw new IOException(new UnsupportedOperationException());
+            History histNew;
+            if (forceOverwrite || work.forceOverwrite || !cacheFile.exists()) {
+                histNew = History.readGZIP(transientFile);
+            } else {
+                histNew = tryMerge(cacheFile, transientFile);
             }
+
+            // Un-tag the last changesets in case there have been some new
+            // tags added to the repository. Technically we should just
+            // re-tag the last revision from the listOld however this
+            // does not solve the problem when listNew contains new tags
+            // retroactively tagging changesets from listOld so we resort
+            // to this somewhat crude solution.
+            if (env.isTagsEnabled() && repo.hasFileBasedTags()) {
+                for (HistoryEntry ent : histNew.getHistoryEntries()) {
+                    ent.setTags(null);
+                }
+                try {
+                    repo.assignTagsInHistory(histNew);
+                } catch (HistoryException e) {
+                    LOGGER.log(Level.WARNING, "error assignTagsInHistory()", e);
+                }
+            }
+
+            repo.deduplicateRevisions(histNew);
+
+            histNew.writeGZIP(transientFile);
+            Files.move(Paths.get(transientFile.getPath()),
+                    Paths.get(cacheFile.getPath()),
+                    StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to finalize: {0} -> {1}",
-                    new Object[]{hist.temporary, hist.target});
+                    new Object[] {work.temporary, work.target});
             throw e;
         }
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "Finalized pending: {0}",
-                    hist.target);
+                    work.target);
         }
     }
 
-    private class PendingHistorialExec {
+    /**
+     * Read history from cacheFile and merge it with histNew, return merged history.
+     *
+     * @param cacheFile file to where the history object will be stored
+     * @param transientFile file where transient, new history is stored
+     */
+    private History tryMerge(File cacheFile, File transientFile)
+            throws IOException {
+
+        History histNew = History.readGZIP(transientFile);
+        History histOld = null;
+        try {
+            histOld = History.readGZIP(cacheFile);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, String.format("Error decoding %s",
+                    cacheFile), e);
+        }
+
+        if (histOld != null) {
+            // Merge old history with the new history.
+            List<HistoryEntry> listOld = histOld.getHistoryEntries();
+            if (!listOld.isEmpty()) {
+                List<HistoryEntry> listNew = histNew.getHistoryEntries();
+                ListIterator<HistoryEntry> li = listNew.listIterator(listNew.size());
+                while (li.hasPrevious()) {
+                    listOld.add(0, li.previous());
+                }
+                histNew = new History(listOld);
+            }
+        }
+
+        return histNew;
+    }
+
+    private static class PendingHistorialExec {
         final String temporary;
         final String target;
+        final boolean forceOverwrite;
         IOException exception;
-        PendingHistorialExec(String temporary, String target) {
+        PendingHistorialExec(String temporary, String target,
+                boolean forceOverwrite) {
             this.temporary = temporary;
             this.target = target;
+            this.forceOverwrite = forceOverwrite;
         }
     }
 }
