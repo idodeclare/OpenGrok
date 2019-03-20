@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright 2011 Jens Elkner.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.search.context;
 
@@ -63,16 +63,15 @@ public class Context {
     private final LineMatcher[] m;
     static final int MAXFILEREAD = 1024 * 1024;
     private char[] buffer;
-    PlainLineTokenizer tokens;
-    String queryAsURI;
+    private PlainLineTokenizer tokens;
+    private String queryAsURI;
 
     /**
      * Map whose keys tell which fields to look for in the source file, and
      * whose values tell if the field is case insensitive (true for
      * insensitivity, false for sensitivity).
      */
-    private static final Map<String, Boolean> TOKEN_FIELDS =
-            new HashMap<String, Boolean>();
+    private static final Map<String, Boolean> TOKEN_FIELDS = new HashMap<>();
     static {
         TOKEN_FIELDS.put(QueryBuilder.FULL, Boolean.TRUE);
         TOKEN_FIELDS.put(QueryBuilder.REFS, Boolean.FALSE);
@@ -99,7 +98,7 @@ public class Context {
             buildQueryAsURI(qbuilder.getQueries());
             //System.err.println("Found Matchers = "+ m.length + " for " + query);
             buffer = new char[MAXFILEREAD];
-            tokens = new PlainLineTokenizer((Reader) null);
+            tokens = new PlainLineTokenizer(null);
         }
     }
 
@@ -189,7 +188,7 @@ public class Context {
 
         ContextArgs args = new ContextArgs(env.getContextSurround(),
             env.getContextLimit());
-        /**
+        /*
          * Lucene adds to the following value in FieldHighlighter, so avoid
          * integer overflow by not using Integer.MAX_VALUE -- Short is good
          * enough.
@@ -205,13 +204,13 @@ public class Context {
 
         OGKUnifiedHighlighter uhi = new OGKUnifiedHighlighter(env,
             searcher, anz);
-        uhi.setBreakIterator(() -> new StrictLineBreakIterator());
+        uhi.setBreakIterator(StrictLineBreakIterator::new);
         uhi.setFormatter(formatter);
         uhi.setTabSize(tabSize);
 
         try {
             List<String> fieldList = qbuilder.getContextFields();
-            String[] fields = fieldList.toArray(new String[fieldList.size()]);
+            String[] fields = fieldList.toArray(new String[0]);
 
             String res = uhi.highlightFieldsUnion(fields, query, docId,
                 linelimit);
@@ -253,11 +252,15 @@ public class Context {
 
     private boolean alt = true;
 
-    public boolean getContext(Reader in, Writer out, String urlPrefix,
+    /**
+     * This method exists only for testing.
+     */
+    boolean getContext(Reader in, Writer out, String urlPrefix,
         String morePrefix, String path, Definitions tags,
         boolean limit, boolean isDefSearch, List<Hit> hits) {
         return getContext(in, out, urlPrefix, morePrefix, path, tags, limit, isDefSearch, hits, null);
     }
+
     /**
      * ???.
      * Closes the given <var>in</var> reader on return.
@@ -287,17 +290,17 @@ public class Context {
                 (urlPrefix == null) ? "" : Util.URIEncodePath(urlPrefix);
         String pathE = Util.URIEncodePath(path);
         if (tags != null) {
-            matchingTags = new TreeMap<Integer, String[]>();
+            matchingTags = new TreeMap<>();
             try {
                 for (Definitions.Tag tag : tags.getTags()) {
-                    for (int i = 0; i < m.length; i++) {
-                        if (m[i].match(tag.symbol) == LineMatcher.MATCHED) {
+                    for (LineMatcher lineMatcher : m) {
+                        if (lineMatcher.match(tag.symbol) == LineMatcher.MATCHED) {
                             String scope = null;
                             String scopeUrl = null;
                             if (scopes != null) {
                                 Scope scp = scopes.getScope(tag.line);
                                 scope = scp.getName() + "()";
-                                scopeUrl = "<a href=\"" + urlPrefixE + pathE + "#" + Integer.toString(scp.getLineFrom()) + "\">" + scope + "</a>";
+                                scopeUrl = "<a href=\"" + urlPrefixE + pathE + "#" + scp.getLineFrom() + "\">" + scope + "</a>";
                             }
 
                             /* desc[0] is matched symbol
@@ -360,13 +363,13 @@ public class Context {
                 }
             }
         }
-        /**
+        /*
          * Just to get the matching tag send a null in
          */
         if (in == null) {
             return anything;
         }
-        int charsRead = 0;
+        int charsRead;
         boolean truncated = false;
 
         boolean lim = limit;
@@ -418,8 +421,8 @@ public class Context {
             int matchedLines = 0;
             while ((token = tokens.yylex()) != null && (!lim ||
                     matchedLines < limit_max_lines)) {
-                for (int i = 0; i < m.length; i++) {
-                    matchState = m[i].match(token);
+                for (LineMatcher lineMatcher : m) {
+                    matchState = lineMatcher.match(token);
                     if (matchState == LineMatcher.MATCHED) {
                         if (!isDefSearch) {
                             tokens.printContext();
