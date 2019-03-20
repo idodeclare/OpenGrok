@@ -36,6 +36,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -204,10 +205,10 @@ public class Executor {
     }
 
     /**
-     * Execute the command and collect the output
+     * Executes the command for its further processing as an active program.
      *
      * @param reportExceptions Should exceptions be added to the log or not
-     * @return The exit code of the process
+     * @return a defined, started instance
      */
     private ExecutorProcess startExec(final boolean reportExceptions)
             throws IOException {
@@ -412,6 +413,7 @@ public class Executor {
         int finish() {
             if (timer != null) {
                 timer.cancel();
+                timer = null;
             }
             if (process != null) {
                 try {
@@ -424,6 +426,51 @@ public class Executor {
                 }
             }
             return -1;
+        }
+    }
+
+    private static class Foo implements ObjectIterableCloseable {
+
+        final ExecutorProcess executorProcess;
+        final ObjectStreamHandler handler;
+        Object nextObject;
+
+        Foo(ExecutorProcess ep, ObjectStreamHandler handler) {
+            executorProcess = ep;
+            this.handler = handler;
+            handler.initializeObjectStream(ep.process.getInputStream());
+        }
+
+        @Override
+        public void close() {
+            executorProcess.finish();
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return nextObject != null;
+        }
+
+        @Override
+        public Object nextElement() {
+            if (nextObject == null) {
+                throw new NoSuchElementException();
+            }
+
+            Object res = nextObject;
+            nextObject = null;
+            try {
+                nextObject = handler.readFromObjectStream();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (nextObject == null) {
+                if (executorProcess.finish() != 0) {
+
+                }
+            }
+            return res;
         }
     }
 }

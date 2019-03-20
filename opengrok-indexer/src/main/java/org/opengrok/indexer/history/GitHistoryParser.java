@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -43,13 +44,14 @@ import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
+import org.opengrok.indexer.util.ObjectStreamHandler;
 import org.opengrok.indexer.util.StringUtils;
 
 /**
  * Parse a stream of Git log comments.
  */
 class GitHistoryParser extends HistoryParserBase
-        implements Executor.StreamHandler {
+        implements Executor.StreamHandler, ObjectStreamHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHistoryParser.class);
 
@@ -62,7 +64,12 @@ class GitHistoryParser extends HistoryParserBase
     private List<HistoryEntry> entries = new ArrayList<>();
     private History history;
 
+    private BufferedReader reader;
+    private Map<String, String> relCache;
+    private String savedLine;
+
     private final boolean handleRenamedFiles;
+    private final RuntimeEnvironment env;
 
     /**
      * Initializes an instance, with the user specifying whether renamed-files
@@ -70,6 +77,7 @@ class GitHistoryParser extends HistoryParserBase
      */
     GitHistoryParser(boolean handleRenamedFiles) {
         this.handleRenamedFiles = handleRenamedFiles;
+        this.env = RuntimeEnvironment.getInstance();
     }
 
     /**
@@ -106,20 +114,41 @@ class GitHistoryParser extends HistoryParserBase
         history = new History(entries);
     }
 
-    private void process(BufferedReader in) throws IOException {
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        entries = new ArrayList<>();
-        Map<String, String> relCache = new HashMap<>();
-        HistoryEntry entry = null;
+    /**
+     * Initializes the handler to read from the specified input.
+     */
+    public void initializeObjectStream(InputStream in) {
+        reader = null;
 
+        relCache = new HashMap<>();
+        reader = new BufferedReader(GitRepository.newLogReader(in));
+    }
+
+    /**
+     * Reads a {link HistoryEntry} from the initialized input unless the stream
+     * has been exhausted.
+     * @return a defined instance or {@code null} if the stream has been
+     * exhausted
+     */
+    public Object readFromObjectStream() throws IOException {
+        HistoryEntry entry = null;
         ParseState state = ParseState.HEADER;
-        String s = in.readLine();
+
+        String s;
+        if (savedLine == null) {
+            s = reader.readLine();
+        } else {
+            s = savedLine;
+            savedLine = null;
+        }
+
         while (s != null) {
             if (state == ParseState.HEADER) {
 
                 if (s.startsWith("commit")) {
                     if (entry != null) {
-                        entries.add(entry);
+                        savedLine = s;
+                        return entry;
                     }
                     entry = new HistoryEntry();
                     entry.setActive(true);
@@ -159,7 +188,7 @@ class GitHistoryParser extends HistoryParserBase
                     state = ParseState.MESSAGE;
 
                     // The current line is empty - the message starts on the next line (to be parsed below).
-                    s = in.readLine();
+                    s = reader.readLine();
                 }
 
             }
@@ -195,10 +224,19 @@ class GitHistoryParser extends HistoryParserBase
                     }
                 }
             }
-            s = in.readLine();
+            s = reader.readLine();
         }
 
-        if (entry != null) {
+        return entry;
+    }
+
+    private void process(BufferedReader in) throws IOException {
+        entries = new ArrayList<>();
+        relCache = new HashMap<>();
+        reader = in;
+
+        HistoryEntry entry;
+        while ((entry = (HistoryEntry) readFromObjectStream()) != null) {
             entries.add(entry);
         }
     }
@@ -260,7 +298,7 @@ class GitHistoryParser extends HistoryParserBase
      * @throws IOException if we fail to parse the buffer
      */
     History parse(String buffer) throws IOException {
-        myDir = RuntimeEnvironment.getInstance().getSourceRootPath();
+        myDir = env.getSourceRootPath();
         processStream(new BufferedReader(new StringReader(buffer)));
         return history;
     }
@@ -335,6 +373,34 @@ class GitHistoryParser extends HistoryParserBase
          */
         public List<String> getRenamedFiles() {
             return renamedFiles;
+        }
+    }
+
+    private static class GitObjectStreamer
+            implements HistoryEntryIterableCloseable {
+
+        HistoryEntry nextEntry;
+
+        @Override
+        public void close() throws IOException {
+
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return nextEntry != null;
+        }
+
+        @Override
+        public HistoryEntry nextElement() {
+            if (nextEntry == null) {
+                throw new NoSuchElementException();
+            }
+
+            HistoryEntry res = nextEntry;
+            nextEntry = null;
+
+            return res;
         }
     }
 }
