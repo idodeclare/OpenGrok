@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
  * Portions copyright (c) 2011 Jens Elkner. 
- * Portions Copyright (c) 2017-2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.web;
 
@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,11 +61,10 @@ import org.opengrok.indexer.analysis.Definitions;
 import org.opengrok.indexer.configuration.Project;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.configuration.SuperIndexSearcher;
-import org.opengrok.indexer.index.IndexAnalysisSettings;
-import org.opengrok.indexer.index.IndexAnalysisSettingsAccessor;
 import org.opengrok.indexer.index.IndexDatabase;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
+import org.opengrok.indexer.search.SettingsHelper;
 import org.opengrok.indexer.search.Summarizer;
 import org.opengrok.indexer.search.context.Context;
 import org.opengrok.indexer.search.context.HistoryContext;
@@ -78,7 +76,6 @@ import org.opengrok.indexer.util.IOUtils;
  * complexity from UI design.
  *
  * @author Jens Elkner
- * @version $Revision$
  */
 public class SearchHelper {
 
@@ -214,10 +211,7 @@ public class SearchHelper {
      */
     public static final String PARSE_ERROR_MSG = "Unable to parse your query: ";
 
-    /**
-     * Key is Project name or empty string for null Project
-     */
-    private Map<String, IndexAnalysisSettings> mappedAnalysisSettings;
+    private SettingsHelper settingsHelper;
 
     /**
      * User readable description for file types. Only those listed in
@@ -231,7 +225,7 @@ public class SearchHelper {
         return AnalyzerGuru.getfileTypeDescriptions().entrySet();
     }
 
-    File indexDir;
+    private File indexDir;
 
     /**
      * Create the searcher to use w.r.t. currently set parameters and the given
@@ -260,7 +254,7 @@ public class SearchHelper {
             return this;
         }
 
-        mappedAnalysisSettings = null;
+        settingsHelper = null;
         // the Query created by the QueryBuilder
         try {
             indexDir = new File(dataRoot, IndexDatabase.INDEX_DIR);
@@ -613,55 +607,16 @@ public class SearchHelper {
     }
 
     /**
-     * Gets the persisted tabSize via {@link #getSettings(java.lang.String)} if
-     * available or returns the {@code proj} tabSize if available -- or zero.
+     * Gets the persisted tabSize via {@link SettingsHelper} for the active
+     * reader.
      * @param proj a defined instance or {@code null} if no project is active
      * @return tabSize
      * @throws IOException if an I/O error occurs querying the active reader
      */
     public int getTabSize(Project proj) throws IOException {
-        String projectName = proj != null ? proj.getName() : null;
-        IndexAnalysisSettings settings = getSettings(projectName);
-        int tabSize;
-        if (settings != null && settings.getTabSize() != null) {
-            tabSize = settings.getTabSize();
-        } else {
-            tabSize = proj != null ? proj.getTabSize() : 0;
+        if (settingsHelper == null) {
+            settingsHelper = new SettingsHelper(reader);
         }
-        return tabSize;
-    }
-
-    /**
-     * Gets the settings for a specified project, querying the active reader
-     * upon the first call after {@link #prepareExec(java.util.SortedSet)}.
-     * @param projectName a defined instance or {@code null} if no project is
-     * active (or empty string to mean the same thing)
-     * @return a defined instance or {@code null} if none is found
-     * @throws IOException if an I/O error occurs querying the active reader
-     */
-    public IndexAnalysisSettings getSettings(String projectName)
-            throws IOException {
-        if (mappedAnalysisSettings == null) {
-            IndexAnalysisSettingsAccessor dao =
-                new IndexAnalysisSettingsAccessor();
-            IndexAnalysisSettings[] setts = dao.read(reader, Short.MAX_VALUE);
-            mappedAnalysisSettings = map(setts);
-        }
-
-        String k = projectName != null ? projectName : "";
-        return mappedAnalysisSettings.get(k);
-    }
-
-    private Map<String, IndexAnalysisSettings> map(
-        IndexAnalysisSettings[] setts) {
-
-        Map<String, IndexAnalysisSettings> res = new HashMap<>();
-        for (int i = 0; i < setts.length; ++i) {
-            IndexAnalysisSettings settings = setts[i];
-            String k = settings.getProjectName() != null ?
-                settings.getProjectName() : "";
-            res.put(k, settings);
-        }
-        return res;
+        return settingsHelper.getTabSize(proj);
     }
 }
