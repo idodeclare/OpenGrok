@@ -19,32 +19,35 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.search;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengrok.indexer.condition.ConditionalRun;
 import org.opengrok.indexer.condition.ConditionalRunRule;
 import org.opengrok.indexer.condition.CtagsInstalled;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.history.HistoryGuru;
+import org.opengrok.indexer.history.RepositoryFactory;
 import org.opengrok.indexer.index.Indexer;
 import org.opengrok.indexer.util.TestRepository;
-
-import static org.junit.Assert.*;
-import org.opengrok.indexer.history.RepositoryFactory;
 
 /**
  * Do basic testing of the SearchEngine
@@ -54,8 +57,8 @@ import org.opengrok.indexer.history.RepositoryFactory;
 @ConditionalRun(CtagsInstalled.class)
 public class SearchEngineTest {
 
-    static TestRepository repository;
-    static File configFile;
+    private static TestRepository repository;
+    private static File configFile;
 
     @ClassRule
     public static ConditionalRunRule rule = new ConditionalRunRule();
@@ -85,17 +88,9 @@ public class SearchEngineTest {
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
+    public static void tearDownClass() {
         repository.destroy();
         configFile.delete();
-    }
-
-    @Before
-    public void setUp() {
-    }
-
-    @After
-    public void tearDown() {
     }
 
     @Test
@@ -152,7 +147,7 @@ public class SearchEngineTest {
     }
 
     @Test
-    public void testGetQuery() throws Exception {
+    public void testGetQuery() {
         SearchEngine instance = new SearchEngine();
         instance.setHistory("Once upon a time");
         instance.setFile("Makefile");
@@ -164,8 +159,8 @@ public class SearchEngineTest {
                 instance.getQuery());
     }
 
-    /* see https://github.com/oracle/opengrok/issues/2030
     @Test
+    @Ignore("See https://github.com/oracle/opengrok/issues/2030")
     public void testSearch() {
         List<Hit> hits = new ArrayList<>();
 
@@ -292,5 +287,4 @@ public class SearchEngineTest {
         assertEquals(1, instance.search());
         instance.destroy();
     }
-    */
 }
