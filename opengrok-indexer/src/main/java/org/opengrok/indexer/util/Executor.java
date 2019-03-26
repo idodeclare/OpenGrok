@@ -429,7 +429,7 @@ public class Executor {
         }
     }
 
-    private static class Foo implements ObjectIterableCloseable {
+    private static class Foo implements ObjectCloseableIterable {
 
         final ExecutorProcess executorProcess;
         final ObjectStreamHandler handler;

@@ -30,6 +30,6 @@ import java.util.Enumeration;
  * Represents an API for a sequence of {@link HistoryEntry} instances where
  * the sequence is {@link Closeable} to release resources.
  */
-public interface HistoryEntryIterableCloseable
+public interface HistoryEntryCloseableIterable
         extends Enumeration<HistoryEntry>, Closeable {
 }

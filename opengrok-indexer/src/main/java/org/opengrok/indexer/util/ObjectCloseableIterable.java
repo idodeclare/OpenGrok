@@ -30,6 +30,6 @@ import java.util.Enumeration;
  * Represents an API for a sequence of {@link Object} instances where
  * the sequence is {@link Closeable} to release resources.
  */
-public interface ObjectIterableCloseable
+public interface ObjectCloseableIterable
         extends Enumeration<Object>, Closeable {
 }

@@ -377,7 +377,7 @@ class GitHistoryParser extends HistoryParserBase
     }
 
     private static class GitObjectStreamer
-            implements HistoryEntryIterableCloseable {
+            implements HistoryEntryCloseableIterable {
 
         HistoryEntry nextEntry;
 
