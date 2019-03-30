@@ -32,4 +32,14 @@ import java.util.Enumeration;
  */
 public interface ObjectCloseableIterable
         extends Enumeration<Object>, Closeable {
+
+    /**
+     * Returns the exit value for the subprocess.
+     *
+     * @return the exit value of the subprocess represented by this instance.
+     * By convention, the value {@code 0} indicates normal termination.
+     * @throws IllegalThreadStateException if the subprocess represented by
+     * this instance has not yet terminated
+     */
+    int exitValue();
 }

@@ -151,6 +151,7 @@ public class Executor {
         stdout = null;
         stderr = null;
         ExecutorProcess ep = null;
+        byte[] errBytes = null;
         try {
             ep = startExec(reportExceptions);
             handler.processStream(ep.process.getInputStream());
@@ -163,7 +164,8 @@ public class Executor {
             // Wait for the stderr read-out thread to finish the processing and
             // only after that read the data.
             ep.err_thread.join();
-            stderr = ep.err.getBytes();
+            errBytes = ep.err.getBytes();
+            stderr = errBytes;
         } catch (IOException e) {
             if (reportExceptions) {
                 LOGGER.log(Level.SEVERE,
@@ -184,24 +186,132 @@ public class Executor {
         }
 
         if (ret != 0 && reportExceptions) {
-            int MAX_MSG_SZ = 512; /* limit to avoid flooding the logs */
-            StringBuilder msg = new StringBuilder("Non-zero exit status ")
-                    .append(ret).append(" from command ")
-                    .append(ep.cmd_str)
-                    .append(" in directory ")
-                    .append(ep.dir_str);
-            if (stderr != null && stderr.length > 0) {
-                    msg.append(": ");
-                    if (stderr.length > MAX_MSG_SZ) {
-                            msg.append(new String(stderr, 0, MAX_MSG_SZ)).append("...");
-                    } else {
-                            msg.append(new String(stderr));
-                    }
-            }
-            LOGGER.log(Level.WARNING, msg.toString());
+            logErrBytes(ret, ep.cmd_str, ep.dir_str, errBytes);
         }
 
         return ret;
+    }
+
+    private static void logErrBytes(int exitValue, String cmdStr,
+            String dirStr, byte[] errBytes) {
+        final int MAX_MSG_SZ = 256;
+
+        StringBuilder msg = new StringBuilder().
+                append("Non-zero exit status ").append(exitValue).
+                append(" from command ").append(cmdStr).
+                append(" in directory ").append(dirStr);
+
+        if (errBytes != null && errBytes.length > 0) {
+            msg.append(": ");
+            if (errBytes.length > MAX_MSG_SZ) {
+                msg.append(new String(errBytes, 0, MAX_MSG_SZ)).append("...");
+            } else {
+                msg.append(new String(errBytes));
+            }
+        }
+        LOGGER.log(Level.WARNING, msg.toString());
+    }
+
+    /**
+     * Executes the command, and produces an iterable.
+     *
+     * @param reportExceptions Should exceptions be added to the log or not
+     * @param handler The handler to handle data from standard output
+     * @return a defined instance to wrap the execution
+     * @throws IOException if an execution cannot be started
+     */
+    public ObjectCloseableIterable exec(final boolean reportExceptions,
+            ObjectStreamHandler handler) throws IOException {
+
+        if (handler == null) {
+            throw new IllegalArgumentException("handler is null");
+        }
+
+        stdout = null;
+        stderr = null;
+        final ExecutorProcess ep;
+        try {
+            ep = startExec(reportExceptions);
+        } catch (IOException e) {
+            if (reportExceptions) {
+                LOGGER.log(Level.SEVERE, "Failed to read from process: " +
+                        cmdList.get(0), e);
+            }
+            throw e;
+        }
+
+        final String arg0 = cmdList.get(0);
+        handler.initializeObjectStream(ep.process.getInputStream());
+        Object firstObject = handler.readFromObjectStream();
+
+        return new ObjectCloseableIterable() {
+
+            Object nextObject = firstObject;
+            boolean hadProcessError;
+            int exitValue = -1;
+
+            @Override
+            public int exitValue() {
+                return exitValue;
+            }
+
+            @Override
+            public void close() throws IOException {
+                exitValue = ep.finish();
+                if (hadProcessError) {
+                    throw new IOException("Failed to execute: " + arg0);
+                }
+            }
+
+            @Override
+            public boolean hasMoreElements() {
+                return nextObject != null;
+            }
+
+            @Override
+            public Object nextElement() {
+                if (nextObject == null) {
+                    throw new NoSuchElementException();
+                }
+                Object res = nextObject;
+                nextObject = null;
+                try {
+                    nextObject = handler.readFromObjectStream();
+                } catch (IOException e) {
+                    hadProcessError = true;
+                    if (reportExceptions) {
+                        LOGGER.log(Level.SEVERE,"Failed to read from process: " +
+                                arg0, e);
+                    }
+                }
+
+                if (!hadProcessError && nextObject == null) {
+                    try {
+                        exitValue = ep.process.waitFor();
+                        ep.err_thread.join();
+                    } catch (InterruptedException e) {
+                        hadProcessError = true;
+                        if (reportExceptions) {
+                            LOGGER.log(Level.SEVERE,
+                                    "Waiting for process interrupted: " + arg0,
+                                    e);
+                        }
+                    }
+
+                    LOGGER.log(Level.FINE,
+                            "Finished command {0} in directory {1}",
+                            new Object[] {ep.cmd_str, ep.dir_str});
+
+                    final byte[] errBytes = ep.err.getBytes();
+                    stderr = errBytes;
+                    if (exitValue != 0 && reportExceptions) {
+                        // Limit to avoid flooding the logs.
+                        logErrBytes(exitValue, ep.cmd_str, ep.dir_str, errBytes);
+                    }
+                }
+                return res;
+            }
+        };
     }
 
     /**
@@ -426,51 +536,6 @@ public class Executor {
                 }
             }
             return -1;
-        }
-    }
-
-    private static class Foo implements ObjectCloseableIterable {
-
-        final ExecutorProcess executorProcess;
-        final ObjectStreamHandler handler;
-        Object nextObject;
-
-        Foo(ExecutorProcess ep, ObjectStreamHandler handler) {
-            executorProcess = ep;
-            this.handler = handler;
-            handler.initializeObjectStream(ep.process.getInputStream());
-        }
-
-        @Override
-        public void close() {
-            executorProcess.finish();
-        }
-
-        @Override
-        public boolean hasMoreElements() {
-            return nextObject != null;
-        }
-
-        @Override
-        public Object nextElement() {
-            if (nextObject == null) {
-                throw new NoSuchElementException();
-            }
-
-            Object res = nextObject;
-            nextObject = null;
-            try {
-                nextObject = handler.readFromObjectStream();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            if (nextObject == null) {
-                if (executorProcess.finish() != 0) {
-
-                }
-            }
-            return res;
         }
     }
 }

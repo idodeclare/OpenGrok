@@ -40,4 +40,6 @@ Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
         |Context\.java|HistoryContext\.java|Suggester\.java" />
 
     <suppress checks="MethodLength" files="Indexer\.java" />
+
+    <suppress checks="AnonInnerLength" files="Executor\.java" />
 </suppressions>
