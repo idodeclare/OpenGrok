@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -188,7 +187,7 @@ public class SCCSRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return new SingleHistory(new SCCSHistoryParser(this).parse(file));
     }
 

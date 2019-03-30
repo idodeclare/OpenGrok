@@ -27,7 +27,6 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 import org.opengrok.indexer.util.BufferSink;
@@ -104,7 +103,7 @@ public class RepoRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) {
+    HistoryCloseableIterable getHistory(File file) {
         throw new UnsupportedOperationException("Should never be called!");
     }
 

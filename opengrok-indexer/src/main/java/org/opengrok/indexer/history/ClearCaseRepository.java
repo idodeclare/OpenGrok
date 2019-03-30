@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -309,7 +308,7 @@ public class ClearCaseRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return new SingleHistory(new ClearCaseHistoryParser().parse(file, this));
     }
 

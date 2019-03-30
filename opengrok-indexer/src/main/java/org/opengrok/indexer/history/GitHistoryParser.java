@@ -250,55 +250,6 @@ class GitHistoryParser extends HistoryParserBase
      *                      {@code null} if all changesets should be returned
      * @return object representing the file's history
      */
-    History parse(File file, GitRepository repos, String sinceRevision) throws HistoryException {
-        myDir = repos.getDirectoryName() + File.separator;
-        repository = repos;
-        RenamedFilesParser parser = new RenamedFilesParser();
-        try {
-            Executor executor;
-            int status;
-
-            // Process renames first so they are on the first in sequence.
-            if (handleRenamedFiles) {
-                executor = repository.getRenamedFilesExecutor(file, sinceRevision);
-                status = executor.exec(true, parser);
-
-                if (status != 0) {
-                    throw new HistoryException(
-                            String.format("Failed to get renamed files for: \"%s\" Exit code: %d",
-                                    file.getAbsolutePath(),
-                                    status));
-                }
-            }
-
-            executor = repository.getHistoryLogExecutor(file, sinceRevision);
-            status = executor.exec(true, this);
-
-            if (status != 0) {
-                throw new HistoryException(
-                        String.format("Failed to get history for: \"%s\" Exit code: %d",
-                                file.getAbsolutePath(),
-                                status));
-            }
-        } catch (IOException e) {
-            throw new HistoryException(
-                    String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
-                    e);
-        }
-
-        history = new History(entries, parser.getRenamedFiles());
-        return history;
-    }
-
-    /**
-     * Parse the history for the specified file.
-     *
-     * @param file the file to parse history for
-     * @param repos Pointer to the GitRepository
-     * @param sinceRevision the oldest changeset to return from the executor, or
-     *                      {@code null} if all changesets should be returned
-     * @return object representing the file's history
-     */
     History parse(File file, GitRepository repos, String sinceRevision)
             throws HistoryException {
         myDir = repos.getDirectoryName() + File.separator;

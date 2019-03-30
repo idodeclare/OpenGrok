@@ -105,7 +105,7 @@ public abstract class Repository extends RepositoryInfo {
      * into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    abstract Enumeration<History> getHistory(File file) throws HistoryException;
+    abstract HistoryCloseableIterable getHistory(File file) throws HistoryException;
 
     public Repository() {
         super();
@@ -144,7 +144,7 @@ public abstract class Repository extends RepositoryInfo {
      * entire history into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    Enumeration<History> getHistory(File file, String sinceRevision)
+    HistoryCloseableIterable getHistory(File file, String sinceRevision)
             throws HistoryException {
 
         // If we want an incremental history update and get here, warn that

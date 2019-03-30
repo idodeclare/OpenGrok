@@ -36,7 +36,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
@@ -570,12 +569,12 @@ public class GitRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision)
+    HistoryCloseableIterable getHistory(File file, String sinceRevision)
             throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         History result = new GitHistoryParser(isHandleRenamedFiles()).parse(file, this, sinceRevision);

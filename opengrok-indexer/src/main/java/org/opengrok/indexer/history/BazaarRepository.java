@@ -26,7 +26,6 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -225,7 +224,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file, String sinceRevision) throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         History result = new BazaarHistoryParser(this).parse(file, sinceRevision);
         // Assign tags to changesets they represent
@@ -237,7 +236,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 

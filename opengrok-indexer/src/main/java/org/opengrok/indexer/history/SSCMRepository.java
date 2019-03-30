@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
@@ -159,12 +158,12 @@ public class SSCMRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision)
+    HistoryCloseableIterable getHistory(File file, String sinceRevision)
             throws HistoryException {
         return new SingleHistory(new SSCMHistoryParser(this).parse(file, sinceRevision));
     }

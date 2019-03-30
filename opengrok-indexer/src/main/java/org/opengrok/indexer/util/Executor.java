@@ -192,35 +192,15 @@ public class Executor {
         return ret;
     }
 
-    private static void logErrBytes(int exitValue, String cmdStr,
-            String dirStr, byte[] errBytes) {
-        final int MAX_MSG_SZ = 256;
-
-        StringBuilder msg = new StringBuilder().
-                append("Non-zero exit status ").append(exitValue).
-                append(" from command ").append(cmdStr).
-                append(" in directory ").append(dirStr);
-
-        if (errBytes != null && errBytes.length > 0) {
-            msg.append(": ");
-            if (errBytes.length > MAX_MSG_SZ) {
-                msg.append(new String(errBytes, 0, MAX_MSG_SZ)).append("...");
-            } else {
-                msg.append(new String(errBytes));
-            }
-        }
-        LOGGER.log(Level.WARNING, msg.toString());
-    }
-
     /**
-     * Executes the command, and produces an iterable.
+     * Starts a command execution, and produces an iterable.
      *
      * @param reportExceptions Should exceptions be added to the log or not
      * @param handler The handler to handle data from standard output
      * @return a defined instance to wrap the execution
      * @throws IOException if an execution cannot be started
      */
-    public ObjectCloseableIterable exec(final boolean reportExceptions,
+    public ObjectCloseableIterable startExec(final boolean reportExceptions,
             ObjectStreamHandler handler) throws IOException {
 
         if (handler == null) {
@@ -494,7 +474,27 @@ public class Executor {
             }
         }
     }
-    
+
+    private static void logErrBytes(int exitValue, String cmdStr,
+                                    String dirStr, byte[] errBytes) {
+        final int MAX_MSG_SZ = 256;
+
+        StringBuilder msg = new StringBuilder().
+                append("Non-zero exit status ").append(exitValue).
+                append(" from command ").append(cmdStr).
+                append(" in directory ").append(dirStr);
+
+        if (errBytes != null && errBytes.length > 0) {
+            msg.append(": ");
+            if (errBytes.length > MAX_MSG_SZ) {
+                msg.append(new String(errBytes, 0, MAX_MSG_SZ)).append("...");
+            } else {
+                msg.append(new String(errBytes));
+            }
+        }
+        LOGGER.log(Level.WARNING, msg.toString());
+    }
+
     public static void registerErrorHandler() {
         UncaughtExceptionHandler dueh =
             Thread.getDefaultUncaughtExceptionHandler();

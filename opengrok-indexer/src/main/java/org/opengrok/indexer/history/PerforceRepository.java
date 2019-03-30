@@ -27,7 +27,6 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -216,7 +215,7 @@ public class PerforceRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return new SingleHistory(new PerforceHistoryParser().parse(file, this));
     }
 

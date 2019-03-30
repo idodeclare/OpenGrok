@@ -28,7 +28,6 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -255,7 +254,7 @@ public class BitKeeperRepository extends Repository {
      * @return history a history sequence
      */
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
@@ -267,7 +266,7 @@ public class BitKeeperRepository extends Repository {
      * @return history a history sequence
      */
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file, String sinceRevision) throws HistoryException {
         final File absolute = file.getAbsoluteFile();
         final File directory = absolute.getParentFile();
         final String basename = absolute.getName();

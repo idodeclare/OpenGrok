@@ -23,8 +23,8 @@
 
 package org.opengrok.indexer.history;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -35,9 +35,9 @@ import java.util.NoSuchElementException;
  * filtering of the full history is done.
  * <p>N.b. the underlying sequence is fully exhausted during the filtering.
  */
-class FilteredHistorySequence implements Enumeration<History> {
+class FilteredHistorySequence implements HistoryCloseableIterable {
 
-    private final Enumeration<History> underlying;
+    private final HistoryCloseableIterable underlying;
     private final String sinceRevision;
     private boolean didMatchRevision;
 
@@ -48,10 +48,15 @@ class FilteredHistorySequence implements Enumeration<History> {
      * @param sinceRevision the revision at which to stop (non-inclusive)
      * returning data, or {@code null} to return the full sequence
      */
-    FilteredHistorySequence(Enumeration<History> historySequence,
+    FilteredHistorySequence(HistoryCloseableIterable historySequence,
             String sinceRevision) {
         this.underlying = historySequence;
         this.sinceRevision = sinceRevision;
+    }
+
+    @Override
+    public void close() throws IOException {
+        underlying.close();
     }
 
     /**

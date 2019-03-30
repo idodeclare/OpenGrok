@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -208,12 +207,12 @@ public class MonotoneRepository extends Repository {
     }
 
     @Override
-    Enumeration<History> getHistory(File file) throws HistoryException {
+    HistoryCloseableIterable getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision)
+    HistoryCloseableIterable getHistory(File file, String sinceRevision)
             throws HistoryException {
         return new SingleHistory(new MonotoneHistoryParser(this).parse(file, sinceRevision));
     }

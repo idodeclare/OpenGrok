@@ -23,7 +23,6 @@
 
 package org.opengrok.indexer.history;
 
-import java.util.Enumeration;
 import java.util.NoSuchElementException;
 
 /**
@@ -31,15 +30,20 @@ import java.util.NoSuchElementException;
  * repository implementations that read all history at once with no
  * sequencing.
  */
-class SingleHistory implements Enumeration<History> {
-    final History element;
-    boolean didYield;
+class SingleHistory implements HistoryCloseableIterable {
+    private final History element;
+    private boolean didYield;
 
     SingleHistory(History element) {
         if (element == null) {
             throw new IllegalArgumentException("element is null");
         }
         this.element = element;
+    }
+
+    @Override
+    public void close() {
+        // no-op
     }
 
     @Override
