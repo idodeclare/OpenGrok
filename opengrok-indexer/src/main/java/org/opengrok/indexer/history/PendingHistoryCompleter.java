@@ -188,11 +188,7 @@ class PendingHistoryCompleter {
                 for (HistoryEntry ent : histNew.getHistoryEntries()) {
                     ent.setTags(null);
                 }
-                try {
-                    repo.assignTagsInHistory(histNew);
-                } catch (HistoryException e) {
-                    LOGGER.log(Level.WARNING, "error assignTagsInHistory()", e);
-                }
+                repo.assignTagsInHistory(histNew);
             }
 
             repo.deduplicateRevisions(histNew);

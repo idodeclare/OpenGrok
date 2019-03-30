@@ -26,7 +26,6 @@ package org.opengrok.indexer.history;
 import java.io.File;
 import java.text.ParseException;
 import java.util.Arrays;
-import java.util.Enumeration;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opengrok.indexer.util.BufferSink;
@@ -153,7 +152,7 @@ public class RepositoryTest {
         }
 
         @Override
-        public Enumeration<History> getHistory(File file) {
+        public HistoryCloseableIterable getHistory(File file) {
             return null;
         }
 

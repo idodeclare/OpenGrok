@@ -39,6 +39,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -577,14 +578,16 @@ public class GitRepository extends Repository {
     HistoryCloseableIterable getHistory(File file, String sinceRevision)
             throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        History result = new GitHistoryParser(isHandleRenamedFiles()).parse(file, this, sinceRevision);
         // Assign tags to changesets they represent
         // We don't need to check if this repository supports tags,
         // because we know it :-)
+        Consumer<History> tagger = null;
         if (env.isTagsEnabled()) {
-            assignTagsInHistory(result);
+            tagger = this::assignTagsInHistory;
         }
-        return new SingleHistory(result);
+
+        GitHistoryParser parser = new GitHistoryParser(isHandleRenamedFiles());
+        return parser.startParse(file, this, sinceRevision, tagger);
     }
 
     /**

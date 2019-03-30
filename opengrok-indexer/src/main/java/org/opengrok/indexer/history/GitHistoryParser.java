@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -301,16 +302,17 @@ class GitHistoryParser extends HistoryParserBase
     }
 
     /**
-     * Parse the history for the specified file.
+     * Starts a parse of history for the specified file.
      *
      * @param file the file to parse history for
-     * @param repo Pointer to the GitRepository
+     * @param repo a defined instance
      * @param sinceRevision the oldest changeset to return from the executor, or
      *                      {@code null} if all changesets should be returned
-     * @return object representing the file's history
+     * @param tagger an optional function to tag changesets
+     * @return a defined sequence representing the file's history
      */
-    HistoryCloseableIterable startParse(
-            File file, GitRepository repo, String sinceRevision)
+    HistoryCloseableIterable startParse(File file, GitRepository repo,
+            String sinceRevision, Consumer<History> tagger)
             throws HistoryException {
 
         myDir = repo.getDirectoryName() + File.separator;
@@ -336,7 +338,7 @@ class GitHistoryParser extends HistoryParserBase
             ObjectCloseableIterable entriesSequence = executor.startExec(
                     true, this);
             List<String> renamedFiles = parser.getRenamedFiles();
-            return newHistoryIterable(entriesSequence, renamedFiles);
+            return newHistoryIterable(entriesSequence, renamedFiles, tagger);
         } catch (IOException e) {
             throw new HistoryException(
                     String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
@@ -351,11 +353,14 @@ class GitHistoryParser extends HistoryParserBase
      */
     private static HistoryCloseableIterable newHistoryIterable(
             final ObjectCloseableIterable entriesSequence,
-            final List<String> renamedFiles) {
+            final List<String> renamedFiles,
+            final Consumer<History> tagger) {
+
+        // Renamed files are published on the first element.
+        History firstHistory = nextHistory(entriesSequence, renamedFiles, tagger);
 
         return new HistoryCloseableIterable() {
-            // Renamed files are published on the first element.
-            History nextHistory = nextHistory(entriesSequence, renamedFiles);
+            History nextHistory = firstHistory;
 
             @Override
             public void close() throws IOException {
@@ -376,7 +381,7 @@ class GitHistoryParser extends HistoryParserBase
                 History res = nextHistory;
                 nextHistory = null;
                 // Renamed files are only published on the first element.
-                nextHistory = nextHistory(entriesSequence, null);
+                nextHistory = nextHistory(entriesSequence, null, tagger);
                 return res;
             }
         };
@@ -388,7 +393,8 @@ class GitHistoryParser extends HistoryParserBase
      */
     private static History nextHistory(
             final ObjectCloseableIterable entriesSequence,
-            final List<String> renamedFiles) {
+            final List<String> renamedFiles,
+            final Consumer<History> tagger) {
 
         List<HistoryEntry> entries = null;
         while (entriesSequence.hasMoreElements()) {
@@ -402,16 +408,24 @@ class GitHistoryParser extends HistoryParserBase
             }
         }
 
+        if (entries == null && renamedFiles == null ) {
+            return null;
+        }
+
+        History res;
         if (renamedFiles != null) {
             if (entries == null) {
                 entries = new ArrayList<>();
             }
-            return new History(entries, renamedFiles);
+            res = new History(entries, renamedFiles);
+        } else {
+            res = new History(entries);
         }
-        if (entries != null) {
-            return new History(entries);
+
+        if (tagger != null) {
+            tagger.accept(res);
         }
-        return null;
+        return res;
     }
 
     /**

@@ -280,12 +280,12 @@ public abstract class Repository extends RepositoryInfo {
      * @see #buildTagList(File, boolean)
      * @param hist History we want to assign tags to.
      */
-    void assignTagsInHistory(History hist) throws HistoryException {
+    void assignTagsInHistory(History hist) {
         if (hist == null) {
             return;
         }
         if (this.getTagList() == null) {
-            throw new HistoryException("getTagList() is null");
+            throw new IllegalStateException("getTagList() is null");
         }
         Iterator<TagEntry> it = this.getTagList().descendingIterator();
         TagEntry lastTagEntry = null;

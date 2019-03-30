@@ -41,9 +41,11 @@ class SingleHistory implements HistoryCloseableIterable {
         this.element = element;
     }
 
+    /**
+     * No-op
+     */
     @Override
     public void close() {
-        // no-op
     }
 
     @Override
