@@ -44,6 +44,7 @@ import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
+import org.opengrok.indexer.util.ObjectCloseableIterable;
 import org.opengrok.indexer.util.ObjectStreamHandler;
 import org.opengrok.indexer.util.StringUtils;
 
@@ -56,9 +57,12 @@ class GitHistoryParser extends HistoryParserBase
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHistoryParser.class);
 
     private enum ParseState {
-
         HEADER, MESSAGE, FILES
     }
+
+    private final boolean handleRenamedFiles;
+    private final RuntimeEnvironment env;
+
     private String myDir;
     private GitRepository repository = new GitRepository();
     private List<HistoryEntry> entries = new ArrayList<>();
@@ -67,9 +71,6 @@ class GitHistoryParser extends HistoryParserBase
     private BufferedReader reader;
     private Map<String, String> relCache;
     private String savedLine;
-
-    private final boolean handleRenamedFiles;
-    private final RuntimeEnvironment env;
 
     /**
      * Initializes an instance, with the user specifying whether renamed-files
@@ -87,7 +88,7 @@ class GitHistoryParser extends HistoryParserBase
     public History getHistory() {
         return history;
     }
-
+    
     /**
      * Process the output from the log command and insert the HistoryEntries
      * into the {@link #getHistory()} property.
@@ -125,8 +126,8 @@ class GitHistoryParser extends HistoryParserBase
     }
 
     /**
-     * Reads a {link HistoryEntry} from the initialized input unless the stream
-     * has been exhausted.
+     * Reads a {@link HistoryEntry} from the initialized input unless the
+     * stream has been exhausted.
      * @return a defined instance or {@code null} if the stream has been
      * exhausted
      */
@@ -245,23 +246,28 @@ class GitHistoryParser extends HistoryParserBase
      * Parse the history for the specified file.
      *
      * @param file the file to parse history for
-     * @param repos Pointer to the GitRepository
+     * @param repo Pointer to the GitRepository
      * @param sinceRevision the oldest changeset to return from the executor, or
      *                      {@code null} if all changesets should be returned
      * @return object representing the file's history
      */
-    History parse(File file, GitRepository repos, String sinceRevision)
-            throws HistoryException {
-        myDir = repos.getDirectoryName() + File.separator;
-        repository = repos;
+    History parse(File file, GitRepository repo, String sinceRevision) throws HistoryException {
+        myDir = repo.getDirectoryName() + File.separator;
+        repository = repo;
         RenamedFilesParser parser = new RenamedFilesParser();
         try {
-            Executor executor;
-            int status;
+            Executor executor = repo.getHistoryLogExecutor(file, sinceRevision);
+            int status = executor.exec(true, this);
 
-            // Process renames first so they are on the first in sequence.
+            if (status != 0) {
+                throw new HistoryException(
+                        String.format("Failed to get history for: \"%s\" Exit code: %d",
+                                file.getAbsolutePath(),
+                                status));
+            }
+
             if (handleRenamedFiles) {
-                executor = repository.getRenamedFilesExecutor(file, sinceRevision);
+                executor = repo.getRenamedFilesExecutor(file, sinceRevision);
                 status = executor.exec(true, parser);
 
                 if (status != 0) {
@@ -270,16 +276,6 @@ class GitHistoryParser extends HistoryParserBase
                                     file.getAbsolutePath(),
                                     status));
                 }
-            }
-
-            executor = repository.getHistoryLogExecutor(file, sinceRevision);
-            status = executor.exec(true, this);
-
-            if (status != 0) {
-                throw new HistoryException(
-                        String.format("Failed to get history for: \"%s\" Exit code: %d",
-                                file.getAbsolutePath(),
-                                status));
             }
         } catch (IOException e) {
             throw new HistoryException(
@@ -302,6 +298,120 @@ class GitHistoryParser extends HistoryParserBase
         myDir = env.getSourceRootPath();
         processStream(new BufferedReader(new StringReader(buffer)));
         return history;
+    }
+
+    /**
+     * Parse the history for the specified file.
+     *
+     * @param file the file to parse history for
+     * @param repo Pointer to the GitRepository
+     * @param sinceRevision the oldest changeset to return from the executor, or
+     *                      {@code null} if all changesets should be returned
+     * @return object representing the file's history
+     */
+    HistoryCloseableIterable startParse(
+            File file, GitRepository repo, String sinceRevision)
+            throws HistoryException {
+
+        myDir = repo.getDirectoryName() + File.separator;
+        repository = repo;
+        RenamedFilesParser parser = new RenamedFilesParser();
+        try {
+            Executor executor;
+
+            // Process renames first so they are on the first in sequence.
+            if (handleRenamedFiles) {
+                executor = repo.getRenamedFilesExecutor(file, sinceRevision);
+                int status = executor.exec(true, parser);
+
+                if (status != 0) {
+                    throw new HistoryException(
+                            String.format("Failed to get renamed files for: \"%s\" Exit code: %d",
+                                    file.getAbsolutePath(),
+                                    status));
+                }
+            }
+
+            executor = repo.getHistoryLogExecutor(file, sinceRevision);
+            ObjectCloseableIterable entriesSequence = executor.startExec(
+                    true, this);
+            List<String> renamedFiles = parser.getRenamedFiles();
+            return newHistoryIterable(entriesSequence, renamedFiles);
+        } catch (IOException e) {
+            throw new HistoryException(
+                    String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
+                    e);
+        }
+    }
+
+    /**
+     * Transforms a specified sequence of {@link HistoryEntry} instances into a
+     * batching sequence of {@link History} instances.
+     * @return a defined, wrapping sequence
+     */
+    private static HistoryCloseableIterable newHistoryIterable(
+            final ObjectCloseableIterable entriesSequence,
+            final List<String> renamedFiles) {
+
+        return new HistoryCloseableIterable() {
+            // Renamed files are published on the first element.
+            History nextHistory = nextHistory(entriesSequence, renamedFiles);
+
+            @Override
+            public void close() throws IOException {
+                nextHistory = null;
+                entriesSequence.close();
+            }
+
+            @Override
+            public boolean hasMoreElements() {
+                return nextHistory != null;
+            }
+
+            @Override
+            public History nextElement() {
+                if (nextHistory == null) {
+                    throw new NoSuchElementException();
+                }
+                History res = nextHistory;
+                nextHistory = null;
+                // Renamed files are only published on the first element.
+                nextHistory = nextHistory(entriesSequence, null);
+                return res;
+            }
+        };
+    }
+
+    /**
+     * Reads a next batch if available.
+     * @return a defined instance or {@code null} if the sequence is exhausted
+     */
+    private static History nextHistory(
+            final ObjectCloseableIterable entriesSequence,
+            final List<String> renamedFiles) {
+
+        List<HistoryEntry> entries = null;
+        while (entriesSequence.hasMoreElements()) {
+            HistoryEntry entry = (HistoryEntry) entriesSequence.nextElement();
+            if (entries == null) {
+                entries = new ArrayList<>();
+            }
+            entries.add(entry);
+            if (entries.size() >= HISTORY_ENTRY_BATCH_SIZE) {
+                break;
+            }
+        }
+
+        if (renamedFiles != null) {
+            if (entries == null) {
+                entries = new ArrayList<>();
+            }
+            return new History(entries, renamedFiles);
+        }
+        if (entries != null) {
+            return new History(entries);
+        }
+        return null;
     }
 
     /**
@@ -374,34 +484,6 @@ class GitHistoryParser extends HistoryParserBase
          */
         public List<String> getRenamedFiles() {
             return renamedFiles;
-        }
-    }
-
-    private static class GitObjectStreamer
-            implements HistoryEntryCloseableIterable {
-
-        HistoryEntry nextEntry;
-
-        @Override
-        public void close() throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean hasMoreElements() {
-            return nextEntry != null;
-        }
-
-        @Override
-        public HistoryEntry nextElement() {
-            if (nextEntry == null) {
-                throw new NoSuchElementException();
-            }
-
-            throw new UnsupportedOperationException();
-//            HistoryEntry res = nextEntry;
-//            nextEntry = null;
-//            return res;
         }
     }
 }

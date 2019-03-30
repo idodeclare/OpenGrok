@@ -237,6 +237,8 @@ public class Executor {
 
             @Override
             public void close() throws IOException {
+                nextObject = null;
+
                 exitValue = ep.finish();
                 if (hadProcessError) {
                     throw new IOException("Failed to execute: " + arg0);
