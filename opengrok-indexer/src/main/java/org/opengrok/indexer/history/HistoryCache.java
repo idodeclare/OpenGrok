@@ -73,21 +73,12 @@ interface HistoryCache {
      * between each element and within each element.
      * @param historySequence The history series to store
      * @param repository The repository whose history to store
+     * @param forceOverwrite a value indicating whether to overwrite existing
+     * stored history for the files in {@code historySequence}
      * @throws HistoryException if the history cannot be stored
      */
-    void store(Enumeration<History> historySequence, Repository repository)
-            throws HistoryException;
-
-    /**
-     * Store the history for a repository, where {@code history} must be
-     * ordered from most recent to earlier.
-     *
-     * @param history The history to store
-     * @param repository The repository whose history to store
-     * @throws HistoryException if the history cannot be stored
-     */
-    void store(History history, Repository repository)
-            throws HistoryException;
+    void store(Enumeration<History> historySequence, Repository repository,
+            boolean forceOverwrite) throws HistoryException;
 
     /**
      * Optimize how the history is stored on disk. This method is typically

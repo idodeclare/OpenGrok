@@ -158,8 +158,8 @@ public class Executor {
             ret = ep.process.waitFor();
             
             LOGGER.log(Level.FINE,
-                "Finished command {0} in directory {1} with exit code {2}",
-                new Object[] {ep.cmd_str, ep.dir_str, ret});
+                    "Finished command {0} in directory {1} with exit code {2}",
+                    new Object[] {ep.cmd_str, ep.dir_str, ret});
 
             // Wait for the stderr read-out thread to finish the processing and
             // only after that read the data.
@@ -168,16 +168,16 @@ public class Executor {
             stderr = errBytes;
         } catch (IOException e) {
             if (reportExceptions) {
-                LOGGER.log(Level.SEVERE,
-                        "Failed to read from process: " + cmdList.get(0), e);
+                LOGGER.log(Level.SEVERE, "Failed to read from process: " +
+                        cmdList.get(0), e);
             }
             if (ep == null) {
                 return ret;
             }
         } catch (InterruptedException e) {
             if (reportExceptions) {
-                LOGGER.log(Level.SEVERE,
-                        "Waiting for process interrupted: " + cmdList.get(0), e);
+                LOGGER.log(Level.SEVERE, "Waiting for process interrupted: " +
+                        cmdList.get(0), e);
             }
         } finally {
             if (ep != null) {
@@ -478,7 +478,7 @@ public class Executor {
     }
 
     private static void logErrBytes(int exitValue, String cmdStr,
-                                    String dirStr, byte[] errBytes) {
+            String dirStr, byte[] errBytes) {
         final int MAX_MSG_SZ = 256;
 
         StringBuilder msg = new StringBuilder().

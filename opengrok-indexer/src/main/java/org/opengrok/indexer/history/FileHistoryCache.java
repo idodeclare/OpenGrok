@@ -220,8 +220,7 @@ class FileHistoryCache implements HistoryCache {
             transientHistory = History.readGZIP(transientFile);
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE,
-                    String.format("Error reading historycache file %s",
-                            transientFile), ex);
+                    String.format("Error reading %s", transientFile), ex);
             throw new HistoryException(ex);
         }
 
@@ -266,7 +265,7 @@ class FileHistoryCache implements HistoryCache {
         if (completer.add(new PendingHistorial(cacheFile.getAbsolutePath(),
                 transientFile.getAbsolutePath()), forceOverwrite) ||
                 forceOverwrite) {
-            if (transientFile.exists() && transientFile.delete()) {
+            if (transientFile.exists() && !transientFile.delete()) {
                 LOGGER.log(Level.WARNING, "Error deleting {0}", transientFile);
                 return;
             }
@@ -319,10 +318,12 @@ class FileHistoryCache implements HistoryCache {
      * between each element and within each element.
      * @param historySequence The history series to store
      * @param repository The repository whose history to store
+     * @param forceOverwrite a value indicating whether to overwrite existing
+     * stored history for the files in {@code historySequence}
      * @throws HistoryException if the history cannot be stored
      */
-    public void store(Enumeration<History> historySequence, Repository repository)
-            throws HistoryException {
+    public void store(Enumeration<History> historySequence, Repository repository,
+            boolean forceOverwrite) throws HistoryException {
 
         boolean didLogIntro = false;
         PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
@@ -338,11 +339,9 @@ class FileHistoryCache implements HistoryCache {
             }
 
             History hist = historySequence.nextElement();
-            if (hist.count() < 1) {
-                continue;
+            if (latestRev == null && hist.count() > 0) {
+                latestRev = hist.getHistoryEntry(0).getRevision();
             }
-
-            latestRev = hist.getHistoryEntry(0).getRevision();
 
             if (repoRenamedFiles == null) {
                 repoRenamedFiles = new HashSet<>(hist.getRenamedFiles());
@@ -367,21 +366,6 @@ class FileHistoryCache implements HistoryCache {
             LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
             finishStore(repository, latestRev);
         }
-    }
-
-    /**
-     * Store history for the whole repository in directory hierarchy resembling
-     * the original repository structure. History of individual files will be
-     * stored under this hierarchy, each file containing history of
-     * corresponding source file.
-     *
-     * @param history history object to process into per-file histories
-     * @param repository repository object
-     */
-    @Override
-    public void store(History history, Repository repository)
-            throws HistoryException {
-        store(new SingleHistory(history), repository);
     }
 
     /**
@@ -431,7 +415,11 @@ class FileHistoryCache implements HistoryCache {
                     continue;
                 }
 
-                List<HistoryEntry> list = map.computeIfAbsent(s, k -> new ArrayList<>());
+                List<HistoryEntry> list = map.get(s);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    map.put(s, list);
+                }
                 /*
                  * We need to do deep copy in order to have different tags
                  * per each commit.
@@ -468,7 +456,7 @@ class FileHistoryCache implements HistoryCache {
                     continue;
                 }
             } catch (IOException ex) {
-               LOGGER.log(Level.WARNING, "error with isRenamedFile()" , ex);
+               LOGGER.log(Level.WARNING, "Error with isRenamedFile()" , ex);
             }
 
             doFileHistory(filename, fileHistory, root, repository, completer, null);
@@ -500,8 +488,7 @@ class FileHistoryCache implements HistoryCache {
             File dir = cache.getParentFile();
 
             if (!dir.isDirectory() && !dir.mkdirs()) {
-                LOGGER.log(Level.WARNING,
-                        "Unable to create cache directory ' {0} '.", dir);
+                LOGGER.log(Level.WARNING, "Unable to create {0}", dir);
             }
         }
 
@@ -545,8 +532,7 @@ class FileHistoryCache implements HistoryCache {
             try {
                 return History.readGZIP(cacheFile);
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING,
-                        "Error when reading cache file " + cacheFile, e);
+                LOGGER.log(Level.WARNING, "Error reading " + cacheFile, e);
             }
         }
 
@@ -749,7 +735,7 @@ class FileHistoryCache implements HistoryCache {
             // it gets ever moved outside of the hierarchy)
             File cachedRevFile = new File(revPath);
             if (cachedRevFile.exists() && !cachedRevFile.delete()) {
-                LOGGER.log(Level.WARNING, "failed to delete {0}", cachedRevFile);
+                LOGGER.log(Level.WARNING, "Error deleting {0}", cachedRevFile);
             }
         }
 
@@ -782,12 +768,11 @@ class FileHistoryCache implements HistoryCache {
 
         if (!historyFile.delete() && historyFile.exists()) {
             LOGGER.log(Level.WARNING,
-                "Failed to remove obsolete historycache file: {0}",
-                historyFile.getAbsolutePath());
+                "Error removing obsolete {0}", historyFile.getAbsolutePath());
         }
 
         if (parent.delete()) {
-            LOGGER.log(Level.FINE, "Removed empty historycache dir {0}",
+            LOGGER.log(Level.FINE, "Removed empty {0}",
                 parent.getAbsolutePath());
         }
     }

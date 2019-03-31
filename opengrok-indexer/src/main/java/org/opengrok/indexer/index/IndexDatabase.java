@@ -1670,7 +1670,7 @@ public class IndexDatabase {
                 writer.rollback();
             }
             LOGGER.log(Level.WARNING,
-                "Error while finishing writer and completer", e);
+                    "Error while finishing writer and completer", e);
             throw e;
         }
     }

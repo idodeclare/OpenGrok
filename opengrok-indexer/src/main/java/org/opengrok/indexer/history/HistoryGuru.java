@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +155,7 @@ public final class HistoryGuru {
         Repository repo = getRepository(file);
         if (repo != null) {
             ret = repo.annotate(file, rev);
-            Enumeration<History> historySequence = null;
+            HistoryEnumeration historySequence = null;
             if (ret != null) {
                 try {
                     historySequence = repo.getHistory(file);
@@ -167,6 +166,7 @@ public final class HistoryGuru {
             }
             if (historySequence != null) {
                 History hist = new History(historySequence);
+                historySequence.close();
                 Set<String> revs = ret.getRevisions();
                 int revsMatched = 0;
              // !!! cannot do this because of not matching rev ids (keys)
@@ -538,39 +538,6 @@ public final class HistoryGuru {
         }
     }
 
-    /**
-     * Update the source contents in given repositories.
-     *
-     * @param paths A list of files/directories to update
-     */
-    public void updateRepositories(Collection<String> paths) {
-        List<Repository> repos = getReposFromString(paths);
-
-        for (Repository repository : repos) {
-            String type = repository.getClass().getSimpleName();
-
-            if (repository.isWorking()) {
-                LOGGER.info(String.format("Update %s repository in %s", type,
-                        repository.getDirectoryName()));
-
-                try {
-                    repository.update();
-                } catch (UnsupportedOperationException e) {
-                    LOGGER.warning(String.format("Skipping update of %s repository"
-                            + " in %s: Not implemented", type,
-                            repository.getDirectoryName()));
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "An error occurred while updating "
-                            + repository.getDirectoryName() + " (" + type + ")", e);
-                }
-            } else {
-                LOGGER.warning(String.format("Skipping update of %s repository in"
-                        + " %s: Missing SCM dependencies?", type,
-                        repository.getDirectoryName()));
-            }
-        }
-    }
-
     private void createCache(Repository repository, String sinceRevision) {
         String path = repository.getDirectoryName();
         String type = repository.getClass().getSimpleName();
@@ -702,9 +669,8 @@ public final class HistoryGuru {
      *
      * @param repositories list of repository paths relative to source root
      * @return list of repository paths that were found and their history data removed
-     * @throws HistoryException if history cannot be retrieved
      */
-    public List<String> clearCache(Collection<String> repositories) throws HistoryException {
+    public List<String> clearCache(Collection<String> repositories) {
         List<String> clearedRepos = new ArrayList<>();
         HistoryCache cache = historyCache;
 

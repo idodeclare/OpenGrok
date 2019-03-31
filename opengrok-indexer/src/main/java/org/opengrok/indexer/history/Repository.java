@@ -38,7 +38,6 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -380,7 +379,7 @@ public abstract class Repository extends RepositoryInfo {
 
         File directory = new File(getDirectoryName());
 
-        Enumeration<History> historySequence;
+        HistoryEnumeration historySequence;
         try {
             historySequence = getHistory(directory, sinceRevision);
         } catch (HistoryException he) {
@@ -413,7 +412,13 @@ public abstract class Repository extends RepositoryInfo {
         }
 
         if (historySequence != null) {
-            cache.store(historySequence, this);
+            cache.store(historySequence, this, sinceRevision == null);
+            try {
+                historySequence.close();
+            } catch (IOException e) {
+                throw new HistoryException(String.format(
+                        "Error closing history of %s", getDirectoryName()), e);
+            }
         }
     }
 

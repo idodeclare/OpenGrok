@@ -75,7 +75,7 @@ public class FileHistoryCacheOctopusTest {
         Repository repo = RepositoryFactory.getRepository(reposRoot);
         History historyToStore = new History(repo.getHistory(reposRoot));
 
-        cache.store(historyToStore, repo);
+        cache.store(historyToStore, repo, false);
 
         assertEquals("latest git-octopus commit", "206f862b",
                 cache.getLatestCachedRevision(repo));

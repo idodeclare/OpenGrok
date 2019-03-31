@@ -47,7 +47,6 @@ import java.util.zip.GZIPOutputStream;
  * Class representing the history of a file.
  */
 public class History {
-
     /** Entries in the log. The first entry is the most recent one. */
     private List<HistoryEntry> entries;
     /** 
