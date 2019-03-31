@@ -75,7 +75,7 @@ class GitHistoryParser extends HistoryParserBase
 
     /**
      * Initializes an instance, with the user specifying whether renamed-files
-     * handling should be done by {@link #parse(File, GitRepository, String)}.
+     * handling should be done.
      */
     GitHistoryParser(boolean handleRenamedFiles) {
         this.handleRenamedFiles = handleRenamedFiles;
@@ -244,64 +244,6 @@ class GitHistoryParser extends HistoryParserBase
     }
 
     /**
-     * Parse the history for the specified file.
-     *
-     * @param file the file to parse history for
-     * @param repo Pointer to the GitRepository
-     * @param sinceRevision the oldest changeset to return from the executor, or
-     *                      {@code null} if all changesets should be returned
-     * @return object representing the file's history
-     */
-    History parse(File file, GitRepository repo, String sinceRevision) throws HistoryException {
-        myDir = repo.getDirectoryName() + File.separator;
-        repository = repo;
-        RenamedFilesParser parser = new RenamedFilesParser();
-        try {
-            Executor executor = repo.getHistoryLogExecutor(file, sinceRevision);
-            int status = executor.exec(true, this);
-
-            if (status != 0) {
-                throw new HistoryException(
-                        String.format("Failed to get history for: \"%s\" Exit code: %d",
-                                file.getAbsolutePath(),
-                                status));
-            }
-
-            if (handleRenamedFiles) {
-                executor = repo.getRenamedFilesExecutor(file, sinceRevision);
-                status = executor.exec(true, parser);
-
-                if (status != 0) {
-                    throw new HistoryException(
-                            String.format("Failed to get renamed files for: \"%s\" Exit code: %d",
-                                    file.getAbsolutePath(),
-                                    status));
-                }
-            }
-        } catch (IOException e) {
-            throw new HistoryException(
-                    String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
-                    e);
-        }
-
-        history = new History(entries, parser.getRenamedFiles());
-        return history;
-    }
-
-    /**
-     * Parse the given string.
-     *
-     * @param buffer The string to be parsed
-     * @return The parsed history
-     * @throws IOException if we fail to parse the buffer
-     */
-    History parse(String buffer) throws IOException {
-        myDir = env.getSourceRootPath();
-        processStream(new BufferedReader(new StringReader(buffer)));
-        return history;
-    }
-
-    /**
      * Starts a parse of history for the specified file.
      *
      * @param file the file to parse history for
@@ -344,6 +286,19 @@ class GitHistoryParser extends HistoryParserBase
                     String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
                     e);
         }
+    }
+
+    /**
+     * Parse the given string.
+     *
+     * @param buffer The string to be parsed
+     * @return The parsed history
+     * @throws IOException if we fail to parse the buffer
+     */
+    History parse(String buffer) throws IOException {
+        myDir = env.getSourceRootPath();
+        processStream(new BufferedReader(new StringReader(buffer)));
+        return history;
     }
 
     /**
