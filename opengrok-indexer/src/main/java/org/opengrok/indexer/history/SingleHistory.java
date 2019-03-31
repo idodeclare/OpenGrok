@@ -61,4 +61,12 @@ class SingleHistory implements HistoryEnumeration {
         didYield = true;
         return element;
     }
+
+    /**
+     * Returns 0.
+     */
+    @Override
+    public int exitValue() {
+        return 0;
+    }
 }

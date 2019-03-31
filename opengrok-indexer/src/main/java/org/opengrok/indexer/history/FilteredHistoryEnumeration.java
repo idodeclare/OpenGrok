@@ -116,4 +116,12 @@ class FilteredHistoryEnumeration implements HistoryEnumeration {
 
         return next;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int exitValue() {
+        return underlying.exitValue();
+    }
 }

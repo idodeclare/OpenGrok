@@ -438,7 +438,7 @@ public class GitRepositoryTest {
         GitRepository gitrepo
                 = (GitRepository) RepositoryFactory.getRepository(root);
 
-        History history = new History(gitrepo.getHistory(root));
+        History history = HistoryUtil.union(gitrepo.getHistory(root));
         Assert.assertNotNull(history);
         Assert.assertNotNull(history.getHistoryEntries());
         Assert.assertEquals(8, history.getHistoryEntries().size());
@@ -469,7 +469,7 @@ public class GitRepositoryTest {
         GitRepository gitrepo
                 = (GitRepository) RepositoryFactory.getRepository(root);
 
-        History history = new History(gitrepo.getHistory(new File(root.getAbsolutePath(), "moved2/renamed2.c")));
+        History history = HistoryUtil.union(gitrepo.getHistory(new File(root.getAbsolutePath(), "moved2/renamed2.c")));
         Assert.assertNotNull(history);
         Assert.assertNotNull(history.getHistoryEntries());
         Assert.assertEquals(5, history.getHistoryEntries().size());

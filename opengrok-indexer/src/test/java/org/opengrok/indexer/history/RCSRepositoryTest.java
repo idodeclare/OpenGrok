@@ -93,7 +93,7 @@ public class RCSRepositoryTest {
     public void testGetHistory() throws Exception {
         File root = new File(repository.getSourceRoot(), "rcs_test");
         RCSRepository repo = (RCSRepository) RepositoryFactory.getRepository(root);
-        History hist = new History(repo.getHistory(new File(root, "Makefile")));
+        History hist = HistoryUtil.union(repo.getHistory(new File(root, "Makefile")));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(REVISIONS.length, entries.size());
         for (int i = 0; i < entries.size(); i++) {

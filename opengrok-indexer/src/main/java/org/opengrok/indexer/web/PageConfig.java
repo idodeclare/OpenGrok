@@ -726,7 +726,7 @@ public final class PageConfig {
         getRequestedRevision();
         try {
             annotation = HistoryGuru.getInstance().annotate(resourceFile, rev.isEmpty() ? null : rev);
-        } catch (IOException e) {
+        } catch (HistoryException|IOException e) {
             LOGGER.log(Level.WARNING, "Failed to get annotations: ", e);
             /* ignore */
         }

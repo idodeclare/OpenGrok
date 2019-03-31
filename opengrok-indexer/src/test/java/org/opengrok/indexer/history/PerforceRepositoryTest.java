@@ -90,7 +90,7 @@ public class PerforceRepositoryTest {
 
         for (File f : files) {
             if (instance.fileHasHistory(f)) {
-                History history = new History(instance.getHistory(f));
+                History history = HistoryUtil.union(instance.getHistory(f));
                 assertNotNull("Failed to get history for: " + f.getAbsolutePath(), history);
 
                 for (HistoryEntry entry : history.getHistoryEntries()) {

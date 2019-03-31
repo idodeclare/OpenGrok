@@ -339,6 +339,11 @@ class GitHistoryParser extends HistoryParserBase
                 nextHistory = nextHistory(entriesSequence, null, tagger);
                 return res;
             }
+
+            @Override
+            public int exitValue() {
+                return entriesSequence.exitValue();
+            }
         };
     }
 

@@ -413,11 +413,18 @@ public abstract class Repository extends RepositoryInfo {
 
         if (historySequence != null) {
             cache.store(historySequence, this, sinceRevision == null);
+
             try {
                 historySequence.close();
             } catch (IOException e) {
                 throw new HistoryException(String.format(
                         "Error closing history of %s", getDirectoryName()), e);
+            }
+
+            if (historySequence.exitValue() != 0) {
+                throw new HistoryException(String.format(
+                        "HistoryEnumeration exit value %d for %s",
+                        historySequence.exitValue(), getDirectoryName()));
             }
         }
     }

@@ -102,7 +102,7 @@ class FileHistoryCache implements HistoryCache {
          */
         boolean forceOverwrite = false;
         if (renamedFile != null) {
-            hist = new History(repository.getHistory(renamedFile));
+            hist = HistoryUtil.union(repository.getHistory(renamedFile));
             forceOverwrite = true;
         }
 
@@ -553,7 +553,7 @@ class FileHistoryCache implements HistoryCache {
         long time;
         try {
             time = System.currentTimeMillis();
-            history = new History(repository.getHistory(file));
+            history = HistoryUtil.union(repository.getHistory(file));
             time = System.currentTimeMillis() - time;
         } catch (UnsupportedOperationException e) {
             // In this case, we've found a file for which the SCM has no history

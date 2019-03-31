@@ -149,9 +149,10 @@ public final class HistoryGuru {
      * <code>HistoryParser</code> does not support annotation
      * @throws IOException if I/O exception occurs
      */
-    public Annotation annotate(File file, String rev) throws IOException {
-        Annotation ret = null;
+    public Annotation annotate(File file, String rev)
+            throws HistoryException, IOException {
 
+        Annotation ret = null;
         Repository repo = getRepository(file);
         if (repo != null) {
             ret = repo.annotate(file, rev);
@@ -165,8 +166,7 @@ public final class HistoryGuru {
                 }
             }
             if (historySequence != null) {
-                History hist = new History(historySequence);
-                historySequence.close();
+                History hist = HistoryUtil.union(historySequence);
                 Set<String> revs = ret.getRevisions();
                 int revsMatched = 0;
              // !!! cannot do this because of not matching rev ids (keys)
@@ -265,7 +265,7 @@ public final class HistoryGuru {
                     return null;
                 }
             }
-            return new History(repo.getHistory(file));
+            return HistoryUtil.union(repo.getHistory(file));
         }
 
         return null;

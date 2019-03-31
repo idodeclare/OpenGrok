@@ -71,7 +71,7 @@ public class GitRepositoryOctopusTest {
         GitRepository gitRepo = (GitRepository)
                 RepositoryFactory.getRepository(root);
 
-        History history = new History(gitRepo.getHistory(root));
+        History history = HistoryUtil.union(gitRepo.getHistory(root));
         assertNotNull("git-octopus getHistory()", history);
 
         List<HistoryEntry> entries = history.getHistoryEntries();

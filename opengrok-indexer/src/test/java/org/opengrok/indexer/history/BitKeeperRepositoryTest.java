@@ -129,8 +129,8 @@ public class BitKeeperRepositoryTest {
 
         for (final String bkFile : bkFiles) {
             final File file = new File(bkRepo.getDirectoryName(), bkFile);
-            final History fullHistory = new History(bkRepo.getHistory(file));
-            final History partHistory = new History(bkRepo.getHistory(file, "1.2"));
+            final History fullHistory = HistoryUtil.union(bkRepo.getHistory(file));
+            final History partHistory = HistoryUtil.union(bkRepo.getHistory(file, "1.2"));
             // I made sure that each file had a 1.2
 
             validateHistory(fullHistory);
@@ -151,7 +151,7 @@ public class BitKeeperRepositoryTest {
 
         boolean caughtFull = false;
         try {
-            new History(bkRepo.getHistory(file));
+            HistoryUtil.union(bkRepo.getHistory(file));
         } catch (final HistoryException e) {
             caughtFull = true;
         }
@@ -159,7 +159,7 @@ public class BitKeeperRepositoryTest {
 
         boolean caughtPart = false;
         try {
-            new History(bkRepo.getHistory(file, "1.2"));
+            HistoryUtil.union(bkRepo.getHistory(file, "1.2"));
         } catch (final HistoryException e) {
             caughtPart = true;
         }

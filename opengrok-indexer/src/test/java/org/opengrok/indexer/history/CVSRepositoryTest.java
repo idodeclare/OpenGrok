@@ -168,7 +168,7 @@ public class CVSRepositoryTest {
         Annotation annotation = cvsrepo.annotate(mainC, null);
         assertEquals("1.2.2.1", annotation.getRevision(1));
 
-        History mainCHistory = new History(cvsrepo.getHistory(mainC));
+        History mainCHistory = HistoryUtil.union(cvsrepo.getHistory(mainC));
         assertEquals(3, mainCHistory.getHistoryEntries().size());
         assertEquals("1.2.2.1", mainCHistory.getHistoryEntries().get(0).getRevision());
         assertEquals("1.2", mainCHistory.getHistoryEntries().get(1).getRevision());

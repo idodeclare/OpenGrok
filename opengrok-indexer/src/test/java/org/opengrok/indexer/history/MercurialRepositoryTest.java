@@ -104,7 +104,7 @@ public class MercurialRepositoryTest {
         File root = new File(repository.getSourceRoot(), "mercurial");
         MercurialRepository mr
                 = (MercurialRepository) RepositoryFactory.getRepository(root);
-        History hist = new History(mr.getHistory(root));
+        History hist = HistoryUtil.union(mr.getHistory(root));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(REVISIONS.length, entries.size());
         for (int i = 0; i < entries.size(); i++) {
@@ -128,7 +128,7 @@ public class MercurialRepositoryTest {
 
         MercurialRepository mr
                 = (MercurialRepository) RepositoryFactory.getRepository(root);
-        History hist = new History(mr.getHistory(new File(root, "subdir")));
+        History hist = HistoryUtil.union(mr.getHistory(new File(root, "subdir")));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(1, entries.size());
     }
@@ -144,7 +144,7 @@ public class MercurialRepositoryTest {
         MercurialRepository mr
                 = (MercurialRepository) RepositoryFactory.getRepository(root);
         // Get all but the oldest revision.
-        History hist = new History(mr.getHistory(root, REVISIONS[REVISIONS.length - 1]));
+        History hist = HistoryUtil.union(mr.getHistory(root, REVISIONS[REVISIONS.length - 1]));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         assertEquals(REVISIONS.length - 1, entries.size());
         for (int i = 0; i < entries.size(); i++) {
@@ -201,7 +201,7 @@ public class MercurialRepositoryTest {
                 = (MercurialRepository) RepositoryFactory.getRepository(root);
 
         // Get all revisions.
-        History hist = new History(mr.getHistory(root));
+        History hist = HistoryUtil.union(mr.getHistory(root));
         List<HistoryEntry> entries = hist.getHistoryEntries();
         List<String> both = new ArrayList<>(REVISIONS.length
                 + REVISIONS_extra_branch.length);
@@ -221,7 +221,7 @@ public class MercurialRepositoryTest {
         }
 
         // Get revisions starting with given changeset before the repo was branched.
-        hist = new History(mr.getHistory(root, "8:6a8c423f5624"));
+        hist = HistoryUtil.union(mr.getHistory(root, "8:6a8c423f5624"));
         entries = hist.getHistoryEntries();
         assertEquals(2, entries.size());
         assertEquals(REVISIONS_extra_branch[0], entries.get(0).getRevision());

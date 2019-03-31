@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -67,20 +66,6 @@ public class History {
     History(List<HistoryEntry> entries, List<String> renamed) {
         this.entries = entries;
         this.renamedFiles = renamed;
-    }
-
-    /**
-     * Initialize an instance as the union of a sequence.
-     * @param sequence a defined sequence
-     */
-    History(Enumeration<History> sequence) {
-        this.entries = new ArrayList<>();
-
-        while (sequence.hasMoreElements()) {
-            History that = sequence.nextElement();
-            this.entries.addAll(that.entries);
-            this.renamedFiles.addAll(that.renamedFiles);
-        }
     }
 
     /**

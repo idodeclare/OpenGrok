@@ -137,16 +137,17 @@ public class FileHistoryCacheTest {
     public void testStoreAndGetNotRenamed() throws Exception {
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = new History(repo.getHistory(reposRoot));
+        HistoryEnumeration historyToStore = repo.getHistory(reposRoot);
 
         cache.store(historyToStore, repo, false);
+        historyToStore.close();
 
         // This makes sure that the file which contains the latest revision
         // has indeed been created.
         assertEquals("9:8b340409b3a8", cache.getLatestCachedRevision(repo));
 
         // test reindex
-        History historyNull = new History();
+        HistoryEnumeration historyNull = new SingleHistory(new History());
         cache.store(historyNull, repo, false);
 
         assertEquals("9:8b340409b3a8", cache.getLatestCachedRevision(repo));
@@ -166,10 +167,11 @@ public class FileHistoryCacheTest {
 
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = new History(repo.getHistory(reposRoot));
+        HistoryEnumeration historyToStore = repo.getHistory(reposRoot);
 
         // Store the history.
         cache.store(historyToStore, repo, false);
+        historyToStore.close();
 
         // Add bunch of changesets with file based changes and tags.
         MercurialRepositoryTest.runHgCommand(reposRoot, "import",
@@ -212,8 +214,8 @@ public class FileHistoryCacheTest {
         // We cannot call cache.get() here since it would read the history anew.
         // Instead check that the data directory does not exist anymore.
         assertFalse(dir.exists());
-        History freshHistory = new History(repo.getHistory(reposRoot));
-        cache.store(freshHistory, repo, false);
+        History freshHistory = HistoryUtil.union(repo.getHistory(reposRoot));
+        cache.store(new SingleHistory(freshHistory), repo, false);
         History updatedHistoryFromScratch = cache.get(reposRoot, repo, true);
         assertEquals("Unexpected number of history entries",
                 freshHistory.getHistoryEntries().size(),
@@ -242,12 +244,12 @@ public class FileHistoryCacheTest {
         RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
 
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = new History(repo.getHistory(reposRoot));
+        History historyToStore = HistoryUtil.union(repo.getHistory(reposRoot));
 
-        cache.store(historyToStore, repo, false);
+        cache.store(new SingleHistory(historyToStore), repo, false);
 
         // test reindex
-        History historyNull = new History();
+        HistoryEnumeration historyNull = new SingleHistory(new History());
         cache.store(historyNull, repo, false);
 
         // test get history for single file
@@ -289,10 +291,10 @@ public class FileHistoryCacheTest {
         // test get history for directory
         // Need to refresh history to store since the file lists were stripped
         // from it in the call to cache.store() above.
-        historyToStore = new History(repo.getHistory(reposRoot));
+        History fullHistory = HistoryUtil.union(repo.getHistory(reposRoot));
         History dirHistory = cache.get(reposRoot, repo, true);
         assertSameEntries(
-                historyToStore.getHistoryEntries(),
+                fullHistory.getHistoryEntries(),
                 dirHistory.getHistoryEntries(), true);
 
         // test incremental update
@@ -326,7 +328,7 @@ public class FileHistoryCacheTest {
         // lists of files so we need to set isdir to true.
         assertSameEntry(newEntry2, updatedEntries.removeFirst(), true);
         assertSameEntry(newEntry1, updatedEntries.removeFirst(), true);
-        assertSameEntries(historyToStore.getHistoryEntries(), updatedEntries, true);
+        assertSameEntries(fullHistory.getHistoryEntries(), updatedEntries, true);
 
         // test clearing of cache
         File dir = new File(cache.getRepositoryHistDataDirname(repo));
@@ -336,7 +338,7 @@ public class FileHistoryCacheTest {
         // Instead check that the data directory does not exist anymore.
         assertFalse(dir.exists());
 
-        cache.store(historyToStore, repo, false);
+        cache.store(new SingleHistory(historyToStore), repo, false);
         // check that the data directory is non-empty
         assertTrue("dir.list().length is positive", dir.list().length > 0);
         updatedHistory = cache.get(reposRoot, repo, true);
@@ -373,8 +375,9 @@ public class FileHistoryCacheTest {
         // It is necessary to call getRepository() only after tags were enabled
         // to produce list of tags.
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = new History(repo.getHistory(reposRoot));
+        HistoryEnumeration historyToStore = repo.getHistory(reposRoot);
         cache.store(historyToStore, repo, false);
+        historyToStore.close();
 
         // Import changesets which rename one of the files in the repository.
         MercurialRepositoryTest.runHgCommand(reposRoot, "import",
@@ -512,8 +515,9 @@ public class FileHistoryCacheTest {
         // It is necessary to call getRepository() only after tags were enabled
         // to produce list of tags.
         Repository repo = RepositoryFactory.getRepository(reposRoot);
-        History historyToStore = new History(repo.getHistory(reposRoot));
+        HistoryEnumeration historyToStore = repo.getHistory(reposRoot);
         cache.store(historyToStore, repo, false);
+        historyToStore.close();
 
         /* quick sanity check */
         updatedHistory = cache.get(reposRoot, repo, true);
