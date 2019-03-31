@@ -222,7 +222,7 @@ public class Executor {
 
         final String arg0 = cmdList.get(0);
         handler.initializeObjectStream(ep.process.getInputStream());
-        Object firstObject = handler.readFromObjectStream();
+        Object firstObject = handler.readObject();
 
         return new ObjectCloseableEnumeration() {
 
@@ -258,7 +258,7 @@ public class Executor {
                 Object res = nextObject;
                 nextObject = null;
                 try {
-                    nextObject = handler.readFromObjectStream();
+                    nextObject = handler.readObject();
                 } catch (IOException e) {
                     hadProcessError = true;
                     if (reportExceptions) {

@@ -132,7 +132,7 @@ class GitHistoryParser extends HistoryParserBase
      * @return a defined instance or {@code null} if the stream has been
      * exhausted
      */
-    public Object readFromObjectStream() throws IOException {
+    public Object readObject() throws IOException {
         HistoryEntry entry = null;
         ParseState state = ParseState.HEADER;
 
@@ -238,7 +238,7 @@ class GitHistoryParser extends HistoryParserBase
         reader = in;
 
         HistoryEntry entry;
-        while ((entry = (HistoryEntry) readFromObjectStream()) != null) {
+        while ((entry = (HistoryEntry) readObject()) != null) {
             entries.add(entry);
         }
     }

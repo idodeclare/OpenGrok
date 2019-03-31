@@ -42,5 +42,5 @@ public interface ObjectStreamHandler {
      * @return a defined instance or {@code null} if the stream has been
      * exhausted
      */
-    Object readFromObjectStream() throws IOException;
+    Object readObject() throws IOException;
 }
