@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -255,6 +256,7 @@ class FileHistoryCache implements HistoryCache {
 
         File transientFile = new File(TandemPath.join(cacheFile.getPath(),
                 PendingHistoryCompleter.PENDING_EXTENSION));
+        boolean transientExists = transientFile.exists();
         /*
          * The first time cacheFile is seen by the completer instance, the
          * transient file should be deleted because it would be dangling from
@@ -265,20 +267,31 @@ class FileHistoryCache implements HistoryCache {
         if (completer.add(new PendingHistorial(cacheFile.getAbsolutePath(),
                 transientFile.getAbsolutePath()), forceOverwrite) ||
                 forceOverwrite) {
-            if (transientFile.exists() && !transientFile.delete()) {
-                LOGGER.log(Level.WARNING, "Error deleting {0}", transientFile);
-                return;
+            if (transientExists) {
+                if (!transientFile.delete()) {
+                    LOGGER.log(Level.WARNING, "Error deleting {0}", transientFile);
+                    return;
+                }
+                transientExists = false;
             }
         }
 
         File dir = cacheFile.getParentFile();
-        if (!dir.isDirectory() && !dir.mkdirs()) {
+        /*
+         * The double check-exists in the following conditional is necessary
+         * because during a race when two threads are simultaneously linking
+         * for a not-yet-existent `dir`, the first check-exists will be false
+         * for both threads, but then only one will see true from mkdirs -- so
+         * the other needs a fallback again to check-exists.
+         */
+        if (!transientExists && !dir.isDirectory() && !dir.mkdirs() &&
+                !dir.isDirectory()) {
             throw new HistoryException(
                     "Unable to create cache directory '" + dir + "'.");
         }
 
         History history = null;
-        if (!forceOverwrite && transientFile.exists()) {
+        if (!forceOverwrite && transientExists) {
             history = appendHistory(transientFile, histNext);
         }
 
@@ -327,7 +340,7 @@ class FileHistoryCache implements HistoryCache {
 
         boolean didLogIntro = false;
         PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
-        Map<String, List<HistoryEntry>> historyRenamedFiles = new HashMap<>();
+        Map<String, List<HistoryEntry>> historyRenamedFiles = new ConcurrentHashMap<>();
         Set<String> repoRenamedFiles = null;
         String latestRev = null;
 
@@ -407,7 +420,7 @@ class FileHistoryCache implements HistoryCache {
             // The history entries are sorted from newest to oldest.
             for (String s : e.getFiles()) {
                 /*
-                 * We do not want to generate history cache for files which
+                 * We do not want to generate historycache for files that
                  * do not currently exist in the repository.
                  */
                 File test = new File(env.getSourceRootPath() + s);
@@ -415,16 +428,13 @@ class FileHistoryCache implements HistoryCache {
                     continue;
                 }
 
-                List<HistoryEntry> list = map.get(s);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    map.put(s, list);
-                }
-                /*
-                 * We need to do deep copy in order to have different tags
-                 * per each commit.
-                 */
+                List<HistoryEntry> list = map.computeIfAbsent(s,
+                        k -> new ArrayList<>());
                 if (env.isTagsEnabled() && repository.hasFileBasedTags()) {
+                    /*
+                     * We need to do deep copy in order to have different tags
+                     * per each commit.
+                     */
                     list.add(new HistoryEntry(e));
                 } else {
                     list.add(e);
@@ -432,35 +442,58 @@ class FileHistoryCache implements HistoryCache {
             }
         }
 
+        LOGGER.log(Level.FINEST, "Processing pending history for {0} files",
+                map.size());
+
         /*
          * Now traverse the list of files from the map built above
          * and for each file store its history (saved in the value of the
          * map entry for the file) in a file. Skip renamed files
          * which will be handled separately.
          */
+        final CountDownLatch latch = new CountDownLatch(map.size());
+        AtomicInteger fileHistoryCount = new AtomicInteger();
         for (Map.Entry<String, List<HistoryEntry>> map_entry : map.entrySet()) {
             final String filename = map_entry.getKey();
             final List<HistoryEntry> fileHistory = map_entry.getValue();
 
             try {
-                if (handleRenamedFiles &&
-                        isRenamedFile(filename, repository, repoRenamedFiles)) {
-                    List<HistoryEntry> mappedFileHistory =
-                            historyRenamedFiles.getOrDefault(filename, null);
-                    if (mappedFileHistory == null) {
-                        mappedFileHistory = new ArrayList<>();
-                        historyRenamedFiles.put(filename, mappedFileHistory);
-                    }
-
+                if (handleRenamedFiles && isRenamedFile(filename, repository,
+                        repoRenamedFiles)) {
+                    List<HistoryEntry> mappedFileHistory = historyRenamedFiles.
+                            computeIfAbsent(filename, k -> new ArrayList<>());
                     mappedFileHistory.addAll(fileHistory);
+                    latch.countDown();
                     continue;
                 }
             } catch (IOException ex) {
                LOGGER.log(Level.WARNING, "Error with isRenamedFile()" , ex);
             }
 
-            doFileHistory(filename, fileHistory, root, repository, completer, null);
+            // Using the historyRenamedExecutor here too.
+            env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
+                try {
+                    doFileHistory(filename, fileHistory, root, repository,
+                            completer, null);
+                    fileHistoryCount.incrementAndGet();
+                } catch (Exception ex) {
+                    // We want to catch any exception since we are in thread.
+                    LOGGER.log(Level.WARNING,
+                            "doFileHistory() got exception ", ex);
+                } finally {
+                    latch.countDown();
+                }
+            });
         }
+
+        try {
+            // Wait for the executors to finish.
+            latch.await();
+        } catch (InterruptedException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
+        }
+        LOGGER.log(Level.FINEST, "Stored pending history for {0} files",
+                fileHistoryCount.intValue());
     }
 
     /**

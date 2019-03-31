@@ -61,7 +61,7 @@ class PendingHistoryCompleter {
      * {@link PendingHistorial} actions.
      * <p>Value is {@code ".org_opengrok"}.
      */
-    public static final String PENDING_EXTENSION = ".org_opengrok";
+    static final String PENDING_EXTENSION = ".org_opengrok";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(PendingHistoryCompleter.class);
