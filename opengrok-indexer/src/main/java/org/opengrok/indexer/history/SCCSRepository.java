@@ -187,7 +187,7 @@ public class SCCSRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new SCCSHistoryParser(this).parse(file));
     }
 

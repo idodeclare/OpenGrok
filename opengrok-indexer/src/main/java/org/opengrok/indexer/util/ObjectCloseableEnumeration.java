@@ -21,15 +21,25 @@
  * Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 
-package org.opengrok.indexer.history;
+package org.opengrok.indexer.util;
 
 import java.io.Closeable;
 import java.util.Enumeration;
 
 /**
- * Represents an API for a sequence of {@link History} instances where the
- * sequence is {@link Closeable} to release resources.
+ * Represents an API for a sequence of {@link Object} instances where
+ * the sequence is {@link Closeable} to release resources.
  */
-public interface HistoryCloseableIterable
-        extends Enumeration<History>, Closeable {
+public interface ObjectCloseableEnumeration
+        extends Enumeration<Object>, Closeable {
+
+    /**
+     * Returns the exit value for the subprocess.
+     *
+     * @return the exit value of the subprocess represented by this instance.
+     * By convention, the value {@code 0} indicates normal termination.
+     * @throws IllegalThreadStateException if the subprocess represented by
+     * this instance has not yet terminated
+     */
+    int exitValue();
 }

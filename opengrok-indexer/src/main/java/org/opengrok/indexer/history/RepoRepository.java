@@ -103,7 +103,7 @@ public class RepoRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) {
+    HistoryEnumeration getHistory(File file) {
         throw new UnsupportedOperationException("Should never be called!");
     }
 

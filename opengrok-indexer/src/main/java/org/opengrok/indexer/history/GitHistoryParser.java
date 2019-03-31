@@ -45,7 +45,7 @@ import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
-import org.opengrok.indexer.util.ObjectCloseableIterable;
+import org.opengrok.indexer.util.ObjectCloseableEnumeration;
 import org.opengrok.indexer.util.ObjectStreamHandler;
 import org.opengrok.indexer.util.StringUtils;
 
@@ -311,7 +311,7 @@ class GitHistoryParser extends HistoryParserBase
      * @param tagger an optional function to tag changesets
      * @return a defined sequence representing the file's history
      */
-    HistoryCloseableIterable startParse(File file, GitRepository repo,
+    HistoryEnumeration startParse(File file, GitRepository repo,
             String sinceRevision, Consumer<History> tagger)
             throws HistoryException {
 
@@ -335,7 +335,7 @@ class GitHistoryParser extends HistoryParserBase
             }
 
             executor = repo.getHistoryLogExecutor(file, sinceRevision);
-            ObjectCloseableIterable entriesSequence = executor.startExec(
+            ObjectCloseableEnumeration entriesSequence = executor.startExec(
                     true, this);
             List<String> renamedFiles = parser.getRenamedFiles();
             return newHistoryIterable(entriesSequence, renamedFiles, tagger);
@@ -351,15 +351,15 @@ class GitHistoryParser extends HistoryParserBase
      * batching sequence of {@link History} instances.
      * @return a defined, wrapping sequence
      */
-    private static HistoryCloseableIterable newHistoryIterable(
-            final ObjectCloseableIterable entriesSequence,
+    private static HistoryEnumeration newHistoryIterable(
+            final ObjectCloseableEnumeration entriesSequence,
             final List<String> renamedFiles,
             final Consumer<History> tagger) {
 
         // Renamed files are published on the first element.
         History firstHistory = nextHistory(entriesSequence, renamedFiles, tagger);
 
-        return new HistoryCloseableIterable() {
+        return new HistoryEnumeration() {
             History nextHistory = firstHistory;
 
             @Override
@@ -392,7 +392,7 @@ class GitHistoryParser extends HistoryParserBase
      * @return a defined instance or {@code null} if the sequence is exhausted
      */
     private static History nextHistory(
-            final ObjectCloseableIterable entriesSequence,
+            final ObjectCloseableEnumeration entriesSequence,
             final List<String> renamedFiles,
             final Consumer<History> tagger) {
 

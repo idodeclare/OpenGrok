@@ -35,9 +35,9 @@ import java.util.NoSuchElementException;
  * filtering of the full history is done.
  * <p>N.b. the underlying sequence is fully exhausted during the filtering.
  */
-class FilteredHistorySequence implements HistoryCloseableIterable {
+class FilteredHistoryEnumeration implements HistoryEnumeration {
 
-    private final HistoryCloseableIterable underlying;
+    private final HistoryEnumeration underlying;
     private final String sinceRevision;
     private boolean didMatchRevision;
 
@@ -48,8 +48,8 @@ class FilteredHistorySequence implements HistoryCloseableIterable {
      * @param sinceRevision the revision at which to stop (non-inclusive)
      * returning data, or {@code null} to return the full sequence
      */
-    FilteredHistorySequence(HistoryCloseableIterable historySequence,
-            String sinceRevision) {
+    FilteredHistoryEnumeration(
+            HistoryEnumeration historySequence, String sinceRevision) {
         this.underlying = historySequence;
         this.sinceRevision = sinceRevision;
     }

@@ -254,7 +254,7 @@ public class BitKeeperRepository extends Repository {
      * @return history a history sequence
      */
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
@@ -266,7 +266,7 @@ public class BitKeeperRepository extends Repository {
      * @return history a history sequence
      */
     @Override
-    HistoryCloseableIterable getHistory(File file, String sinceRevision) throws HistoryException {
+    HistoryEnumeration getHistory(File file, String sinceRevision) throws HistoryException {
         final File absolute = file.getAbsoluteFile();
         final File directory = absolute.getParentFile();
         final String basename = absolute.getName();

@@ -322,7 +322,7 @@ public class RazorRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new RazorHistoryParser().parse(file, this));
     }
 

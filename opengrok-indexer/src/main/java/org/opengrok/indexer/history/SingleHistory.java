@@ -30,7 +30,7 @@ import java.util.NoSuchElementException;
  * repository implementations that read all history at once with no
  * sequencing.
  */
-class SingleHistory implements HistoryCloseableIterable {
+class SingleHistory implements HistoryEnumeration {
     private final History element;
     private boolean didYield;
 

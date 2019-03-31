@@ -105,7 +105,7 @@ public abstract class Repository extends RepositoryInfo {
      * into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    abstract HistoryCloseableIterable getHistory(File file) throws HistoryException;
+    abstract HistoryEnumeration getHistory(File file) throws HistoryException;
 
     public Repository() {
         super();
@@ -144,7 +144,7 @@ public abstract class Repository extends RepositoryInfo {
      * entire history into program memory simultaneously.
      * @throws HistoryException on error accessing the history
      */
-    HistoryCloseableIterable getHistory(File file, String sinceRevision)
+    HistoryEnumeration getHistory(File file, String sinceRevision)
             throws HistoryException {
 
         // If we want an incremental history update and get here, warn that
@@ -159,7 +159,7 @@ public abstract class Repository extends RepositoryInfo {
                     repoSimpleName);
         }
 
-        return new FilteredHistorySequence(getHistory(file), sinceRevision);
+        return new FilteredHistoryEnumeration(getHistory(file), sinceRevision);
     }
 
     /**

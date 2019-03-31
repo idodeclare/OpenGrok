@@ -477,7 +477,7 @@ public class AccuRevRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new AccuRevHistoryParser().parse(file, this));
     }
 

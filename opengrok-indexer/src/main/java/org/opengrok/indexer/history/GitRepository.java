@@ -570,12 +570,12 @@ public class GitRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file, String sinceRevision)
+    HistoryEnumeration getHistory(File file, String sinceRevision)
             throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         // Assign tags to changesets they represent

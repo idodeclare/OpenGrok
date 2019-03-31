@@ -277,12 +277,12 @@ public class SubversionRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(getHistory(file, null, 0, false));
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file, String sinceRevision) throws HistoryException {
+    HistoryEnumeration getHistory(File file, String sinceRevision) throws HistoryException {
         return new SingleHistory(getHistory(file, sinceRevision, 0, false));
     }
 

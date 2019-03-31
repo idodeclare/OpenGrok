@@ -263,7 +263,7 @@ public class CVSRepository extends RCSRepository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new CVSHistoryParser().parse(file, this));
     }
 

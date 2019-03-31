@@ -215,12 +215,12 @@ public class PerforceRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new PerforceHistoryParser().parse(file, this));
     }
 
     @Override
-    Enumeration<History> getHistory(File file, String sinceRevision)
+    HistoryEnumeration getHistory(File file, String sinceRevision)
             throws HistoryException {
         return new SingleHistory(new PerforceHistoryParser().parse(file,
                 sinceRevision, this));

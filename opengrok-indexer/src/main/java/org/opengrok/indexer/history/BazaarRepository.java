@@ -224,7 +224,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file, String sinceRevision) throws HistoryException {
+    HistoryEnumeration getHistory(File file, String sinceRevision) throws HistoryException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         History result = new BazaarHistoryParser(this).parse(file, sinceRevision);
         // Assign tags to changesets they represent
@@ -236,7 +236,7 @@ public class BazaarRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 

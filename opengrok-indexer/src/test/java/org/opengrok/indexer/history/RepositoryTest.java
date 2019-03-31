@@ -152,7 +152,7 @@ public class RepositoryTest {
         }
 
         @Override
-        public HistoryCloseableIterable getHistory(File file) {
+        public HistoryEnumeration getHistory(File file) {
             return null;
         }
 

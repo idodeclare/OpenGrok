@@ -200,7 +200,7 @@ public class Executor {
      * @return a defined instance to wrap the execution
      * @throws IOException if an execution cannot be started
      */
-    public ObjectCloseableIterable startExec(final boolean reportExceptions,
+    public ObjectCloseableEnumeration startExec(boolean reportExceptions,
             ObjectStreamHandler handler) throws IOException {
 
         if (handler == null) {
@@ -224,7 +224,7 @@ public class Executor {
         handler.initializeObjectStream(ep.process.getInputStream());
         Object firstObject = handler.readFromObjectStream();
 
-        return new ObjectCloseableIterable() {
+        return new ObjectCloseableEnumeration() {
 
             Object nextObject = firstObject;
             boolean hadProcessError;

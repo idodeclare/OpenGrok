@@ -158,12 +158,12 @@ public class SSCMRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return getHistory(file, null);
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file, String sinceRevision)
+    HistoryEnumeration getHistory(File file, String sinceRevision)
             throws HistoryException {
         return new SingleHistory(new SSCMHistoryParser(this).parse(file, sinceRevision));
     }

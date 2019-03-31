@@ -168,7 +168,7 @@ public class RCSRepository extends Repository {
     }
 
     @Override
-    HistoryCloseableIterable getHistory(File file) throws HistoryException {
+    HistoryEnumeration getHistory(File file) throws HistoryException {
         return new SingleHistory(new RCSHistoryParser().parse(file, this));
     }
 
