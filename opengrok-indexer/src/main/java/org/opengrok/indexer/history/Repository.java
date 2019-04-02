@@ -398,6 +398,7 @@ public abstract class Repository extends RepositoryInfo {
         }
 
         if (sinceRevision != null && historySequence == null) {
+            sinceRevision = null;
             // Failed to get partial history, now get full history instead.
             historySequence = getHistory(directory);
             // Got full history successfully. Clear the history cache so that

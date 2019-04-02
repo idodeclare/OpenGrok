@@ -67,6 +67,8 @@ class FileHistoryCache implements HistoryCache {
 
     private RuntimeEnvironment env;
     private boolean historyIndexDone;
+    private Map<String, List<HistoryEntry>> historyRenamedFiles;
+    private Set<String> repoRenamedFiles;
 
     @Override
     public void setHistoryIndexDone() {
@@ -137,8 +139,8 @@ class FileHistoryCache implements HistoryCache {
         }
     }
 
-    private boolean isRenamedFile(String filename, Repository repository,
-            Set<String> renamedFiles) throws IOException {
+    private boolean isRenamedFile(String filename, Repository repository)
+            throws IOException {
 
         String repodir;
         try {
@@ -150,7 +152,7 @@ class FileHistoryCache implements HistoryCache {
         }
         String shortestfile = filename.substring(repodir.length() + 1);
 
-        return renamedFiles.contains(shortestfile);
+        return repoRenamedFiles.contains(shortestfile);
     }
 
     @Override
@@ -338,10 +340,10 @@ class FileHistoryCache implements HistoryCache {
     public void store(Enumeration<History> historySequence, Repository repository,
             boolean forceOverwrite) throws HistoryException {
 
+        historyRenamedFiles = new ConcurrentHashMap<>();
+        repoRenamedFiles = null;
         boolean didLogIntro = false;
         PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
-        Map<String, List<HistoryEntry>> historyRenamedFiles = new ConcurrentHashMap<>();
-        Set<String> repoRenamedFiles = null;
         String latestRev = null;
 
         while (historySequence.hasMoreElements()) {
@@ -360,13 +362,12 @@ class FileHistoryCache implements HistoryCache {
                 repoRenamedFiles = new HashSet<>(hist.getRenamedFiles());
             }
 
-            storePending(historyRenamedFiles, hist, repository,
-                    repoRenamedFiles, completer);
+            storePending(hist, repository, completer);
         }
 
         if (latestRev != null) {
             if (env.isHandleHistoryOfRenamedFiles()) {
-                storeRenames(historyRenamedFiles, repository, completer);
+                storeRenames(repository, completer);
             }
 
             int fileCount = 0;
@@ -387,18 +388,12 @@ class FileHistoryCache implements HistoryCache {
      * stored under this hierarchy, each file containing history of
      * corresponding source file.
      *
-     * @param historyRenamedFiles a writable set of history-touched files
-     * which are matching in {@code repoRenamedFiles}
      * @param history history object to process into per-file histories
      * @param repository repository object
-     * @param repoRenamedFiles a defined set of Repository-indicated renames
      * @param completer a defined instance to be completed() by the caller
      */
-    private void storePending(
-            Map<String, List<HistoryEntry>> historyRenamedFiles,
-            History history, Repository repository,
-            Set<String> repoRenamedFiles, PendingHistoryCompleter completer)
-            throws HistoryException {
+    private void storePending(History history, Repository repository,
+            PendingHistoryCompleter completer) throws HistoryException {
 
         final File root = env.getSourceRootFile();
         final boolean handleRenamedFiles = repository.isHandleRenamedFiles();
@@ -458,8 +453,7 @@ class FileHistoryCache implements HistoryCache {
             final List<HistoryEntry> fileHistory = map_entry.getValue();
 
             try {
-                if (handleRenamedFiles && isRenamedFile(filename, repository,
-                        repoRenamedFiles)) {
+                if (handleRenamedFiles && isRenamedFile(filename, repository)) {
                     List<HistoryEntry> mappedFileHistory = historyRenamedFiles.
                             computeIfAbsent(filename, k -> new ArrayList<>());
                     mappedFileHistory.addAll(fileHistory);
@@ -499,10 +493,8 @@ class FileHistoryCache implements HistoryCache {
     /**
      * Handles renames in parallel
      */
-    private void storeRenames(
-            Map<String, List<HistoryEntry>> historyRenamedFiles,
-            Repository repository, PendingHistoryCompleter completer)
-            throws HistoryException {
+    private void storeRenames(Repository repository,
+            PendingHistoryCompleter completer) throws HistoryException {
 
         final File root = env.getSourceRootFile();
 
@@ -534,8 +526,8 @@ class FileHistoryCache implements HistoryCache {
                 try {
                     doFileHistory(map_entry.getKey(), map_entry.getValue(),
                             root, repositoryF, completer,
-                            new File(env.getSourceRootPath() + map_entry.getKey())
-                    );
+                            new File(env.getSourceRootPath() +
+                                    map_entry.getKey()));
                     renamedFileHistoryCount.getAndIncrement();
                 } catch (Exception ex) {
                     // We want to catch any exception since we are in thread.
@@ -638,21 +630,21 @@ class FileHistoryCache implements HistoryCache {
     public boolean hasCacheForDirectory(File directory, Repository repository)
             throws HistoryException {
         assert directory.isDirectory();
-        Repository repos = HistoryGuru.getInstance().getRepository(directory);
-        if (repos == null) {
+        Repository repo = HistoryGuru.getInstance().getRepository(directory);
+        if (repo == null) {
             return true;
         }
         File dir = env.getDataRootFile();
         dir = new File(dir, FileHistoryCache.HISTORY_CACHE_DIR_NAME);
         try {
             dir = new File(dir, env.getPathRelativeToSourceRoot(
-                new File(repos.getDirectoryName())));
+                    new File(repo.getDirectoryName())));
         } catch (ForbiddenSymlinkException e) {
             LOGGER.log(Level.FINER, e.getMessage());
             return false;
         } catch (IOException e) {
             throw new HistoryException("Could not resolve " +
-                    repos.getDirectoryName()+" relative to source root", e);
+                    repo.getDirectoryName() + " relative to source root", e);
         }
         return dir.exists();
     }

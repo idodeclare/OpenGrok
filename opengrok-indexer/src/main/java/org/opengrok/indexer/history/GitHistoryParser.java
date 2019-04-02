@@ -280,7 +280,7 @@ class GitHistoryParser extends HistoryParserBase
             ObjectCloseableEnumeration entriesSequence = executor.startExec(
                     true, this);
             List<String> renamedFiles = parser.getRenamedFiles();
-            return newHistoryIterable(entriesSequence, renamedFiles, tagger);
+            return newHistoryEnumeration(entriesSequence, renamedFiles, tagger);
         } catch (IOException e) {
             throw new HistoryException(
                     String.format("Failed to get history for: \"%s\"", file.getAbsolutePath()),
@@ -306,7 +306,7 @@ class GitHistoryParser extends HistoryParserBase
      * batching sequence of {@link History} instances.
      * @return a defined, wrapping sequence
      */
-    private static HistoryEnumeration newHistoryIterable(
+    private static HistoryEnumeration newHistoryEnumeration(
             final ObjectCloseableEnumeration entriesSequence,
             final List<String> renamedFiles,
             final Consumer<History> tagger) {
