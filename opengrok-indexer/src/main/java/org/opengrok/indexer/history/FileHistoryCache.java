@@ -61,12 +61,16 @@ class FileHistoryCache implements HistoryCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileHistoryCache.class);
 
+    private final Object lock = new Object();
+
     private static final String HISTORY_CACHE_DIR_NAME = "historycache";
     private static final String LATEST_REV_FILE_NAME = "OpenGroklatestRev";
     private static final String DIRECTORY_FILE_PREFIX = "OpenGrokDirHist";
 
+    private final FileHistoryTemp histTemp = new FileHistoryTemp();
     private RuntimeEnvironment env;
     private boolean historyIndexDone;
+    private Map<String, Boolean> doesFileExist;
     private Map<String, List<HistoryEntry>> historyRenamedFiles;
     private Set<String> repoRenamedFiles;
 
@@ -84,14 +88,13 @@ class FileHistoryCache implements HistoryCache {
      * Generate history for single file.
      * @param filename name of the file
      * @param historyEntries list of HistoryEntry objects forming the (incremental) history of the file
-     * @param root root of the source repository
      * @param repository repository object in which the file belongs
+     * @param root root of the source repository
      * @param completer a defined instance to be completed() by the caller
      * @param renamedFile an optional file object which if defined will trigger
-     * a reload of full, followed history
      */
     private void doFileHistory(String filename, List<HistoryEntry> historyEntries,
-            File root, Repository repository, PendingHistoryCompleter completer,
+            Repository repository, File root, PendingHistoryCompleter completer,
             File renamedFile) throws HistoryException {
 
         History hist = null;
@@ -172,7 +175,7 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
-     * Get a {@link File} object describing the cache file.
+     * Gets a {@link File} object describing the cache file.
      *
      * @param file the file to find the cache for
      * @return file that might contain cached history for {@code file}
@@ -330,21 +333,56 @@ class FileHistoryCache implements HistoryCache {
     /**
      * Stores the history enumeration for a repository, where
      * {@code historyElements} must be ordered from most recent to earlier
-     * between each element and within each element.
-     * @param historySequence The history series to store
-     * @param repository The repository whose history to store
+     * between each element and within each element, in directory hierarchy
+     * resembling the original repository structure. History of individual
+     * files will be stored under this hierarchy, each file containing history
+     * of corresponding source file.
+     *
+     * @param historySequence a defined history series to store
+     * @param repository a defined repository whose history to store
      * @param forceOverwrite a value indicating whether to overwrite existing
      * stored history for the files in {@code historySequence}
      * @throws HistoryException if the history cannot be stored
      */
-    public void store(Enumeration<History> historySequence, Repository repository,
-            boolean forceOverwrite) throws HistoryException {
+    public void store(Enumeration<History> historySequence,
+            Repository repository, boolean forceOverwrite)
+            throws HistoryException {
 
+        // Return immediately when there is nothing to do.
+        if (!historySequence.hasMoreElements()) {
+            return;
+        }
+
+        try {
+            histTemp.open();
+        } catch (IOException e) {
+            throw new HistoryException("Failed FileHistoryTemp open()", e);
+        }
+
+        try {
+            store2(historySequence, repository, forceOverwrite);
+        } finally {
+            try {
+                histTemp.close();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Failed FileHistoryTemp close()", e);
+            }
+        }
+    }
+
+    /**
+     * Called by {@link #store(Enumeration, Repository, boolean)} in try/catch.
+     */
+    private void store2(Enumeration<History> historySequence,
+            Repository repository, boolean forceOverwrite)
+            throws HistoryException {
+
+        doesFileExist = new HashMap<>();
         historyRenamedFiles = new ConcurrentHashMap<>();
         repoRenamedFiles = null;
-        boolean didLogIntro = false;
         PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
         String latestRev = null;
+        boolean didLogIntro = false;
 
         while (historySequence.hasMoreElements()) {
             if (!didLogIntro) {
@@ -362,7 +400,7 @@ class FileHistoryCache implements HistoryCache {
                 repoRenamedFiles = new HashSet<>(hist.getRenamedFiles());
             }
 
-            storePending(hist, repository, completer);
+            storeTemp(hist, repository);
         }
 
         if (latestRev != null) {
@@ -372,9 +410,9 @@ class FileHistoryCache implements HistoryCache {
 
             int fileCount = 0;
             try {
-                fileCount = completer.complete(false);
+                fileCount = completer.complete(forceOverwrite);
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Error while finishing completer", e);
+                LOGGER.log(Level.SEVERE, "Error finishing completer", e);
             }
 
             LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
@@ -382,25 +420,10 @@ class FileHistoryCache implements HistoryCache {
         }
     }
 
-    /**
-     * Store history for the whole repository in directory hierarchy resembling
-     * the original repository structure. History of individual files will be
-     * stored under this hierarchy, each file containing history of
-     * corresponding source file.
-     *
-     * @param history history object to process into per-file histories
-     * @param repository repository object
-     * @param completer a defined instance to be completed() by the caller
-     */
-    private void storePending(History history, Repository repository,
-            PendingHistoryCompleter completer) throws HistoryException {
+    private void storeTemp(History history, Repository repository) {
 
         final File root = env.getSourceRootFile();
         final boolean handleRenamedFiles = repository.isHandleRenamedFiles();
-
-        // Firstly store the history for the top-level directory.
-        doFileHistory(repository.getDirectoryName(), history.getHistoryEntries(),
-                null, repository, completer, null);
 
         Map<String, List<HistoryEntry>> map = new HashMap<>();
 
@@ -419,7 +442,9 @@ class FileHistoryCache implements HistoryCache {
                  * do not currently exist in the repository.
                  */
                 File test = new File(env.getSourceRootPath() + s);
-                if (!test.exists()) {
+                Boolean doesExist = doesFileExist.computeIfAbsent(
+                        test.toString(), k -> test.exists());
+                if (!doesExist) {
                     continue;
                 }
 
@@ -437,17 +462,17 @@ class FileHistoryCache implements HistoryCache {
             }
         }
 
-        LOGGER.log(Level.FINEST, "Processing pending history for {0} files",
+        LOGGER.log(Level.FINEST, "Processing temp history for {0} files",
                 map.size());
 
         /*
-         * Now traverse the list of files from the map built above
-         * and for each file store its history (saved in the value of the
-         * map entry for the file) in a file. Skip renamed files
-         * which will be handled separately.
+         * Now traverse the list of files from the map built above and for each
+         * file append its history (saved in the value of the map entry for the
+         * file) to the HashDB, skipping renamed files which will be handled
+         * separately.
          */
         final CountDownLatch latch = new CountDownLatch(map.size());
-        AtomicInteger fileHistoryCount = new AtomicInteger();
+        AtomicInteger fileTempCount = new AtomicInteger();
         for (Map.Entry<String, List<HistoryEntry>> map_entry : map.entrySet()) {
             final String filename = map_entry.getKey();
             final List<HistoryEntry> fileHistory = map_entry.getValue();
@@ -467,13 +492,13 @@ class FileHistoryCache implements HistoryCache {
             // Using the historyRenamedExecutor here too.
             env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
                 try {
-                    doFileHistory(filename, fileHistory, root, repository,
-                            completer, null);
-                    fileHistoryCount.incrementAndGet();
+                    File keyFile = new File(root, filename);
+                    histTemp.append(keyFile.toString(), fileHistory);
+                    fileTempCount.incrementAndGet();
                 } catch (Exception ex) {
                     // We want to catch any exception since we are in thread.
-                    LOGGER.log(Level.WARNING,
-                            "doFileHistory() got exception ", ex);
+                    LOGGER.log(Level.SEVERE,
+                            "Error appending FileHistoryTemp", ex);
                 } finally {
                     latch.countDown();
                 }
@@ -486,12 +511,12 @@ class FileHistoryCache implements HistoryCache {
         } catch (InterruptedException ex) {
             LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
         }
-        LOGGER.log(Level.FINEST, "Stored pending history for {0} files",
-                fileHistoryCount.intValue());
+        LOGGER.log(Level.FINEST, "Stored temp history for {0} files",
+                fileTempCount.intValue());
     }
 
     /**
-     * Handles renames in parallel
+     * Handles renames in parallel.
      */
     private void storeRenames(Repository repository,
             PendingHistoryCompleter completer) throws HistoryException {
@@ -525,7 +550,7 @@ class FileHistoryCache implements HistoryCache {
             env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
                 try {
                     doFileHistory(map_entry.getKey(), map_entry.getValue(),
-                            root, repositoryF, completer,
+                            repositoryF, root, completer,
                             new File(env.getSourceRootPath() +
                                     map_entry.getKey()));
                     renamedFileHistoryCount.getAndIncrement();
@@ -547,6 +572,52 @@ class FileHistoryCache implements HistoryCache {
         }
         LOGGER.log(Level.FINE, "Stored history for {0} renamed files",
                 renamedFileHistoryCount.intValue());
+    }
+
+    private void storePending(Repository repository,
+            PendingHistoryCompleter completer) throws HistoryException {
+
+        final File root = env.getSourceRootFile();
+
+        LOGGER.log(Level.FINEST, "Processing pending history for {0} files",
+                histTemp.fileCount());
+
+        /*
+         * Now traverse the list of files from the HashDB built above and for
+         * each file store its history. Skip renamed files which will be
+         * handled separately.
+         */
+        final CountDownLatch latch = new CountDownLatch(histTemp.fileCount());
+        AtomicInteger fileHistoryCount = new AtomicInteger();
+        Enumeration<KeyedHistory> keyedEnumeration = histTemp.getEnumerator();
+        // Using the historyRenamedExecutor here too.
+        env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
+            try {
+                KeyedHistory keyedHistory;
+                synchronized (lock) {
+                    keyedHistory = keyedEnumeration.nextElement();
+                }
+
+                doFileHistory(keyedHistory.getFile(), keyedHistory.getEntries(),
+                        repository, root, completer, null);
+                fileHistoryCount.incrementAndGet();
+            } catch (Exception ex) {
+                // We want to catch any exception since we are in thread.
+                LOGGER.log(Level.SEVERE,
+                        "doFileHistory() got exception ", ex);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        try {
+            // Wait for the executors to finish.
+            latch.await();
+        } catch (InterruptedException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
+        }
+        LOGGER.log(Level.FINEST, "Stored pending history for {0} files",
+                fileHistoryCount.intValue());
     }
 
     @Override
@@ -601,7 +672,7 @@ class FileHistoryCache implements HistoryCache {
                 try {
                     completer.complete(true);
                 } catch (IOException e) {
-                    throw new HistoryException(e);
+                    throw new HistoryException("Error finishing completer", e);
                 }
             }
         }
