@@ -24,6 +24,9 @@
  */
 package org.opengrok.indexer.history;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
@@ -36,7 +39,7 @@ import java.util.Date;
 public class HistoryEntryFixed {
 
     private final String revision;
-    private final Instant date;
+    private final Long date; // Date Instant toEpochMilli()
     private final String author;
     private final String tags;
     private final String message;
@@ -46,17 +49,35 @@ public class HistoryEntryFixed {
     /**
      * Copy constructor to fix the specified {@link HistoryEntry}.
      */
-    public HistoryEntryFixed(HistoryEntry that) {
+    HistoryEntryFixed(HistoryEntry that) {
         this.revision = that.getRevision();
 
         Date thatDate = that.getDate();
-        this.date = thatDate == null ? null : thatDate.toInstant();
+        this.date = thatDate == null ? null : thatDate.toInstant().toEpochMilli();
 
         this.author = that.getAuthor();
         this.tags = that.getTags();
         this.message = that.getMessage();
         this.active = that.isActive();
         this.files = that.getFiles().toArray(new String[0]);
+    }
+
+    @JsonCreator
+    public HistoryEntryFixed(@JsonProperty("revision") String revision,
+            @JsonProperty("date") Long date,
+            @JsonProperty("author") String author,
+            @JsonProperty("tags") String tags,
+            @JsonProperty("message") String message,
+            @JsonProperty("active") boolean active,
+            @JsonProperty("files") String[] files) {
+
+        this.revision = revision;
+        this.date = date;
+        this.author = author;
+        this.tags = tags;
+        this.message = message;
+        this.active = active;
+        this.files = files;
     }
 
     public String getAuthor() {
@@ -67,7 +88,7 @@ public class HistoryEntryFixed {
         return tags;
     }
 
-    public Instant getDate() {
+    public Long getDate() {
         return date;
     }
 
@@ -85,5 +106,22 @@ public class HistoryEntryFixed {
 
     public String[] getFiles() {
         return Arrays.copyOf(files, files.length);
+    }
+
+    HistoryEntry toEntry() {
+        HistoryEntry res = new HistoryEntry();
+
+        res.setRevision(this.revision);
+        if (this.date != null) {
+            res.setDate(Date.from(Instant.ofEpochMilli(this.date)));
+        }
+        res.setAuthor(this.author);
+        res.setTags(this.tags);
+        res.appendMessage(this.message);
+        res.setActive(this.active);
+        for (String file : this.files) {
+            res.addFile(file);
+        }
+        return res;
     }
 }

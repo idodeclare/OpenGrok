@@ -53,7 +53,7 @@ import java.util.concurrent.ConcurrentMap;
 class FileHistoryTemp implements Closeable {
 
     private static final ObjectMapper MAPPER;
-    private static final TypeReference<List<HistoryEntry>> T_LIST_HISTORY_ENTRY;
+    private static final TypeReference<HistoryEntryFixed[]> TYPE_H_E_F_ARRAY;
 
     private Path tempDir;
     private Map<String, List<Long>> batchPointers;
@@ -65,7 +65,7 @@ class FileHistoryTemp implements Closeable {
         MAPPER = new ObjectMapper();
         MAPPER.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
-        T_LIST_HISTORY_ENTRY = new TypeReference<List<HistoryEntry>>(){};
+        TYPE_H_E_F_ARRAY = new TypeReference<HistoryEntryFixed[]>(){};
     }
 
     /**
@@ -124,8 +124,10 @@ class FileHistoryTemp implements Closeable {
             throw new IllegalStateException("not open");
         }
 
+        HistoryEntryFixed[] fixedEntries = fix(entries);
+
         StringWriter writer = new StringWriter();
-        MAPPER.writeValue(writer, entries);
+        MAPPER.writeValue(writer, fixedEntries);
 
         ++counter;
         batches.put(counter, writer.toString());
@@ -170,16 +172,27 @@ class FileHistoryTemp implements Closeable {
         List<HistoryEntry> res = new ArrayList<>();
         for (long nextCounter : pointers) {
             String serialized = batches.get(nextCounter);
-            Object obj = MAPPER.readValue(serialized, T_LIST_HISTORY_ENTRY);
+            Object obj = MAPPER.readValue(serialized, TYPE_H_E_F_ARRAY);
 
             if (obj instanceof List<?>) {
                 for (Object element : (List<?>) obj) {
-                    if (element instanceof HistoryEntry) {
-                        res.add((HistoryEntry) element);
+                    if (element instanceof HistoryEntryFixed) {
+                        HistoryEntryFixed fixed = (HistoryEntryFixed) element;
+                        res.add(fixed.toEntry());
                     }
                 }
 
             }
+        }
+        return res;
+    }
+
+    private HistoryEntryFixed[] fix(List<HistoryEntry> entries) {
+        HistoryEntryFixed[] res = new HistoryEntryFixed[entries.size()];
+
+        int i = 0;
+        for (HistoryEntry entry : entries) {
+            res[i++] = new HistoryEntryFixed(entry);
         }
         return res;
     }
