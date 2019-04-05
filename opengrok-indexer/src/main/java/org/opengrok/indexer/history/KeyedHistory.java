@@ -32,4 +32,5 @@ import java.util.List;
 interface KeyedHistory {
     String getFile();
     List<HistoryEntry> getEntries();
+    boolean isForceOverwrite();
 }

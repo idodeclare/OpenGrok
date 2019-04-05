@@ -41,6 +41,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,15 +86,13 @@ class FileHistoryCache implements HistoryCache {
      * @param filename name of the file
      * @param historyEntries list of HistoryEntry objects forming the (incremental) history of the file
      * @param repository repository object in which the file belongs
-     * @param root root of the source repository
-     * @param completer a defined instance to be completed() by the caller
-     * @param renamedFile an optional file object which if defined will trigger
+     * @param forceOverwrite a value indicating whether to overwrite the cache
+     * file if it exists or if {@code false} then to try to merge
+     * {@code historyEntries} with any existing cache file
      */
     private void doFileHistory(String filename, List<HistoryEntry> historyEntries,
-            Repository repository, File root, PendingHistoryCompleter completer,
-            File renamedFile) throws HistoryException {
-
-        History hist = null;
+            Repository repository, boolean forceOverwrite)
+            throws HistoryException {
 
         /*
          * If the file was renamed (in the changesets that are being indexed),
@@ -102,39 +101,26 @@ class FileHistoryCache implements HistoryCache {
          * This ensures that complete history of the file (across renames)
          * will be saved.
          */
-        boolean forceOverwrite = false;
-        if (renamedFile != null) {
-            hist = HistoryUtil.union(repository.getHistory(renamedFile));
-            forceOverwrite = true;
-        }
+        File file = new File((File) null, filename);
 
-        File file = new File(root, filename);
-
-        if (hist == null) {
-            hist = new History();
-
-            // File based history cache does not store files for individual
-            // changesets so strip them unless it is history for the repository.
-            for (HistoryEntry ent : historyEntries) {
-                if (file.isDirectory() && filename.equals(repository.getDirectoryName())) {
-                    ent.stripTags();
-                } else {
-                    ent.strip();
-                }
-            }
-
-            // add all history entries
-            hist.setHistoryEntries(historyEntries);
-        } else {
-            for (HistoryEntry ent : hist.getHistoryEntries()) {
+        // File based history cache does not store files for individual
+        // changesets so strip them unless it is history for the repository.
+        for (HistoryEntry ent : historyEntries) {
+            if (file.isDirectory() && filename.equals(repository.getDirectoryName())) {
+                ent.stripTags();
+            } else {
                 ent.strip();
             }
         }
 
+        History hist = new History();
+        // add all history entries
+        hist.setHistoryEntries(historyEntries);
+
         // Store history for file -- or for the top-level directory.
         if (file.isFile() || (file.isDirectory() &&
                 filename.equals(repository.getDirectoryName()))) {
-            storeFile(hist, file, completer, forceOverwrite);
+            storeFile(hist, file, repository, forceOverwrite);
         } else {
             LOGGER.log(Level.FINEST, "Skipping ineligible {0}", file);
         }
@@ -205,49 +191,64 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
-     * Read history from {@code cacheFile}, append {@code hist}, and return
-     * merged data.
+     * Read history from cacheFile and merge it with histNew, return merged history.
      *
-     * @param transientFile file to where the history object will be stored
-     * @param hist history object with history entries
-     * @return merged history
-     * @throws HistoryException if the cache file cannot be read, which should
-     * not happen within an execution of the program because all data in
-     * {@code transientFile} should have been serialized within this same
-     * execution
+     * @param cacheFile file to where the history object will be stored
+     * @param histNew history object with new history entries
+     * @param repo repository to where pre pre-image of the cacheFile belong
+     * @param env a defined instance
+     * @return merged history (can be null if merge failed for some reason)
      */
-    private History appendHistory(File transientFile, History hist)
-            throws HistoryException {
+    private History mergeOldAndNewHistory(File cacheFile, History histNew,
+              Repository repo, RuntimeEnvironment env) {
 
-        History transientHistory;
+        History histOld;
+        History history = null;
+
         try {
-            transientHistory = History.readGZIP(transientFile);
+            histOld = History.readGZIP(cacheFile);
+            // Merge old history with the new history.
+            List<HistoryEntry> listOld = histOld.getHistoryEntries();
+            if (!listOld.isEmpty()) {
+                List<HistoryEntry> listNew = histNew.getHistoryEntries();
+                ListIterator<HistoryEntry> li = listNew.listIterator(listNew.size());
+                while (li.hasPrevious()) {
+                    listOld.add(0, li.previous());
+                }
+                history = new History(listOld);
+
+                // Un-tag the last changesets in case there have been some new
+                // tags added to the repository. Technically we should just
+                // re-tag the last revision from the listOld however this
+                // does not solve the problem when listNew contains new tags
+                // retroactively tagging changesets from listOld so we resort
+                // to this somewhat crude solution.
+                if (env.isTagsEnabled() && repo.hasFileBasedTags()) {
+                    for (HistoryEntry ent : history.getHistoryEntries()) {
+                        ent.setTags(null);
+                    }
+                }
+            }
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE,
-                    String.format("Error reading %s", transientFile), ex);
-            throw new HistoryException(ex);
+                String.format("Cannot open history cache file %s", cacheFile.getPath()), ex);
         }
 
-        List<HistoryEntry> mergedEntries = new ArrayList<>(
-                transientHistory.getHistoryEntries());
-        mergedEntries.addAll(hist.getHistoryEntries());
-        return new History(mergedEntries);
+        return history;
     }
 
     /**
      * Store history object (encoded as XML and compressed with gzip) in a file.
      *
-     * @param histNext history object to store
+     * @param histNew history object to store
      * @param file source root file for history (from which a transient file
      * will be determined
-     * @param completer a defined instance to be completed() by the caller
      * @param forceOverwrite a value indicating whether to overwrite the
      * transient file if it exists or if {@code false} then to try to append
      * {@code histNext} with any existing transient file
      */
-    private void storeFile(History histNext, File file,
-            PendingHistoryCompleter completer, boolean forceOverwrite)
-            throws HistoryException {
+    private void storeFile(History histNew, File file, Repository repo,
+            boolean forceOverwrite) throws HistoryException {
 
         File cacheFile;
         try {
@@ -257,27 +258,7 @@ class FileHistoryCache implements HistoryCache {
             return;
         }
 
-        File transientFile = new File(TandemPath.join(cacheFile.getPath(),
-                PendingHistoryCompleter.PENDING_EXTENSION));
-        boolean transientExists = transientFile.exists();
-        /*
-         * The first time cacheFile is seen by the completer instance, the
-         * transient file should be deleted because it would be dangling from
-         * a previous execution of the program.
-         *
-         * Alternatively if not merging, then also delete the transient.
-         */
-        if (completer.add(new PendingHistorial(cacheFile.getAbsolutePath(),
-                transientFile.getAbsolutePath()), forceOverwrite) ||
-                forceOverwrite) {
-            if (transientExists) {
-                if (!transientFile.delete()) {
-                    LOGGER.log(Level.WARNING, "Error deleting {0}", transientFile);
-                    return;
-                }
-                transientExists = false;
-            }
-        }
+        boolean cachedExists = cacheFile.exists();
 
         File dir = cacheFile.getParentFile();
         /*
@@ -287,25 +268,32 @@ class FileHistoryCache implements HistoryCache {
          * for both threads, but then only one will see true from mkdirs -- so
          * the other needs a fallback again to check-exists.
          */
-        if (!transientExists && !dir.isDirectory() && !dir.mkdirs() &&
+        if (!cachedExists && !dir.isDirectory() && !dir.mkdirs() &&
                 !dir.isDirectory()) {
             throw new HistoryException(
                     "Unable to create cache directory '" + dir + "'.");
         }
 
         History history = null;
-        if (!forceOverwrite && transientExists) {
-            history = appendHistory(transientFile, histNext);
+        if (!forceOverwrite && cachedExists) {
+            history = mergeOldAndNewHistory(cacheFile, histNew, repo, env);
         }
 
         // If the merge failed, null history will be returned. In such case, or
         // if merge was not done, store at least new history as a best effort.
         if (history == null) {
-            history = histNext;
+            history = histNew;
         }
 
+        // Assign tags to changesets they represent.
+        if (env.isTagsEnabled() && repo.hasFileBasedTags()) {
+            repo.assignTagsInHistory(history);
+        }
+
+        repo.deduplicateRevisions(history);
+
         try {
-            history.writeGZIP(transientFile);
+            history.writeGZIP(cacheFile);
         } catch (IOException ioe) {
             throw new HistoryException("Failed to write history", ioe);
         }
@@ -374,9 +362,8 @@ class FileHistoryCache implements HistoryCache {
      */
     private void store2(Enumeration<History> historySequence,
             Repository repository, StoreAssociations associations,
-            boolean forceOverwrite) throws HistoryException {
+            boolean forceOverwrite) {
 
-        PendingHistoryCompleter completer = new PendingHistoryCompleter(repository);
         String latestRev = null;
         boolean didLogIntro = false;
 
@@ -399,20 +386,12 @@ class FileHistoryCache implements HistoryCache {
             storeTemp(hist, repository, associations);
         }
 
-        storePending(repository, completer, associations);
+        if (env.isHandleHistoryOfRenamedFiles()) {
+            storeRenamesTemp(repository, associations);
+        }
 
         if (latestRev != null) {
-            if (env.isHandleHistoryOfRenamedFiles()) {
-                storeRenames(repository, completer, associations);
-            }
-
-            int fileCount = 0;
-            try {
-                fileCount = completer.complete(forceOverwrite);
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Error finishing completer", e);
-            }
-
+            int fileCount = storePending(repository, associations, forceOverwrite);
             LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
             finishStore(repository, latestRev);
         }
@@ -519,43 +498,51 @@ class FileHistoryCache implements HistoryCache {
     /**
      * Handles renames in parallel.
      */
-    private void storeRenames(Repository repository,
-            PendingHistoryCompleter completer, StoreAssociations associations)
-            throws HistoryException {
+    private void storeRenamesTemp(Repository repository,
+            StoreAssociations associations) {
 
         final File root = env.getSourceRootFile();
 
-        // The directories for the renamed files have to be created before
-        // the actual files otherwise storeFile() might be racing for
-        // mkdirs() if there are multiple renamed files from single directory
-        // handled in parallel.
-        for (final String file : associations.historyRenamedFiles.keySet()) {
-            File cache;
-            try {
-                cache = getCachedFile(new File(env.getSourceRootPath() + file));
-            } catch (ForbiddenSymlinkException ex) {
-                LOGGER.log(Level.FINER, ex.getMessage());
-                continue;
-            }
-            File dir = cache.getParentFile();
+        final int renamedSize = associations.historyRenamedFiles.size();
+        LOGGER.log(Level.FINEST, "Processing temp history for {0} renamed files",
+                renamedSize);
 
-            if (!dir.isDirectory() && !dir.mkdirs()) {
-                LOGGER.log(Level.WARNING, "Unable to create {0}", dir);
-            }
-        }
-
-        final Repository repositoryF = repository;
-        final CountDownLatch latch = new CountDownLatch(
-                associations.historyRenamedFiles.size());
+        final CountDownLatch latch = new CountDownLatch(renamedSize);
         final AtomicInteger renamedFileHistoryCount = new AtomicInteger();
         for (final Map.Entry<String, List<HistoryEntry>> map_entry :
                 associations.historyRenamedFiles.entrySet()) {
             env.getIndexerParallelizer().getHistoryRenamedExecutor().submit(() -> {
                 try {
-                    doFileHistory(map_entry.getKey(), map_entry.getValue(),
-                            repositoryF, root, completer,
-                            new File(env.getSourceRootPath() +
-                                    map_entry.getKey()));
+                    final String renamedFile = map_entry.getKey();
+
+                    History hist = HistoryUtil.union(repository.getHistory(
+                            new File(env.getSourceRootPath() + renamedFile)));
+
+                    final List<HistoryEntry> fileHistory;
+                    boolean forceOverwrite = false;
+                    if (hist.count() < 1) {
+                        fileHistory = map_entry.getValue();
+                    } else {
+                        fileHistory = hist.getHistoryEntries();
+                        forceOverwrite = true;
+                    }
+
+                    for (HistoryEntry ent : hist.getHistoryEntries()) {
+                        ent.strip();
+                    }
+
+                    final File keyFile = new File(root, renamedFile);
+
+                    // FileHistoryTemp by design is not thread-safe.
+                    synchronized (lock) {
+                        if (forceOverwrite) {
+                            associations.histTemp.set(keyFile.toString(),
+                                    fileHistory);
+                        } else {
+                            associations.histTemp.append(keyFile.toString(),
+                                    fileHistory);
+                        }
+                    }
                     renamedFileHistoryCount.getAndIncrement();
                 } catch (Exception ex) {
                     // Catch any exception so that one file does not derail.
@@ -572,12 +559,12 @@ class FileHistoryCache implements HistoryCache {
         } catch (InterruptedException ex) {
             LOGGER.log(Level.SEVERE, "Failed to await latch", ex);
         }
-        LOGGER.log(Level.FINE, "Stored history for {0} renamed files",
+        LOGGER.log(Level.FINE, "Stored temp history for {0} renamed files",
                 renamedFileHistoryCount.intValue());
     }
 
-    private void storePending(Repository repository,
-            PendingHistoryCompleter completer, StoreAssociations associations) {
+    private int storePending(Repository repository,
+            StoreAssociations associations, boolean forceOverwrite) {
 
         final int fileCount = associations.histTemp.fileCount();
         LOGGER.log(Level.FINEST, "Processing pending history for {0} files",
@@ -601,9 +588,9 @@ class FileHistoryCache implements HistoryCache {
                         keyedHistory = keyedEnumeration.nextElement();
                     }
 
-                    // getFile() is an absolute path, so use root=null.
                     doFileHistory(keyedHistory.getFile(), keyedHistory.getEntries(),
-                            repository, null, completer, null);
+                            repository, forceOverwrite ||
+                                    keyedHistory.isForceOverwrite());
                     fileHistoryCount.incrementAndGet();
                 } catch (Exception ex) {
                     // Catch any exception so that one file does not derail.
@@ -622,6 +609,7 @@ class FileHistoryCache implements HistoryCache {
         }
         LOGGER.log(Level.FINEST, "Stored pending history for {0} files",
                 fileHistoryCount.intValue());
+        return fileHistoryCount.intValue();
     }
 
     @Override
@@ -670,14 +658,7 @@ class FileHistoryCache implements HistoryCache {
             // invalidates the cache entry.
             if (cacheFile.exists() || time > env.getHistoryReaderTimeLimit()) {
                 // retrieving the history takes too long, cache it!
-                PendingHistoryCompleter completer =
-                        new PendingHistoryCompleter(repository);
-                storeFile(history, file, completer, false);
-                try {
-                    completer.complete(true);
-                } catch (IOException e) {
-                    throw new HistoryException("Error finishing completer", e);
-                }
+                storeFile(history, file, repository, false);
             }
         }
 

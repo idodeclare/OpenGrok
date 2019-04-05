@@ -56,7 +56,7 @@ class FileHistoryTemp implements Closeable {
     private static final TypeReference<HistoryEntryFixed[]> TYPE_H_E_F_ARRAY;
 
     private Path tempDir;
-    private Map<String, List<Long>> batchPointers;
+    private Map<String, PointedMeta> batchPointers;
     private DB batchDb;
     private ConcurrentMap<Long, String> batches;
     private long counter;
@@ -117,24 +117,49 @@ class FileHistoryTemp implements Closeable {
         }
     }
 
+    /**
+     * Sets the specified {@code entries} as the list of entries for
+     * {@code file}, which will indicate a full overwrite later.
+     * @throws IOException if an I/O error occurs writing to temp
+     */
+    public void set(String file, List<HistoryEntry> entries)
+            throws IOException {
+        incorporate(file, entries, true);
+    }
+
+    /**
+     * Appends the specified {@code entries} to the previous list of entries
+     * for {@code file}.
+     * @throws IOException if an I/O error occurs writing to temp
+     */
     public void append(String file, List<HistoryEntry> entries)
             throws IOException {
+        incorporate(file, entries, false);
+    }
+
+    private void incorporate(String file, List<HistoryEntry> entries,
+            boolean forceOverwrite) throws IOException {
 
         if (batchDb == null) {
             throw new IllegalStateException("not open");
         }
 
         HistoryEntryFixed[] fixedEntries = fix(entries);
-
         StringWriter writer = new StringWriter();
         MAPPER.writeValue(writer, fixedEntries);
 
         ++counter;
         batches.put(counter, writer.toString());
 
-        List<Long> pointers = batchPointers.computeIfAbsent(file,
-                k -> new ArrayList<>());
-        pointers.add(counter);
+        final PointedMeta pointed;
+        if (forceOverwrite) {
+            pointed = new PointedMeta(true);
+            batchPointers.put(file, pointed);
+        } else {
+            pointed = batchPointers.computeIfAbsent(file,
+                    k -> new PointedMeta(false));
+        }
+        pointed.counters.add(counter);
     }
 
     Enumeration<KeyedHistory> getEnumerator() {
@@ -154,14 +179,14 @@ class FileHistoryTemp implements Closeable {
             @Override
             public KeyedHistory nextElement() {
                 String file = iterator.next();
-                List<Long> pointers = batchPointers.get(file);
+                PointedMeta pointed = batchPointers.get(file);
                 List<HistoryEntry> entries;
                 try {
-                    entries = readEntries(pointers);
+                    entries = readEntries(pointed.counters);
                 } catch (IOException e) {
                     throw new RuntimeException("readEntries()", e);
                 }
-                return new KeyHistoryImpl(file, entries);
+                return new KeyHistoryImpl(file, entries, pointed.forceOverwrite);
             }
         };
     }
@@ -197,14 +222,25 @@ class FileHistoryTemp implements Closeable {
         return res;
     }
 
-    private static class KeyHistoryImpl implements KeyedHistory {
+    private static class PointedMeta {
+        final List<Long> counters = new ArrayList<>();
+        final boolean forceOverwrite;
 
+        PointedMeta(boolean forceOverwrite) {
+            this.forceOverwrite = forceOverwrite;
+        }
+    }
+
+    private static class KeyHistoryImpl implements KeyedHistory {
         private final String file;
         private final List<HistoryEntry> entries;
+        private final boolean forceOverwrite;
 
-        KeyHistoryImpl(String file, List<HistoryEntry> entries) {
+        KeyHistoryImpl(String file, List<HistoryEntry> entries,
+                boolean forceOverwrite) {
             this.file = file;
             this.entries = entries;
+            this.forceOverwrite = forceOverwrite;
         }
 
         @Override
@@ -215,6 +251,11 @@ class FileHistoryTemp implements Closeable {
         @Override
         public List<HistoryEntry> getEntries() {
             return Collections.unmodifiableList(entries);
+        }
+
+        @Override
+        public boolean isForceOverwrite() {
+            return forceOverwrite;
         }
     }
 }
