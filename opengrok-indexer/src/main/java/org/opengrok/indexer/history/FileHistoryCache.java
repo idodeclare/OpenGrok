@@ -241,11 +241,10 @@ class FileHistoryCache implements HistoryCache {
      * Store history object (encoded as XML and compressed with gzip) in a file.
      *
      * @param histNew history object to store
-     * @param file source root file for history (from which a transient file
-     * will be determined
+     * @param file file to store the history object into
      * @param forceOverwrite a value indicating whether to overwrite the
-     * transient file if it exists or if {@code false} then to try to append
-     * {@code histNext} with any existing transient file
+     * cache file if it exists or if {@code false} then to try to append
+     * {@code histNext} with any existing cache file
      */
     private void storeFile(History histNew, File file, Repository repo,
             boolean forceOverwrite) throws HistoryException {
@@ -588,8 +587,9 @@ class FileHistoryCache implements HistoryCache {
                         keyedHistory = keyedEnumeration.nextElement();
                     }
 
-                    doFileHistory(keyedHistory.getFile(), keyedHistory.getEntries(),
-                            repository, forceOverwrite ||
+                    doFileHistory(keyedHistory.getFile(),
+                            keyedHistory.getEntries(), repository,
+                            forceOverwrite ||
                                     keyedHistory.isForceOverwrite());
                     fileHistoryCount.incrementAndGet();
                 } catch (Exception ex) {
@@ -658,7 +658,7 @@ class FileHistoryCache implements HistoryCache {
             // invalidates the cache entry.
             if (cacheFile.exists() || time > env.getHistoryReaderTimeLimit()) {
                 // retrieving the history takes too long, cache it!
-                storeFile(history, file, repository, false);
+                storeFile(history, file, repository, true);
             }
         }
 
