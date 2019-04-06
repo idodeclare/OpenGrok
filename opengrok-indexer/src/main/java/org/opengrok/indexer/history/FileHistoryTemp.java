@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -94,7 +93,7 @@ class FileHistoryTemp implements Closeable {
 
         tempDir = Files.createTempDirectory("org_opengrok-file_history_log");
 
-        Path batchDbPath = Paths.get(tempDir.toString(), "batch.db");
+        Path batchDbPath = tempDir.resolve("batch.db");
         batchDb = DBMaker.fileDB(batchDbPath.toString()).make();
         batches = batchDb.hashMap("map", Serializer.LONG, Serializer.STRING).
                 create();
