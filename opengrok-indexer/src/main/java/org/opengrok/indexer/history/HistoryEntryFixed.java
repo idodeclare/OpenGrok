@@ -112,15 +112,20 @@ public class HistoryEntryFixed {
         HistoryEntry res = new HistoryEntry();
 
         res.setRevision(this.revision);
+
         if (this.date != null) {
             res.setDate(Date.from(Instant.ofEpochMilli(this.date)));
         }
+
         res.setAuthor(this.author);
         res.setTags(this.tags);
         res.appendMessage(this.message);
         res.setActive(this.active);
-        for (String file : this.files) {
-            res.addFile(file);
+
+        if (this.files != null) {
+            for (String file : this.files) {
+                res.addFile(file);
+            }
         }
         return res;
     }

@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.IOUtils;
 
 import java.io.Closeable;
@@ -45,6 +46,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a logger of batches of file {@link HistoryEntry} arrays for
@@ -52,14 +56,17 @@ import java.util.concurrent.ConcurrentMap;
  */
 class FileHistoryTemp implements Closeable {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            FileHistoryTemp.class);
+
     private static final ObjectMapper MAPPER;
     private static final TypeReference<HistoryEntryFixed[]> TYPE_H_E_F_ARRAY;
 
+    private final AtomicLong counter = new AtomicLong(0);
     private Path tempDir;
     private Map<String, PointedMeta> batchPointers;
     private DB batchDb;
     private ConcurrentMap<Long, String> batches;
-    private long counter;
 
     static {
         MAPPER = new ObjectMapper();
@@ -69,7 +76,7 @@ class FileHistoryTemp implements Closeable {
     }
 
     /**
-     * Gets the number of appended files.
+     * Gets the number of appended files. (Not thread safe.)
      * @return a non-negative number
      */
     int fileCount() {
@@ -78,7 +85,7 @@ class FileHistoryTemp implements Closeable {
 
     /**
      * Creates a temporary directory, and opens a HashDb for temporary storage
-     * of history.
+     * of history. (Not thread safe.)
      */
     public void open() throws IOException {
         if (tempDir != null) {
@@ -92,12 +99,12 @@ class FileHistoryTemp implements Closeable {
         batches = batchDb.hashMap("map", Serializer.LONG, Serializer.STRING).
                 create();
 
-        counter = 0;
+        counter.set(0);
         batchPointers = new ConcurrentHashMap<>();
     }
 
     /**
-     * Cleans up temporary directory.
+     * Cleans up temporary directory. (Not thread safe.)
      */
     @Override
     public void close() throws IOException {
@@ -119,7 +126,9 @@ class FileHistoryTemp implements Closeable {
 
     /**
      * Sets the specified {@code entries} as the list of entries for
-     * {@code file}, which will indicate a full overwrite later.
+     * {@code file}, which will indicate a full overwrite later. (Thread safe
+     * but not guaranteeing batch order for simultaneous calls for the same
+     * {@code file}.)
      * @throws IOException if an I/O error occurs writing to temp
      */
     public void set(String file, List<HistoryEntry> entries)
@@ -128,8 +137,9 @@ class FileHistoryTemp implements Closeable {
     }
 
     /**
-     * Appends the specified {@code entries} to the previous list of entries
-     * for {@code file}.
+     * Appends the specified batch of {@code entries} to the previous list of
+     * entries for {@code file}. (Thread safe but not guaranteeing batch order
+     * for simultaneous calls for the same {@code file}.)
      * @throws IOException if an I/O error occurs writing to temp
      */
     public void append(String file, List<HistoryEntry> entries)
@@ -148,8 +158,8 @@ class FileHistoryTemp implements Closeable {
         StringWriter writer = new StringWriter();
         MAPPER.writeValue(writer, fixedEntries);
 
-        ++counter;
-        batches.put(counter, writer.toString());
+        long i = counter.incrementAndGet();
+        batches.put(i, writer.toString());
 
         final PointedMeta pointed;
         if (forceOverwrite) {
@@ -159,9 +169,17 @@ class FileHistoryTemp implements Closeable {
             pointed = batchPointers.computeIfAbsent(file,
                     k -> new PointedMeta(false));
         }
-        pointed.counters.add(counter);
+
+        synchronized (pointed.lock) {
+            pointed.counters.add(i);
+        }
     }
 
+    /**
+     * Gets an enumerator to recompose batches of entries by file into
+     * {@link KeyedHistory} instances. (Not thread safe.)
+     * @return a defined enumeration
+     */
     Enumeration<KeyedHistory> getEnumerator() {
 
         if (batchDb == null) {
@@ -199,20 +217,21 @@ class FileHistoryTemp implements Closeable {
             String serialized = batches.get(nextCounter);
             Object obj = MAPPER.readValue(serialized, TYPE_H_E_F_ARRAY);
 
-            if (obj instanceof List<?>) {
-                for (Object element : (List<?>) obj) {
-                    if (element instanceof HistoryEntryFixed) {
-                        HistoryEntryFixed fixed = (HistoryEntryFixed) element;
-                        res.add(fixed.toEntry());
-                    }
+            if (obj == null) {
+                LOGGER.log(Level.SEVERE, "Unexpected null");
+            } else if (obj instanceof HistoryEntryFixed[]) {
+                for (HistoryEntryFixed element : (HistoryEntryFixed[]) obj) {
+                    res.add(element.toEntry());
                 }
-
+            } else {
+                LOGGER.log(Level.SEVERE, "Unexpected serialized type, {0}",
+                        obj.getClass());
             }
         }
         return res;
     }
 
-    private HistoryEntryFixed[] fix(List<HistoryEntry> entries) {
+    private static HistoryEntryFixed[] fix(List<HistoryEntry> entries) {
         HistoryEntryFixed[] res = new HistoryEntryFixed[entries.size()];
 
         int i = 0;
@@ -223,6 +242,7 @@ class FileHistoryTemp implements Closeable {
     }
 
     private static class PointedMeta {
+        final Object lock = new Object();
         final List<Long> counters = new ArrayList<>();
         final boolean forceOverwrite;
 

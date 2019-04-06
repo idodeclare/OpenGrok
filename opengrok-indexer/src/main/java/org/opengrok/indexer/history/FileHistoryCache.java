@@ -32,8 +32,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -94,14 +96,7 @@ class FileHistoryCache implements HistoryCache {
             Repository repository, boolean forceOverwrite)
             throws HistoryException {
 
-        /*
-         * If the file was renamed (in the changesets that are being indexed),
-         * its history is not stored in the historyEntries so it needs to be acquired
-         * directly from the repository.
-         * This ensures that complete history of the file (across renames)
-         * will be saved.
-         */
-        File file = new File((File) null, filename);
+        File file = new File(filename);
 
         // File based history cache does not store files for individual
         // changesets so strip them unless it is history for the repository.
@@ -122,7 +117,7 @@ class FileHistoryCache implements HistoryCache {
                 filename.equals(repository.getDirectoryName()))) {
             storeFile(hist, file, repository, forceOverwrite);
         } else {
-            LOGGER.log(Level.FINEST, "Skipping ineligible {0}", file);
+            LOGGER.log(Level.FINE, "Skipping ineligible {0}", file);
         }
     }
 
@@ -188,6 +183,38 @@ class FileHistoryCache implements HistoryCache {
         }
 
         return new File(TandemPath.join(sb.toString(), ".gz"));
+    }
+
+    /**
+     * Store history in file on disk.
+     * @param dir directory where the file will be saved
+     * @param history history to store
+     * @param cacheFile the file to store the history to
+     */
+    private void writeHistoryToFile(File dir, History history, File cacheFile) throws HistoryException {
+        // We have a problem that multiple threads may access the cache layer
+        // at the same time. Since I would like to avoid read-locking, I just
+        // serialize the write access to the cache file. The generation of the
+        // cache file would most likely be executed during index generation, and
+        // that happens sequencial anyway....
+        // Generate the file with a temporary name and move it into place when
+        // I'm done so I don't have to protect the readers for partially updated
+        // files...
+        File output = null;
+        try {
+            output = File.createTempFile("oghist", null, dir);
+            history.writeGZIP(output);
+            synchronized (lock) {
+                Files.move(output.toPath(), cacheFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ioe) {
+            if (output != null) {
+                //noinspection ResultOfMethodCallIgnored
+                output.delete();
+            }
+            throw new HistoryException("Failed to write history", ioe);
+        }
     }
 
     /**
@@ -291,11 +318,7 @@ class FileHistoryCache implements HistoryCache {
 
         repo.deduplicateRevisions(history);
 
-        try {
-            history.writeGZIP(cacheFile);
-        } catch (IOException ioe) {
-            throw new HistoryException("Failed to write history", ioe);
-        }
+        writeHistoryToFile(dir, history, cacheFile);
     }
 
     private void finishStore(Repository repository, String latestRev) {
@@ -495,7 +518,10 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
-     * Handles renames in parallel.
+     * Handles renames in parallel. If a file was renamed (in the changesets
+     * that are being indexed), its history is not stored in the historyEntries
+     * so it needs to be acquired directly from the repository. This ensures
+     * that complete history of the file (across renames) will be saved.
      */
     private void storeRenamesTemp(Repository repository,
             StoreAssociations associations) {
@@ -533,14 +559,12 @@ class FileHistoryCache implements HistoryCache {
                     final File keyFile = new File(root, renamedFile);
 
                     // FileHistoryTemp by design is not thread-safe.
-                    synchronized (lock) {
-                        if (forceOverwrite) {
-                            associations.histTemp.set(keyFile.toString(),
-                                    fileHistory);
-                        } else {
-                            associations.histTemp.append(keyFile.toString(),
-                                    fileHistory);
-                        }
+                    if (forceOverwrite) {
+                        associations.histTemp.set(keyFile.toString(),
+                                fileHistory);
+                    } else {
+                        associations.histTemp.append(keyFile.toString(),
+                                fileHistory);
                     }
                     renamedFileHistoryCount.getAndIncrement();
                 } catch (Exception ex) {
@@ -749,6 +773,7 @@ class FileHistoryCache implements HistoryCache {
      * @param rev latest revision which has been just indexed
      */
     private void storeLatestCachedRevision(Repository repository, String rev) {
+
         String repositoryCachedRevPath = getRepositoryCachedRevPath(repository);
         if (repositoryCachedRevPath == null) {
             // getRepositoryHistDataDirname() already logged the WARNING.

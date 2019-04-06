@@ -19,12 +19,14 @@
 
 /*
  * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opengrok.indexer.condition.ConditionalRun;
@@ -55,11 +57,25 @@ import static org.opengrok.indexer.history.MercurialRepositoryTest.runHgCommand;
  */
 public class FileHistoryCacheTest {
 
+    private static RuntimeEnvironment env;
+    private static boolean originalIsTagsEnabled;
+
     private TestRepository repositories;
     private FileHistoryCache cache;
 
     @Rule
     public ConditionalRunRule rule = new ConditionalRunRule();
+
+    @BeforeClass
+    public static void setUpClass() {
+        env = RuntimeEnvironment.getInstance();
+        originalIsTagsEnabled = env.isTagsEnabled();
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        env.setTagsEnabled(originalIsTagsEnabled);
+    }
 
     /**
      * Set up the test environment with repositories and a cache instance.
@@ -86,7 +102,7 @@ public class FileHistoryCacheTest {
         // testStoreAndGetIncrementalTags() enables tags. In case any of its
         // assertions fail, the tags will remain enabled which might affect
         // the run of other tests so unset it after each test for a good measure.
-        RuntimeEnvironment.getInstance().setTagsEnabled(false);
+        env.setTagsEnabled(originalIsTagsEnabled);
     }
 
     /**
@@ -163,7 +179,7 @@ public class FileHistoryCacheTest {
     @Test
     public void testStoreAndGetIncrementalTags() throws Exception {
         // Enable tagging of history entries.
-        RuntimeEnvironment.getInstance().setTagsEnabled(true);
+        env.setTagsEnabled(true);
 
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
         Repository repo = RepositoryFactory.getRepository(reposRoot);
@@ -188,7 +204,7 @@ public class FileHistoryCacheTest {
         // Verify tags in fileHistory for main.c which is the most interesting
         // file from the repository from the perspective of tags.
         File main = new File(reposRoot, "main.c");
-        assertTrue(main.exists());
+        assertTrue("main.c should exist", main.exists());
         History retrievedHistoryMainC = cache.get(main, repo, true);
         List<HistoryEntry> entries = retrievedHistoryMainC.getHistoryEntries();
         assertEquals("Unexpected number of entries for main.c",
@@ -241,7 +257,7 @@ public class FileHistoryCacheTest {
         File reposRoot = new File(repositories.getSourceRoot(), "mercurial");
 
         // The test expects support for renamed files.
-        RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
+        env.setHandleHistoryOfRenamedFiles(true);
 
         Repository repo = RepositoryFactory.getRepository(reposRoot);
         History historyToStore = HistoryUtil.union(repo.getHistory(reposRoot));
@@ -366,10 +382,10 @@ public class FileHistoryCacheTest {
         History updatedHistory;
 
         // The test expects support for renamed files.
-        RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
+        env.setHandleHistoryOfRenamedFiles(true);
 
         // Use tags for better coverage.
-        RuntimeEnvironment.getInstance().setTagsEnabled(true);
+        env.setTagsEnabled(true);
 
         // Generate history index.
         // It is necessary to call getRepository() only after tags were enabled
@@ -495,10 +511,10 @@ public class FileHistoryCacheTest {
         History updatedHistory;
 
         // The test expects support for renamed files.
-        RuntimeEnvironment.getInstance().setHandleHistoryOfRenamedFiles(true);
+        env.setHandleHistoryOfRenamedFiles(true);
 
         // Use tags for better coverage.
-        RuntimeEnvironment.getInstance().setTagsEnabled(true);
+        env.setTagsEnabled(true);
 
         // Branch the repo and add one changeset.
         runHgCommand(reposRoot, "unbundle",
@@ -642,13 +658,13 @@ public class FileHistoryCacheTest {
     @Test
     public void testNoHistoryFetch() throws Exception {
         // Do not create history cache for files which do not have it cached.
-        RuntimeEnvironment.getInstance().setFetchHistoryWhenNotInCache(false);
+        env.setFetchHistoryWhenNotInCache(false);
 
         // Make cache.get() predictable. Normally when the retrieval of
         // history of given file is faster than the limit, the history of this
         // file is not stored. For the sake of this test we want the history
         // to be always stored.
-        RuntimeEnvironment.getInstance().setHistoryReaderTimeLimit(0);
+        env.setHistoryReaderTimeLimit(0);
 
         // Pretend we are done with first phase of indexing.
         cache.setHistoryIndexDone();

@@ -185,7 +185,7 @@ public class History {
 
     public static History decodeObject(InputStream in) {
         try (XMLDecoder d = new XMLDecoder(in)) {
-            return (History)d.readObject();
+            return (History) d.readObject();
         }
     }
 
