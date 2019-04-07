@@ -24,14 +24,9 @@
 
 package org.opengrok.indexer.history;
 
-import java.beans.XMLDecoder;
-import java.beans.XMLEncoder;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -56,8 +51,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
@@ -194,17 +187,6 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
-     * Read history from a file.
-     */
-    private static History readCache(File file) throws IOException {
-        try (FileInputStream in = new FileInputStream(file);
-            XMLDecoder d = new XMLDecoder(new GZIPInputStream(
-                new BufferedInputStream(in)))) {
-            return (History) d.readObject();
-        }
-    }
-
-    /**
      * Store history in file on disk.
      * @param dir directory where the file will be saved
      * @param history history to store
@@ -222,11 +204,7 @@ class FileHistoryCache implements HistoryCache {
         File output = null;
         try {
             output = File.createTempFile("oghist", null, dir);
-            try (FileOutputStream out = new FileOutputStream(output);
-                XMLEncoder e = new XMLEncoder(new GZIPOutputStream(
-                    new BufferedOutputStream(out)))) {
-                e.writeObject(history);
-            }
+            history.writeGZIP(output);
             synchronized (lock) {
                 Files.move(output.toPath(), cacheFile.toPath(),
                         StandardCopyOption.REPLACE_EXISTING);
@@ -256,7 +234,7 @@ class FileHistoryCache implements HistoryCache {
         History history = null;
 
         try {
-            histOld = readCache(cacheFile);
+            histOld = History.readGZIP(cacheFile);
             // Merge old history with the new history.
             List<HistoryEntry> listOld = histOld.getHistoryEntries();
             if (!listOld.isEmpty()) {
@@ -663,7 +641,7 @@ class FileHistoryCache implements HistoryCache {
         File cacheFile = getCachedFile(file);
         if (isUpToDate(file, cacheFile)) {
             try {
-                return readCache(cacheFile);
+                return History.readGZIP(cacheFile);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error reading " + cacheFile, e);
             }
