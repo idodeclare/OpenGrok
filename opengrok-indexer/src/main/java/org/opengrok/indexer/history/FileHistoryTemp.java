@@ -26,15 +26,16 @@ package org.opengrok.indexer.history;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import com.google.common.primitives.Longs;
+import com.oath.halodb.HaloDB;
+import com.oath.halodb.HaloDBException;
+import com.oath.halodb.HaloDBOptions;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.IOUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -64,8 +64,7 @@ class FileHistoryTemp implements Closeable {
     private final AtomicLong counter = new AtomicLong(0);
     private Path tempDir;
     private Map<String, PointedMeta> batchPointers;
-    private DB batchDb;
-    private ConcurrentMap<Long, String> batches;
+    private HaloDB batchDb;
 
     static {
         MAPPER = new ObjectMapper();
@@ -92,11 +91,25 @@ class FileHistoryTemp implements Closeable {
         }
 
         tempDir = Files.createTempDirectory("org_opengrok-file_history_log");
-
         Path batchDbPath = tempDir.resolve("batch.db");
-        batchDb = DBMaker.fileDB(batchDbPath.toString()).make();
-        batches = batchDb.hashMap("map", Serializer.LONG, Serializer.STRING).
-                create();
+
+        HaloDBOptions options = new HaloDBOptions();
+        options.setMaxFileSize(64 * 1024 * 1024); // 64 MB
+        options.setFlushDataSizeBytes(8 * 1024 * 1024); // 8 MB
+        options.setCompactionThresholdPerFile(1.0);
+        options.setCompactionJobRate(64 * 1024 * 1024); // 64 MB
+        options.setNumberOfRecords(10_000_000);
+        options.setCleanUpTombstonesDuringOpen(false);
+        options.setCleanUpInMemoryIndexOnClose(true);
+        options.setUseMemoryPool(true);
+        options.setMemoryPoolChunkSize(2 * 1024 * 1024); // 2 MB
+        options.setFixedKeySize(Longs.BYTES);
+
+        try {
+            batchDb = HaloDB.open(batchDbPath.toString(), options);
+        } catch (HaloDBException e) {
+            throw new IOException("opening temp db", e);
+        }
 
         counter.set(0);
         batchPointers = new ConcurrentHashMap<>();
@@ -115,6 +128,8 @@ class FileHistoryTemp implements Closeable {
             if (batchDb != null) {
                 batchDb.close();
             }
+        } catch (HaloDBException e) {
+            throw new IOException("closing temp db", e);
         } finally {
             batchDb = null;
             if (tempDir != null) {
@@ -154,11 +169,16 @@ class FileHistoryTemp implements Closeable {
         }
 
         HistoryEntryFixed[] fixedEntries = fix(entries);
-        StringWriter writer = new StringWriter();
-        MAPPER.writeValue(writer, fixedEntries);
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        MAPPER.writeValue(bytesOut, fixedEntries);
+        byte[] valueBytes = bytesOut.toByteArray();
 
         long i = counter.incrementAndGet();
-        batches.put(i, writer.toString());
+        try {
+            batchDb.put(Longs.toByteArray(i), valueBytes);
+        } catch (HaloDBException e) {
+            throw new IOException("writing temp db", e);
+        }
 
         final PointedMeta pointed;
         if (forceOverwrite) {
@@ -213,7 +233,12 @@ class FileHistoryTemp implements Closeable {
 
         List<HistoryEntry> res = new ArrayList<>();
         for (long nextCounter : pointers) {
-            String serialized = batches.get(nextCounter);
+            byte[] serialized;
+            try {
+                serialized = batchDb.get(Longs.toByteArray(nextCounter));
+            } catch (HaloDBException e) {
+                throw new IOException("reading temp db", e);
+            }
             Object obj = MAPPER.readValue(serialized, TYPE_H_E_F_ARRAY);
 
             if (obj == null) {

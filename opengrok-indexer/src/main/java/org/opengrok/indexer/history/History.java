@@ -24,23 +24,8 @@
 
 package org.opengrok.indexer.history;
 
-import java.beans.Encoder;
-import java.beans.Expression;
-import java.beans.PersistenceDelegate;
-import java.beans.XMLDecoder;
-import java.beans.XMLEncoder;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Class representing the history of a file.
@@ -168,53 +153,5 @@ public class History {
 
     public List<String> getRenamedFiles() {
         return renamedFiles;
-    }
-
-    /**
-     * Reads a GZIP file to decode a {@link History} instance.
-     * @param file the source file
-     * @return a defined instance
-     * @throws IOException if an I/O error occurs
-     */
-    public static History readGZIP(File file) throws IOException {
-        try (FileInputStream in = new FileInputStream(file);
-             GZIPInputStream gzIn = new GZIPInputStream(new BufferedInputStream(in))) {
-            return decodeObject(gzIn);
-        }
-    }
-
-    public static History decodeObject(InputStream in) {
-        try (XMLDecoder d = new XMLDecoder(in)) {
-            return (History) d.readObject();
-        }
-    }
-
-    /**
-     * Writes the current instance to a file with GZIP compression.
-     * @param file the target file
-     * @throws IOException if an I/O error occurs
-     */
-    public void writeGZIP(File file) throws IOException {
-        try (FileOutputStream out = new FileOutputStream(file);
-             GZIPOutputStream gzOut = new GZIPOutputStream(
-                     new BufferedOutputStream(out))) {
-            encodeObject(gzOut);
-        }
-    }
-
-    public void encodeObject(OutputStream out) {
-        try (XMLEncoder e = new XMLEncoder(out)) {
-            e.setPersistenceDelegate(File.class, new FilePersistenceDelegate());
-            e.writeObject(this);
-        }
-    }
-
-    static class FilePersistenceDelegate extends PersistenceDelegate {
-        @Override
-        protected Expression instantiate(Object oldInstance, Encoder out) {
-            File f = (File)oldInstance;
-            return new Expression(oldInstance, f.getClass(), "new",
-                    new Object[] {f.toString()});
-        }
     }
 }

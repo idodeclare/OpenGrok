@@ -24,9 +24,17 @@
 
 package org.opengrok.indexer.history;
 
+import java.beans.Encoder;
+import java.beans.Expression;
+import java.beans.PersistenceDelegate;
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -51,6 +59,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.ForbiddenSymlinkException;
@@ -97,11 +107,12 @@ class FileHistoryCache implements HistoryCache {
             throws HistoryException {
 
         File file = new File(filename);
+        boolean isDirectory = file.isDirectory();
 
         // File based history cache does not store files for individual
         // changesets so strip them unless it is history for the repository.
         for (HistoryEntry ent : historyEntries) {
-            if (file.isDirectory() && filename.equals(repository.getDirectoryName())) {
+            if (isDirectory && filename.equals(repository.getDirectoryName())) {
                 ent.stripTags();
             } else {
                 ent.strip();
@@ -113,8 +124,8 @@ class FileHistoryCache implements HistoryCache {
         hist.setHistoryEntries(historyEntries);
 
         // Store history for file -- or for the top-level directory.
-        if (file.isFile() || (file.isDirectory() &&
-                filename.equals(repository.getDirectoryName()))) {
+        if (file.isFile() || (isDirectory && filename.equals(
+                repository.getDirectoryName()))) {
             storeFile(hist, file, repository, forceOverwrite);
         } else {
             LOGGER.log(Level.FINE, "Skipping ineligible {0}", file);
@@ -186,6 +197,17 @@ class FileHistoryCache implements HistoryCache {
     }
 
     /**
+     * Read history from a file.
+     */
+    private static History readCache(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file);
+            XMLDecoder d = new XMLDecoder(new GZIPInputStream(
+                new BufferedInputStream(in)))) {
+            return (History) d.readObject();
+        }
+    }
+
+    /**
      * Store history in file on disk.
      * @param dir directory where the file will be saved
      * @param history history to store
@@ -203,7 +225,11 @@ class FileHistoryCache implements HistoryCache {
         File output = null;
         try {
             output = File.createTempFile("oghist", null, dir);
-            history.writeGZIP(output);
+            try (FileOutputStream out = new FileOutputStream(output);
+                XMLEncoder e = new XMLEncoder(new GZIPOutputStream(
+                    new BufferedOutputStream(out)))) {
+                e.writeObject(history);
+            }
             synchronized (lock) {
                 Files.move(output.toPath(), cacheFile.toPath(),
                         StandardCopyOption.REPLACE_EXISTING);
@@ -233,7 +259,7 @@ class FileHistoryCache implements HistoryCache {
         History history = null;
 
         try {
-            histOld = History.readGZIP(cacheFile);
+            histOld = readCache(cacheFile);
             // Merge old history with the new history.
             List<HistoryEntry> listOld = histOld.getHistoryEntries();
             if (!listOld.isEmpty()) {
@@ -413,8 +439,7 @@ class FileHistoryCache implements HistoryCache {
         }
 
         if (latestRev != null) {
-            int fileCount = storePending(repository, associations, forceOverwrite);
-            LOGGER.log(Level.FINE, "Stored history for {0} files", fileCount);
+            storePending(repository, associations, forceOverwrite);
             finishStore(repository, latestRev);
         }
     }
@@ -497,7 +522,7 @@ class FileHistoryCache implements HistoryCache {
                 try {
                     associations.histTemp.append(keyFile.toString(), fileHistory);
                     fileTempCount.incrementAndGet();
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                     // Catch any exception so that one file does not derail.
                     LOGGER.log(Level.SEVERE,
                             "Error appending FileHistoryTemp", ex);
@@ -567,7 +592,7 @@ class FileHistoryCache implements HistoryCache {
                                 fileHistory);
                     }
                     renamedFileHistoryCount.getAndIncrement();
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                     // Catch any exception so that one file does not derail.
                     LOGGER.log(Level.WARNING, "Error writing history", ex);
                 } finally {
@@ -586,7 +611,7 @@ class FileHistoryCache implements HistoryCache {
                 renamedFileHistoryCount.intValue());
     }
 
-    private int storePending(Repository repository,
+    private void storePending(Repository repository,
             StoreAssociations associations, boolean forceOverwrite) {
 
         final int fileCount = associations.histTemp.fileCount();
@@ -616,7 +641,7 @@ class FileHistoryCache implements HistoryCache {
                             forceOverwrite ||
                                     keyedHistory.isForceOverwrite());
                     fileHistoryCount.incrementAndGet();
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                     // Catch any exception so that one file does not derail.
                     LOGGER.log(Level.SEVERE, "Error writing history", ex);
                 } finally {
@@ -633,7 +658,6 @@ class FileHistoryCache implements HistoryCache {
         }
         LOGGER.log(Level.FINEST, "Stored pending history for {0} files",
                 fileHistoryCount.intValue());
-        return fileHistoryCount.intValue();
     }
 
     @Override
@@ -642,7 +666,7 @@ class FileHistoryCache implements HistoryCache {
         File cacheFile = getCachedFile(file);
         if (isUpToDate(file, cacheFile)) {
             try {
-                return History.readGZIP(cacheFile);
+                return readCache(cacheFile);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error reading " + cacheFile, e);
             }
@@ -840,7 +864,7 @@ class FileHistoryCache implements HistoryCache {
             // remove the file cached last revision (done separately in case
             // it gets ever moved outside of the hierarchy)
             File cachedRevFile = new File(revPath);
-            if (cachedRevFile.exists() && !cachedRevFile.delete()) {
+            if (!cachedRevFile.delete() && cachedRevFile.exists()) {
                 LOGGER.log(Level.WARNING, "Error deleting {0}", cachedRevFile);
             }
         }
