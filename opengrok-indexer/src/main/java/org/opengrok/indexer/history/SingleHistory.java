@@ -63,7 +63,7 @@ class SingleHistory implements HistoryEnumeration {
     }
 
     /**
-     * Returns 0.
+     * @return 0 to indicate success
      */
     @Override
     public int exitValue() {

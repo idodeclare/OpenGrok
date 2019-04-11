@@ -23,9 +23,13 @@
 
 package org.opengrok.indexer.history;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -37,7 +41,7 @@ public class HistoryTest {
     @Test
     public void testEncode() {
         final History hist = new History(
-                Arrays.asList(
+                new ArrayList<>(Arrays.asList(
                         new HistoryEntry(
                                 "2",
                                 new Date(1554648411000L),
@@ -51,11 +55,15 @@ public class HistoryTest {
                                 "barney",
                                 "a, b",
                                 "first commit",
-                                true)),
-                Arrays.asList("a/b", "b/c"));
+                                true))),
+                new ArrayList<>(Arrays.asList("a/b", "b/c")));
 
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         hist.encodeObject(bytesOut);
         String xml = new String(bytesOut.toByteArray());
+
+        assertNotNull("String from encodeObject()", xml);
+        assertTrue("has Date #2", xml.contains("<long>1554648411000</long>"));
+        assertTrue("has Date #1", xml.contains("<long>1554648401000</long>"));
     }
 }

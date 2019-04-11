@@ -178,7 +178,8 @@ public class History {
      */
     static History readGZIP(File file) throws IOException {
         try (FileInputStream in = new FileInputStream(file);
-             GZIPInputStream gzIn = new GZIPInputStream(new BufferedInputStream(in))) {
+             BufferedInputStream bufIn = new BufferedInputStream(in);
+             GZIPInputStream gzIn = new GZIPInputStream(bufIn)) {
             return decodeObject(gzIn);
         }
     }
@@ -196,8 +197,8 @@ public class History {
      */
     void writeGZIP(File file) throws IOException {
         try (FileOutputStream out = new FileOutputStream(file);
-             GZIPOutputStream gzOut = new GZIPOutputStream(
-                     new BufferedOutputStream(out))) {
+             BufferedOutputStream bufOut = new BufferedOutputStream(out);
+             GZIPOutputStream gzOut = new GZIPOutputStream(bufOut)) {
             encodeObject(gzOut);
         }
     }
