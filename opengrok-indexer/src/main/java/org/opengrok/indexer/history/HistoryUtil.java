@@ -58,7 +58,7 @@ public class HistoryUtil {
         }
 
         if (sequence.exitValue() != 0) {
-            throw new HistoryException("HistoryEnumeration exit value = " +
+            throw new HistoryException("HistoryEnumeration exit value=" +
                     sequence.exitValue());
         }
 

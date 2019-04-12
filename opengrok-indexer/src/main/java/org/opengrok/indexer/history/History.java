@@ -47,25 +47,26 @@ import java.util.zip.GZIPOutputStream;
  */
 public class History {
     /** Entries in the log. The first entry is the most recent one. */
-    private List<HistoryEntry> entries;
+    private final ArrayList<HistoryEntry> entries;
     /** 
      * track renamed files so they can be treated in special way (for some
      * SCMs) during cache creation.
      * These are relative to repository root.
      */
-    private List<String> renamedFiles = new ArrayList<>();
+    private final ArrayList<String> renamedFiles;
     
     public History() {
         this(new ArrayList<>());
     }
 
     History(List<HistoryEntry> entries) {
-        this.entries = entries;
+        this.entries = new ArrayList<>(entries);
+        this.renamedFiles = new ArrayList<>();
     }
 
     History(List<HistoryEntry> entries, List<String> renamed) {
-        this.entries = entries;
-        this.renamedFiles = renamed;
+        this.entries = new ArrayList<>(entries);
+        this.renamedFiles = new ArrayList<>(renamed);
     }
 
     /**
@@ -83,7 +84,12 @@ public class History {
      * @param entries The entries to add to the list
      */
     public void setHistoryEntries(List<HistoryEntry> entries) {
-        this.entries = entries;
+        if (entries == null) {
+            this.entries.clear();
+        } else if (this.entries != entries) {
+            this.entries.clear();
+            this.entries.addAll(entries);
+        }
     }
 
     /**
