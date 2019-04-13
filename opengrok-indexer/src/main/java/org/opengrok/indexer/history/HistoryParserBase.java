@@ -36,7 +36,7 @@ import java.util.Map;
  */
 abstract class HistoryParserBase {
 
-    static final int HISTORY_ENTRY_BATCH_SIZE = 2048;
+    static final int HISTORY_ENTRY_BATCH_SIZE = 512;
 
     /**
      * Gets a cached value from {@code relCache} for the path of {@code file}

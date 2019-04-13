@@ -33,6 +33,7 @@ import com.oath.halodb.HaloDBOptions;
 import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.IOUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,6 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Represents a logger of batches of file {@link HistoryEntry} arrays for
@@ -171,11 +174,12 @@ class FileHistoryTemp implements Closeable {
         HistoryEntryFixed[] fixedEntries = fix(entries);
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         MAPPER.writeValue(bytesOut, fixedEntries);
-        byte[] valueBytes = bytesOut.toByteArray();
+        byte[] serialized = bytesOut.toByteArray();
+        byte[] packed = BinPacker.pack(serialized);
 
         long i = counter.incrementAndGet();
         try {
-            batchDb.put(Longs.toByteArray(i), valueBytes);
+            batchDb.put(Longs.toByteArray(i), packed);
         } catch (HaloDBException e) {
             throw new IOException("writing temp db", e);
         }
@@ -233,12 +237,13 @@ class FileHistoryTemp implements Closeable {
 
         List<HistoryEntry> res = new ArrayList<>();
         for (long nextCounter : pointers) {
-            byte[] serialized;
+            byte[] packed;
             try {
-                serialized = batchDb.get(Longs.toByteArray(nextCounter));
+                packed = batchDb.get(Longs.toByteArray(nextCounter));
             } catch (HaloDBException e) {
                 throw new IOException("reading temp db", e);
             }
+            byte[] serialized = BinPacker.unpack(packed);
             Object obj = MAPPER.readValue(serialized, TYPE_H_E_F_ARRAY);
 
             if (obj == null) {
@@ -300,6 +305,54 @@ class FileHistoryTemp implements Closeable {
         @Override
         public boolean isForceOverwrite() {
             return forceOverwrite;
+        }
+    }
+
+    private static class BinPacker {
+        static final int MINIMUM_LENGTH_TO_COMPRESS = 100;
+
+        static byte[] pack(byte[] value) {
+            if (value.length < MINIMUM_LENGTH_TO_COMPRESS) {
+                final byte[] packed = new byte[value.length + 1];
+                packed[0] = 0; // Set 0 to indicate uncompressed.
+                System.arraycopy(value, 0, packed, 1, value.length);
+                return packed;
+            } else {
+                ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+                bytesOut.write(1); // Set 1 to indicate compressed.
+
+                try (GZIPOutputStream gz = new GZIPOutputStream(bytesOut)) {
+                    gz.write(value);
+                } catch (IOException e) {
+                    // Not expected to happen
+                    throw new RuntimeException(e);
+                }
+                return bytesOut.toByteArray();
+            }
+        }
+
+        static byte[] unpack(byte[] packed) {
+            if (packed[0] == 0) {
+                byte[] res = new byte[packed.length - 1];
+                System.arraycopy(packed, 1, res, 0, packed.length - 1);
+                return res;
+            } else {
+                ByteArrayInputStream bytesIn = new ByteArrayInputStream(packed);
+                //noinspection ResultOfMethodCallIgnored
+                bytesIn.read();
+
+                ByteArrayOutputStream res = new ByteArrayOutputStream();
+                try (GZIPInputStream gz = new GZIPInputStream(bytesIn)) {
+                    int b;
+                    while ((b = gz.read()) != -1) {
+                        res.write(b);
+                    }
+                } catch (IOException e) {
+                    // Not expected to happen
+                    throw new RuntimeException(e);
+                }
+                return res.toByteArray();
+            }
         }
     }
 }
