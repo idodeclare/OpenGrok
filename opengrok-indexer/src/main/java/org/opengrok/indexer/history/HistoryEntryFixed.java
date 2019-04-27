@@ -47,9 +47,17 @@ public class HistoryEntryFixed {
     private final String[] files;
 
     /**
-     * Copy constructor to fix the specified {@link HistoryEntry}.
+     * Copy constructor to fix the specified {@link HistoryEntry} fully.
      */
     HistoryEntryFixed(HistoryEntry that) {
+        this(that, false);
+    }
+
+    /**
+     * Copy constructor to fix the specified {@link HistoryEntry} with a
+     * parameter indicating whether to trim files from the entry.
+     */
+    HistoryEntryFixed(HistoryEntry that, boolean trim) {
         this.revision = that.getRevision();
 
         Date thatDate = that.getDate();
@@ -59,7 +67,7 @@ public class HistoryEntryFixed {
         this.tags = that.getTags();
         this.message = that.getMessage();
         this.active = that.isActive();
-        this.files = that.getFiles().toArray(new String[0]);
+        this.files = trim ? new String[0] : that.getFiles().toArray(new String[0]);
     }
 
     @JsonCreator
