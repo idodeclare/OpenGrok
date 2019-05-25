@@ -335,7 +335,7 @@ class FileHistoryDB implements Closeable {
     private static class PendingHistoryKeys {
         final Object lock = new Object();
         final String file;
-        final List<byte[]> keys = new ArrayList<>();
+        final ArrayList<byte[]> keys = new ArrayList<>();
 
         PendingHistoryKeys(String file) {
             this.file = file;
