@@ -41,6 +41,7 @@ public class HistoryEntryFixed {
     private final String revision;
     private final Long date; // Date Instant toEpochMilli()
     private final String author;
+    private final String tags;
     private final String message;
     private final boolean active;
     private final String[] files;
@@ -63,6 +64,7 @@ public class HistoryEntryFixed {
         this.date = thatDate == null ? null : thatDate.toInstant().toEpochMilli();
 
         this.author = that.getAuthor();
+        this.tags = that.getTags();
         this.message = that.getMessage();
         this.active = that.isActive();
         this.files = trim ? new String[0] : that.getFiles().toArray(new String[0]);
@@ -72,6 +74,7 @@ public class HistoryEntryFixed {
     public HistoryEntryFixed(@JsonProperty("revision") String revision,
             @JsonProperty("date") Long date,
             @JsonProperty("author") String author,
+            @JsonProperty("tags") String tags,
             @JsonProperty("message") String message,
             @JsonProperty("active") boolean active,
             @JsonProperty("files") String[] files) {
@@ -79,6 +82,7 @@ public class HistoryEntryFixed {
         this.revision = revision;
         this.date = date;
         this.author = author;
+        this.tags = tags;
         this.message = message;
         this.active = active;
         this.files = files;
@@ -87,7 +91,11 @@ public class HistoryEntryFixed {
     public String getAuthor() {
         return author;
     }
-    
+
+    public String getTags() {
+        return tags;
+    }
+
     public Long getDate() {
         return date;
     }
@@ -118,6 +126,7 @@ public class HistoryEntryFixed {
         }
 
         res.setAuthor(this.author);
+        res.setTags(this.tags);
         res.appendMessage(this.message);
         res.setActive(this.active);
 
