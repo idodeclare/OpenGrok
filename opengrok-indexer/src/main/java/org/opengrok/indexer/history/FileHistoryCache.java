@@ -143,9 +143,17 @@ class FileHistoryCache implements HistoryCache {
         env = RuntimeEnvironment.getInstance();
     }
 
+    /**
+     * No-op
+     */
     @Override
     public void optimize() {
-        // nothing to do
+    }
+
+    /**
+     * No-op
+     */
+    public void close() {
     }
 
     @Override

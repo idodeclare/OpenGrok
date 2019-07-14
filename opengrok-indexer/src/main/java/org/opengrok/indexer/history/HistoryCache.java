@@ -93,6 +93,12 @@ interface HistoryCache {
     void optimize() throws HistoryException;
 
     /**
+     * Closes the history cache, releasing any resources. {@link #initialize()}
+     * must be called before accessing the cache again.
+     */
+    void close() throws HistoryException;
+
+    /**
      * Check if the specified directory is present in the cache.
      * @param directory the directory to check
      * @param repository the repository in which the directory is stored
