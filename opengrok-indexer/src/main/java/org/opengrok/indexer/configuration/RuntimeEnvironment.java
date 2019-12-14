@@ -102,7 +102,7 @@ public final class RuntimeEnvironment {
 
     private String configURI;
     private Statistics statistics = new Statistics();
-    public IncludeFiles includeFiles = new IncludeFiles();
+    private IncludeFiles includeFiles = new IncludeFiles();
     private final MessagesContainer messagesContainer = new MessagesContainer();
 
     private static final IndexTimestamp indexTime = new IndexTimestamp();

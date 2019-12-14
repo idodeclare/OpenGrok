@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.configuration;
 
@@ -62,10 +63,10 @@ public class IncludeFilesTest {
         File file = new File(includeRoot.toFile(), Configuration.HEADER_INCLUDE_FILE);
         writeStringToFile(file, CONTENT_1);
         assertEquals(CONTENT_1 + LINE_SEP,
-                env.includeFiles.getHeaderIncludeFileContent(false));
+                env.getIncludeFiles().getHeaderIncludeFileContent(false));
         writeStringToFile(file, CONTENT_2);
         assertEquals(CONTENT_2 + LINE_SEP,
-                env.includeFiles.getHeaderIncludeFileContent(true));
+                env.getIncludeFiles().getHeaderIncludeFileContent(true));
     }
     
     @Test
@@ -73,10 +74,10 @@ public class IncludeFilesTest {
         File file = new File(includeRoot.toFile(), Configuration.BODY_INCLUDE_FILE);
         writeStringToFile(file, CONTENT_1);
         assertEquals(CONTENT_1 + LINE_SEP,
-                env.includeFiles.getBodyIncludeFileContent(false));
+                env.getIncludeFiles().getBodyIncludeFileContent(false));
         writeStringToFile(file, CONTENT_2);
         assertEquals(CONTENT_2 + LINE_SEP,
-                env.includeFiles.getBodyIncludeFileContent(true));
+                env.getIncludeFiles().getBodyIncludeFileContent(true));
     }
     
     @Test
@@ -84,10 +85,10 @@ public class IncludeFilesTest {
         File file = new File(includeRoot.toFile(), Configuration.FOOTER_INCLUDE_FILE);
         writeStringToFile(file, CONTENT_1);
         assertEquals(CONTENT_1 + LINE_SEP,
-                env.includeFiles.getFooterIncludeFileContent(false));
+                env.getIncludeFiles().getFooterIncludeFileContent(false));
         writeStringToFile(file, CONTENT_2);
         assertEquals(CONTENT_2 + LINE_SEP,
-                env.includeFiles.getFooterIncludeFileContent(true));
+                env.getIncludeFiles().getFooterIncludeFileContent(true));
     }
     
     @Test
@@ -95,9 +96,9 @@ public class IncludeFilesTest {
         File file = new File(includeRoot.toFile(), Configuration.E_FORBIDDEN_INCLUDE_FILE);
         writeStringToFile(file, CONTENT_1);
         assertEquals(CONTENT_1 + LINE_SEP,
-                env.includeFiles.getForbiddenIncludeFileContent(false));
+                env.getIncludeFiles().getForbiddenIncludeFileContent(false));
         writeStringToFile(file, CONTENT_2);
         assertEquals(CONTENT_2 + LINE_SEP,
-                env.includeFiles.getForbiddenIncludeFileContent(true));
+                env.getIncludeFiles().getForbiddenIncludeFileContent(true));
     }
 }
