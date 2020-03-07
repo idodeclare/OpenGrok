@@ -26,6 +26,8 @@ package org.opengrok.indexer.analysis.archive;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.apache.lucene.document.Document;
@@ -34,6 +36,7 @@ import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.IteratorReader;
 import org.opengrok.indexer.analysis.OGKTextField;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.search.QueryBuilder;
 import org.opengrok.indexer.web.Util;
 
@@ -43,7 +46,9 @@ import org.opengrok.indexer.web.Util;
  * Created on September 22, 2005
  * @author Chandan
  */
-public class ZipAnalyzer extends FileAnalyzer {
+public class ZipAnalyzer extends ArchiveAnalyzer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZipAnalyzer.class);
 
     protected ZipAnalyzer(AnalyzerFactory factory) {
         super(factory);
@@ -66,6 +71,16 @@ public class ZipAnalyzer extends FileAnalyzer {
     @Override
     protected int getSpecializedVersionNo() {
         return 20180112_00; // Edit comment above too!
+    }
+
+    @Override
+    boolean isAcceptedPath(String path) {
+        return path.toLowerCase(Locale.ROOT).endsWith(".gz");
+    }
+
+    @Override
+    Logger getLogger() {
+        return LOGGER;
     }
 
     @Override

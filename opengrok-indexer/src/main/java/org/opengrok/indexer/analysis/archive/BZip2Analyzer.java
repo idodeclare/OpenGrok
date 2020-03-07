@@ -26,15 +26,13 @@ package org.opengrok.indexer.analysis.archive;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Writer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
+import java.util.Locale;
+import java.util.logging.Logger;
+
 import org.apache.tools.bzip2.CBZip2InputStream;
-import org.opengrok.indexer.analysis.AbstractAnalyzer;
 import org.opengrok.indexer.analysis.AnalyzerFactory;
-import org.opengrok.indexer.analysis.AnalyzerGuru;
-import org.opengrok.indexer.analysis.FileAnalyzer;
 import org.opengrok.indexer.analysis.StreamSource;
+import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
  * Analyzes a BZip2 file.
@@ -42,17 +40,9 @@ import org.opengrok.indexer.analysis.StreamSource;
  * Created on September 22, 2005
  * @author Chandan
  */
-public class BZip2Analyzer extends FileAnalyzer {
+public class BZip2Analyzer extends ArchiveAnalyzer {
 
-    private Genre g;
-
-    @Override
-    public Genre getGenre() {
-        if (g != null) {
-            return g;
-        }
-        return super.getGenre();
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(BZip2Analyzer.class);
 
     protected BZip2Analyzer(AnalyzerFactory factory) {
         super(factory);
@@ -70,48 +60,29 @@ public class BZip2Analyzer extends FileAnalyzer {
      * Gets a version number to be used to tag processed documents so that
      * re-analysis can be re-done later if a stored version number is different
      * from the current implementation.
-     * @return 20180111_00
+     * @return 20200306_00
      */
     @Override
     protected int getSpecializedVersionNo() {
-        return 20180111_00; // Edit comment above too!
+        return 20200306_00; // Edit comment above too!
     }
 
     @Override
-    public void analyze(Document doc, StreamSource src, Writer xrefOut)
-            throws IOException, InterruptedException {
-        AbstractAnalyzer fa;
+    boolean isAcceptedPath(String path) {
+        String pathLc = path.toLowerCase(Locale.ROOT);
+        return pathLc.endsWith(".bz2") || pathLc.endsWith(".bz");
+    }
 
-        StreamSource bzSrc = wrap(src);
-        String path = doc.get("path");
-        if (path != null
-                && (path.endsWith(".bz2") || path.endsWith(".BZ2") || path.endsWith(".bz"))) {
-            String newname = path.substring(0, path.lastIndexOf('.'));
-            //System.err.println("BZIPPED OF = " + newname);
-            try (InputStream in = bzSrc.getStream()) {
-                fa = AnalyzerGuru.getAnalyzer(in, newname);
-            }
-            if (!(fa instanceof BZip2Analyzer)) {
-                if (fa.getGenre() == Genre.PLAIN || fa.getGenre() == Genre.XREFABLE) {
-                    this.g = Genre.XREFABLE;
-                } else {
-                    this.g = Genre.DATA;
-                }
-                fa.analyze(doc, bzSrc, xrefOut);
-                if (doc.get("t") != null) {
-                    doc.removeField("t");
-                    if (g == Genre.XREFABLE) {
-                        doc.add(new Field("t", g.typeName(), AnalyzerGuru.string_ft_stored_nanalyzed_norms));
-                    }
-                }
-            }
-        }
+    @Override
+    Logger getLogger() {
+        return LOGGER;
     }
 
     /**
      * Wrap the raw stream source in one that returns the uncompressed stream.
      */
-    private static StreamSource wrap(final StreamSource src) {
+    @Override
+    StreamSource wrap(final StreamSource src) {
         return new StreamSource() {
             @Override
             public InputStream getStream() throws IOException {
