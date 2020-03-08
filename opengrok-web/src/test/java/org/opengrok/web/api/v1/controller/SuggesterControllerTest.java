@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2019-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -106,8 +106,7 @@ public class SuggesterControllerTest extends JerseyTest {
 
         env.setHistoryEnabled(false);
         env.setProjectsEnabled(true);
-        Indexer.getInstance().prepareIndexer(env, true, true,
-                false, null, null);
+        Indexer.getInstance().prepareIndexer(env, true, true, null);
         env.setDefaultProjectsFromNames(Collections.singleton("__all__"));
         Indexer.getInstance().doIndexerExecution(true, null, null);
 

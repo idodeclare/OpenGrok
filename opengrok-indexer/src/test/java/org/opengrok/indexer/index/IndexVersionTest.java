@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2019-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -82,8 +82,7 @@ public class IndexVersionTest {
     private void testIndexVersion(boolean projectsEnabled, List<String> subFiles) throws Exception {
         env.setHistoryEnabled(false);
         env.setProjectsEnabled(projectsEnabled);
-        Indexer.getInstance().prepareIndexer(env, true, true,
-                false, null, null);
+        Indexer.getInstance().prepareIndexer(env, true, true, null);
         Indexer.getInstance().doIndexerExecution(true, null, null);
 
         IndexVersion.check(subFiles);

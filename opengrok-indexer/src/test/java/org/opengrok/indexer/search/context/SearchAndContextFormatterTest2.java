@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.search.context;
 
@@ -118,8 +118,7 @@ public class SearchAndContextFormatterTest2 {
         RepositoryFactory.initializeIgnoredNames(env);
 
         env.setHistoryEnabled(false);
-        Indexer.getInstance().prepareIndexer(env, true, true,
-                false, null, null);
+        Indexer.getInstance().prepareIndexer(env, true, true, null);
         env.setDefaultProjectsFromNames(new TreeSet<>(Collections.singletonList("/c")));
 
         Project proj1 = env.getProjects().get(SYMLINK1);

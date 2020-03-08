@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2020, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.web;
@@ -66,8 +66,7 @@ public class SearchHelperTest {
     private void reindex() throws Exception {
         System.out.println("Generating index by using the class methods");
 
-        Indexer.getInstance().prepareIndexer(env, true, true,
-            false, null, null);
+        Indexer.getInstance().prepareIndexer(env, true, true, null);
         env.setDefaultProjectsFromNames(new TreeSet<>(Collections.singletonList("/c")));
         Indexer.getInstance().doIndexerExecution(true, null, null);
     }

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -392,7 +392,7 @@ public class IndexDatabase {
     public void update() throws IOException {
         synchronized (lock) {
             if (running) {
-                throw new IOException("Indexer already running!");
+                throw new IllegalStateException("Indexer already running!");
             }
             running = true;
             interrupted = false;
@@ -547,17 +547,6 @@ public class IndexDatabase {
 
         if (finishingException != null) {
             throw finishingException;
-        }
-
-        if (!isInterrupted() && isDirty()) {
-            synchronized (lock) {
-                if (dirtyFile.exists() && !dirtyFile.delete()) {
-                    LOGGER.log(Level.FINE, "Failed to remove \"dirty-file\": {0}",
-                        dirtyFile.getAbsolutePath());
-                }
-                dirty = false;
-            }
-            env.setIndexTimestamp();
         }
     }
 
@@ -1322,119 +1311,66 @@ public class IndexDatabase {
      * @return set of files in this index database
      */
     public Set<String> getFiles() throws IOException {
-        IndexReader ireader = null;
-        TermsEnum iter = null;
-        Terms terms;
-        Set<String> files = new HashSet<>();
+        synchronized (lock) {
+            if (running) {
+                throw new IllegalStateException("Indexer already running!");
+            }
+            running = true;
+            interrupted = false;
+        }
 
+        reader = null;
         try {
-            ireader = DirectoryReader.open(indexDirectory); // open existing index
-            int numDocs = ireader.numDocs();
-            if (numDocs > 0) {
-                terms = MultiTerms.getTerms(ireader, QueryBuilder.U);
-                iter = terms.iterator(); // init uid iterator
-            }
-            while (iter != null && iter.term() != null) {
-                String value = iter.term().utf8ToString();
-                if (value.isEmpty()) {
-                    iter.next();
-                    continue;
-                }
+            reader = DirectoryReader.open(indexDirectory); // open existing index
+            liveDocs = MultiBits.getLiveDocs(reader);
+            Set<String> files = new HashSet<>();
 
-                files.add(Util.uid2url(value));
-                BytesRef next = iter.next();
+            if (reader.numDocs() < 1) {
+                return files;
+            }
+            Terms terms = MultiTerms.getTerms(reader, QueryBuilder.U);
+            uidIter = terms.iterator();
+            if (uidIter.next() == null) {
+                return files;
+            }
+            while (uidIter != null && uidIter.term() != null) {
+                String value = uidIter.term().utf8ToString();
+                if (!value.isEmpty() && anyLiveDoc()) {
+                    files.add(Util.uid2url(value));
+                }
+                BytesRef next = uidIter.next();
                 if (next == null) {
-                    iter = null;
+                    uidIter = null;
                 }
             }
+
+            return files;
         } finally {
-            if (ireader != null) {
+            if (reader != null) {
                 try {
-                    ireader.close();
+                    reader.close();
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, "An error occurred while closing index reader", e);
                 }
             }
+            synchronized (lock) {
+                running = false;
+            }
         }
-
-        return files;
     }
 
     /**
-     * Get number of documents in this index database.
+     * Gets the number of documents in this index database -- for testing only
+     * as it includes deleted documents.
      * @return number of documents
      * @throws IOException if I/O exception occurred
      */
-    public int getNumFiles() throws IOException {
+    public int getDocumentCountForTesting() throws IOException {
         IndexReader ireader = null;
-        int numDocs = 0;
-
         try {
             ireader = DirectoryReader.open(indexDirectory); // open existing index
-            numDocs = ireader.numDocs();
+            return ireader.numDocs();
         } finally {
-            if (ireader != null) {
-                try {
-                    ireader.close();
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "An error occurred while closing index reader", e);
-                }
-            }
-        }
-
-        return numDocs;
-    }
-
-    static void listFrequentTokens(List<String> subFiles) throws IOException {
-        final int limit = 4;
-
-        RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-        if (env.hasProjects()) {
-            if (subFiles == null || subFiles.isEmpty()) {
-                for (Project project : env.getProjectList()) {
-                    IndexDatabase db = new IndexDatabase(project);
-                    db.listTokens(limit);
-                }
-            } else {
-                for (String path : subFiles) {
-                    Project project = Project.getProject(path);
-                    if (project == null) {
-                        LOGGER.log(Level.WARNING, "Could not find a project for \"{0}\"", path);
-                    } else {
-                        IndexDatabase db = new IndexDatabase(project);
-                        db.listTokens(limit);
-                    }
-                }
-            }
-        } else {
-            IndexDatabase db = new IndexDatabase();
-            db.listTokens(limit);
-        }
-    }
-
-    public void listTokens(int freq) throws IOException {
-        IndexReader ireader = null;
-        TermsEnum iter = null;
-        Terms terms;
-
-        try {
-            ireader = DirectoryReader.open(indexDirectory);
-            int numDocs = ireader.numDocs();
-            if (numDocs > 0) {
-                terms = MultiTerms.getTerms(ireader, QueryBuilder.DEFS);
-                iter = terms.iterator(); // init uid iterator
-            }
-            while (iter != null && iter.term() != null) {
-                if (iter.docFreq() > 16 && iter.term().utf8ToString().length() > freq) {
-                    LOGGER.warning(iter.term().utf8ToString());
-                }
-                BytesRef next = iter.next();
-                if (next == null) {
-                    iter = null;
-                }
-            }
-        } finally {
-
             if (ireader != null) {
                 try {
                     ireader.close();
@@ -1506,8 +1442,6 @@ public class IndexDatabase {
     /**
      * @param file File object of a file under source root
      * @return Document object for the file or {@code null}
-     * @throws IOException
-     * @throws ParseException
      */
     public static Document getDocument(File file)
             throws IOException, ParseException {
@@ -1645,6 +1579,17 @@ public class IndexDatabase {
             // rollback() regardless of success.
             hasPendingCommit = false;
             writer.commit();
+
+            if (!isInterrupted() && isDirty()) {
+                synchronized (lock) {
+                    if (dirtyFile.exists() && !dirtyFile.delete()) {
+                        LOGGER.log(Level.WARNING, "Failed to remove \"dirty-file\": {0}",
+                                dirtyFile.getAbsolutePath());
+                    }
+                    dirty = false;
+                }
+                RuntimeEnvironment.getInstance().setIndexTimestamp();
+            }
         } catch (RuntimeException | IOException e) {
             if (hasPendingCommit) {
                 writer.rollback();
@@ -1680,12 +1625,14 @@ public class IndexDatabase {
         while (postsIter.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
             ++n;
             int docID = postsIter.docID();
-            // If the document is deleted, break to skip further checking.
-            if (liveDocs != null && (docID >= liveDocs.length() || !liveDocs.get(docID))) {
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "not live doc {0}: {1}", new Object[]{docID, path});
+            if (liveDocs != null) {
+                if (docID >= liveDocs.length() || !liveDocs.get(docID)) {
+                    if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "not live doc {0}: {1}",
+                                new Object[] {docID, path});
+                    }
+                    continue;
                 }
-                continue;
             }
             // Read a limited-fields version of the document.
             Document doc = reader.document(docID, CHECK_FIELDS);
@@ -1804,10 +1751,13 @@ public class IndexDatabase {
     }
 
     private boolean anyLiveDoc() throws IOException {
+        if (liveDocs == null) {
+            return true;
+        }
         postsIter = uidIter.postings(postsIter);
         while (postsIter.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
             int docID = postsIter.docID();
-            if (liveDocs == null || (docID < liveDocs.length() && liveDocs.get(docID))) {
+            if (docID < liveDocs.length() && liveDocs.get(docID)) {
                 return true;
             }
         }

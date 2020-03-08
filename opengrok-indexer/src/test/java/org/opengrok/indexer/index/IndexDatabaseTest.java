@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2018-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2018-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -74,9 +74,7 @@ public class IndexDatabaseTest {
         // so that it does not affect other tests, no matter in which order
         // the tests are run.
         Indexer indexer = Indexer.getInstance();
-        indexer.prepareIndexer(
-                env, true, true,
-                false, null, null);
+        indexer.prepareIndexer(env, true, true, null);
         env.setDefaultProjectsFromNames(new TreeSet<>(Arrays.asList(new String[]{"/c"})));
         indexer.doIndexerExecution(true, null, null);
     }
@@ -155,7 +153,7 @@ public class IndexDatabaseTest {
 
         // Check that the file was indexed successfully in terms of generated data.
         checkDataExistence(projectName + File.separator + fileName, true);
-        origNumFiles = idb.getNumFiles();
+        origNumFiles = idb.getDocumentCountForTesting();
         Assert.assertEquals(7, origNumFiles);
 
         // Remove the file and reindex using IndexDatabase directly.
@@ -166,7 +164,7 @@ public class IndexDatabaseTest {
 
         // Check that the data for the file has been removed.
         checkDataExistence(projectName + File.separator + fileName, false);
-        Assert.assertEquals(origNumFiles - 1, idb.getNumFiles());
+        Assert.assertEquals(origNumFiles - 1, idb.getDocumentCountForTesting());
     }
 
     /**

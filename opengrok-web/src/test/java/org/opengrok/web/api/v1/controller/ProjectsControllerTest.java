@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2019-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.web.api.v1.controller;
 
@@ -309,8 +309,6 @@ public class ProjectsControllerTest extends JerseyTest {
                 env,
                 false, // don't search for repositories
                 false, // don't scan and add projects
-                false, // don't create dictionary
-                subFiles, // subFiles - needed when refreshing history partially
                 repos); // repositories - needed when refreshing history partially
         Indexer.getInstance().doIndexerExecution(true, null, null);
 
@@ -546,8 +544,6 @@ public class ProjectsControllerTest extends JerseyTest {
                 env,
                 false, // don't search for repositories
                 true, // add projects
-                false, // don't create dictionary
-                new ArrayList<>(), // subFiles - needed when refreshing history partially
                 new ArrayList<>()); // repositories - needed when refreshing history partially
         Indexer.getInstance().doIndexerExecution(true, null, null);
 

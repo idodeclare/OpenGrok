@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * Portions Copyright 2011 Jens Elkner.
- * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.index;
 
@@ -144,8 +144,6 @@ public final class Indexer {
         Executor.registerErrorHandler();
         ArrayList<String> subFiles = new ArrayList<>();
         ArrayList<String> subFilesList = new ArrayList<>();
-
-        boolean createDict = false;
 
         try {
             argv = parseOptions(argv);
@@ -335,7 +333,7 @@ public final class Indexer {
 
             // Create history cache first.
             getInstance().prepareIndexer(env, searchRepositories, addProjects,
-                    createDict, runIndex, subFiles, new ArrayList<>(repositories));
+                    runIndex, new ArrayList<>(repositories));
 
             // prepareIndexer() populated the list of projects so now default projects can be set.
             env.setDefaultProjectsFromNames(defaultProjects);
@@ -860,7 +858,7 @@ public final class Indexer {
         if (filename != null) {
             LOGGER.log(Level.INFO, "Writing configuration to {0}", filename);
             env.writeConfiguration(new File(filename));
-            LOGGER.info("Done...");
+            LOGGER.log(Level.INFO, "Done writing configuration to {0}", filename);
         }
     }
 
@@ -868,12 +866,9 @@ public final class Indexer {
     public void prepareIndexer(RuntimeEnvironment env,
                                boolean searchRepositories,
                                boolean addProjects,
-                               boolean createDict,
-                               List<String> subFiles,
                                List<String> repositories) throws IndexerException, IOException {
 
-        prepareIndexer(env, searchRepositories, addProjects, createDict, true,
-                subFiles, repositories);
+        prepareIndexer(env, searchRepositories, addProjects, true, repositories);
     }
 
     /**
@@ -889,9 +884,7 @@ public final class Indexer {
      * @param env runtime environment
      * @param searchRepositories if true, search for repositories
      * @param addProjects if true, add projects
-     * @param createDict if true, create dictionary
      * @param createHistoryCache create history cache flag
-     * @param subFiles list of directories
      * @param repositories list of repositories
      * @throws IndexerException indexer exception
      * @throws IOException I/O exception
@@ -900,17 +893,15 @@ public final class Indexer {
     public void prepareIndexer(RuntimeEnvironment env,
             boolean searchRepositories,
             boolean addProjects,
-            boolean createDict,
             boolean createHistoryCache,
-            List<String> subFiles,
             List<String> repositories) throws IndexerException, IOException {
 
         if (env.getDataRootPath() == null) {
-            throw new IndexerException("ERROR: Please specify a DATA ROOT path");
+            throw new IndexerException("DataRoot is not specified");
         }
 
         if (env.getSourceRootFile() == null) {
-            throw new IndexerException("ERROR: please specify a SRC_ROOT with option -s !");
+            throw new IndexerException("SourceRoot is not specified");
         }
 
         if (!env.validateUniversalCtags()) {
@@ -921,6 +912,9 @@ public final class Indexer {
         // some of the project properties might be needed for that.
         if (addProjects) {
             File[] files = env.getSourceRootFile().listFiles();
+            if (files == null) {
+                throw new IndexerException("SourceRoot is not a directory");
+            }
             Map<String, Project> projects = env.getProjects();
 
             // Keep a copy of the old project list so that we can preserve
@@ -967,16 +961,11 @@ public final class Indexer {
                 LOGGER.log(Level.INFO, "Generating history cache for repositories: " +
                         repositories.stream().collect(Collectors.joining(",")));
                 HistoryGuru.getInstance().createCache(repositories);
-                LOGGER.info("Done...");
             } else {
-                LOGGER.log(Level.INFO, "Generating history cache for all repositories ...");
+                LOGGER.log(Level.INFO, "Generating history cache for all repositories");
                 HistoryGuru.getInstance().createCache();
-                LOGGER.info("Done...");
             }
-        }
-
-        if (createDict) {
-            IndexDatabase.listFrequentTokens(subFiles);
+            LOGGER.log(Level.INFO, "Done generating history cache for repositories");
         }
     }
 
