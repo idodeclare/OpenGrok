@@ -1747,6 +1747,7 @@ public class IndexDatabase {
             LOGGER.log(Level.FINEST, "Missing {0}", xrefFile);
             return false;
         }
+
         return true;
     }
 
