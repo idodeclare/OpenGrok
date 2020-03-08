@@ -1330,17 +1330,10 @@ public class IndexDatabase {
             }
             Terms terms = MultiTerms.getTerms(reader, QueryBuilder.U);
             uidIter = terms.iterator();
-            if (uidIter.next() == null) {
-                return files;
-            }
-            while (uidIter != null && uidIter.term() != null) {
+            while (uidIter.next() != null && uidIter.term() != null) {
                 String value = uidIter.term().utf8ToString();
                 if (!value.isEmpty() && anyLiveDoc()) {
                     files.add(Util.uid2url(value));
-                }
-                BytesRef next = uidIter.next();
-                if (next == null) {
-                    uidIter = null;
                 }
             }
 
