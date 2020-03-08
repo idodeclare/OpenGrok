@@ -497,15 +497,15 @@ public class IndexDatabase {
                     // Remove data for the trailing terms that indexDown()
                     // did not traverse. These correspond to files that have been
                     // removed and have higher ordering than any present files.
-                    if (uidIter != null) {
-                        while (uidIter.term() != null
-                                && uidIter.term().utf8ToString().startsWith(startuid)) {
-                            if (anyLiveDoc()) {
-                                removeFile(true);
-                            }
-                            if (uidIter.next() == null) {
-                                break;
-                            }
+                    while (uidIter != null && uidIter.term() != null
+                        && uidIter.term().utf8ToString().startsWith(startuid)) {
+
+                        if (anyLiveDoc()) {
+                            removeFile(true);
+                        }
+                        BytesRef next = uidIter.next();
+                        if (next == null) {
+                            uidIter = null;
                         }
                     }
 
