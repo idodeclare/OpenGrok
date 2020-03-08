@@ -493,23 +493,23 @@ public class IndexDatabase {
                     elapsed = new Statistics();
                     LOGGER.log(Level.INFO, "Starting indexing of directory {0}", dir);
                     indexParallel(dir, args);
-                    elapsed.report(LOGGER, String.format("Done indexing of directory %s", dir));
 
                     // Remove data for the trailing terms that indexDown()
                     // did not traverse. These correspond to files that have been
                     // removed and have higher ordering than any present files.
-                    while (uidIter != null && uidIter.term() != null
-                        && uidIter.term().utf8ToString().startsWith(startuid)) {
-
-                        if (anyLiveDoc()) {
-                            removeFile(true);
-                        }
-                        BytesRef next = uidIter.next();
-                        if (next == null) {
-                            uidIter = null;
+                    if (uidIter != null) {
+                        while (uidIter.term() != null
+                                && uidIter.term().utf8ToString().startsWith(startuid)) {
+                            if (anyLiveDoc()) {
+                                removeFile(true);
+                            }
+                            if (uidIter.next() == null) {
+                                break;
+                            }
                         }
                     }
 
+                    elapsed.report(LOGGER, String.format("Done indexing of directory %s", dir));
                     markProjectIndexed(project);
                 } finally {
                     reader.close();
