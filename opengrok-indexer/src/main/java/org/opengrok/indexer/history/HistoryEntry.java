@@ -61,12 +61,12 @@ public class HistoryEntry {
         this.tags = that.tags;
         this.message = that.message;
         this.active = that.active;
-        this.files = that.files; // OK to shallow copy
+        this.files = new TreeSet<>(that.files);
     }
 
     HistoryEntry(String revision, Date date, String author, String tags, String message,
             boolean active) {
-        this(revision, date, author, tags, message, active, Collections.emptySortedSet());
+        this(revision, date, author, tags, message, active, null);
     }
 
     HistoryEntry(String revision, Date date, String author, String tags, String message,
@@ -77,7 +77,7 @@ public class HistoryEntry {
         this.tags = tags;
         this.message = message == null ? null : ensureEOL(message);
         this.active = active;
-        this.files = new TreeSet<>(files);
+        this.files = files != null ? new TreeSet<>(files) : new TreeSet<>();
     }
 
     public String getLine() {
@@ -139,6 +139,9 @@ public class HistoryEntry {
         files.add(file);
     }
 
+    /**
+     * Gets an unmodifiable view of the instance's files.
+     */
     public SortedSet<String> getFiles() {
         return Collections.unmodifiableSortedSet(files);
     }
