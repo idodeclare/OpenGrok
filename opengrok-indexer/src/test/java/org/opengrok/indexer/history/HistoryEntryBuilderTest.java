@@ -45,7 +45,7 @@ public class HistoryEntryBuilderTest {
     private String historyRevision = "1.0";
     private String historyAuthor = "test author";
     private String historyMessage = "history entry message";
- 
+
     @Before
     public void setUp() {
         builder = new HistoryEntryBuilder();

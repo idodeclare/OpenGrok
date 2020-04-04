@@ -61,7 +61,7 @@ public class HistoryEntryBuilder {
     public String getAuthor() {
         return author;
     }
-    
+
     public String getTags() {
         return tags;
     }
@@ -103,7 +103,7 @@ public class HistoryEntryBuilder {
         this.author = author;
         this.isPristine = false;
     }
-    
+
     public void setTags(String tags) {
         this.tags = tags;
         this.isPristine = false;
