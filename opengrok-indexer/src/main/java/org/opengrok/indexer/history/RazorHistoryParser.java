@@ -102,7 +102,7 @@ class RazorHistoryParser {
 
             if (StringUtils.isOnlyWhitespace(line)) {
 
-                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
                 ignoreEntry = false;
                 seenActionType = false;
 
@@ -140,7 +140,7 @@ class RazorHistoryParser {
                     if (actionMatcher.find()) {
 
                         seenActionType = true;
-                        entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                        entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
 
                         String actionType = actionMatcher.group(1);
                         String userName = actionMatcher.group(2);
@@ -177,7 +177,7 @@ class RazorHistoryParser {
                 }
             }
         }
-        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+        HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
 
         History history = new History();
         history.setHistoryEntries(entries);

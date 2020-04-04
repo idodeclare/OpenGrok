@@ -38,11 +38,23 @@ public class HistoryEntryBuilder {
 
     private final StringBuilder messageBuilder = new StringBuilder();
     private final SortedSet<String> files = new TreeSet<>();
+    private boolean isPristine;
     private String revision;
     private Date date;
     private String author;
     private String tags;
     private boolean active;
+
+    /**
+     * Gets a value indicating whether the instance is new or just
+     * {@link #reset()}.
+     * @return {@code true} if the instance is new or just {@link #reset()}
+     * or {@code false} if any mutator was called (regardless of the argument to
+     * the mutator)
+     */
+    public boolean isPristine() {
+        return isPristine;
+    }
 
     public String getAuthor() {
         return author;
@@ -73,7 +85,7 @@ public class HistoryEntryBuilder {
                 active, files);
     }
 
-    public void clear() {
+    public void reset() {
         messageBuilder.setLength(0);
         files.clear();
         revision = null;
@@ -81,41 +93,50 @@ public class HistoryEntryBuilder {
         author = null;
         tags = null;
         active = false;
+        isPristine = true;
     }
 
     public void setAuthor(String author) {
         this.author = author;
+        this.isPristine = false;
     }
     
     public void setTags(String tags) {
         this.tags = tags;
+        this.isPristine = false;
     }
 
     public final void setDate(Date date) {
         this.date = date == null ? null : (Date) date.clone();
+        this.isPristine = false;
     }
 
     public void setActive(boolean active) {
         this.active = active;
+        this.isPristine = false;
     }
 
     public void setMessage(String message) {
         this.messageBuilder.setLength(0);
         this.messageBuilder.append(message);
         trimEndAndEOL(message);
+        this.isPristine = false;
     }
 
     public void setRevision(String revision) {
         this.revision = revision;
+        this.isPristine = false;
     }
 
     public void appendMessage(String message) {
         this.messageBuilder.append(message);
         trimEndAndEOL(message);
+        this.isPristine = false;
     }
 
     public void addFile(String file) {
         files.add(file);
+        isPristine = false;
     }
 
     public SortedSet<String> getFiles() {
@@ -127,6 +148,7 @@ public class HistoryEntryBuilder {
         if (files != null) {
             this.files.addAll(files);
         }
+        this.isPristine = false;
     }
 
     /**
@@ -135,6 +157,7 @@ public class HistoryEntryBuilder {
     public void strip() {
         stripFiles();
         stripTags();
+        isPristine = false;
     }
 
     /**
@@ -142,6 +165,7 @@ public class HistoryEntryBuilder {
      */
     public void stripFiles() {
         files.clear();
+        isPristine = false;
     }
 
     /**
@@ -149,6 +173,7 @@ public class HistoryEntryBuilder {
      */
     public void stripTags() {
         tags = null;
+        isPristine = false;
     }
 
     private void trimEndAndEOL(String message) {

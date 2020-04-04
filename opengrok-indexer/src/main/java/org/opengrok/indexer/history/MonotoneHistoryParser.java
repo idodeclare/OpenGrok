@@ -95,6 +95,7 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
      * @throws java.io.IOException If an error occurs while reading the stream
      */
     @Override
+    @SuppressWarnings("DuplicatedCode")
     public void processStream(InputStream input) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
@@ -107,9 +108,11 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
             // Later versions of monotone (such as 1.0) output even more dashes so lets require
             // the minimum amount for maximum compatibility between monotone versions.
             if (s.startsWith("-----------------------------------------------------------------")) {
-                if (entryBuilder != null && state > 2) {
-                    entries.add(entryBuilder.toEntry());
-                    entryBuilder.clear();
+                if (entryBuilder != null) {
+                    if (state > 2) {
+                        entries.add(entryBuilder.toEntry());
+                    }
+                    entryBuilder.reset();
                 } else {
                     entryBuilder = new HistoryEntryBuilder();
                 }
@@ -197,7 +200,6 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
 
         if (entryBuilder != null && state > 2) {
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
         }
     }
 }

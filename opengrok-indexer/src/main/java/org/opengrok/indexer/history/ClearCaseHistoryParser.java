@@ -88,7 +88,7 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
             if (entryBuilder == null) {
                 entryBuilder = new HistoryEntryBuilder();
             } else {
-                entryBuilder.clear();
+                entryBuilder.reset();
             }
             if ((s = in.readLine()) != null) {
                 try {
@@ -123,7 +123,7 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
             entryBuilder.setMessage(message.toString());
             entryBuilder.setActive(true);
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
+            entryBuilder.reset();
         }
         history = new History();
         history.setHistoryEntries(entries);

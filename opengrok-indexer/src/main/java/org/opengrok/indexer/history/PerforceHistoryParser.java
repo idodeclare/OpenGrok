@@ -173,7 +173,7 @@ class PerforceHistoryParser {
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entryBuilder != null) {
+        if (entryBuilder != null && !entryBuilder.isPristine()) {
             entryBuilder.setMessage(messageBuilder.toString().trim());
             entries.add(entryBuilder.toEntry());
         }
@@ -223,20 +223,20 @@ class PerforceHistoryParser {
                     messageBuilder.append("\n");
                 } else if (line.startsWith("... ...")) {
                     /* ... an entry can also finish when some branch/edit entry is encountered */
-                    if (entryBuilder != null) {
+                    if (entryBuilder != null && !entryBuilder.isPristine()) {
                         entryBuilder.setMessage(messageBuilder.toString().trim());
                         entries.add(entryBuilder.toEntry());
-                        entryBuilder.clear();
+                        entryBuilder.reset();
                     }
                     messageBuilder.setLength(0);
                 }
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entryBuilder != null) {
+        if (entryBuilder != null && !entryBuilder.isPristine()) {
             entryBuilder.setMessage(messageBuilder.toString().trim());
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
+            entryBuilder.reset();
         }
 
         History history = new History();
@@ -308,14 +308,14 @@ class PerforceHistoryParser {
 
     private static HistoryEntryBuilder parseEntryLine(List<HistoryEntry> entries,
             HistoryEntryBuilder entryBuilder, StringBuilder messageBuilder, Matcher matcher) {
-        if (entryBuilder != null) {
+        if (entryBuilder == null) {
+            entryBuilder = new HistoryEntryBuilder();
+        } else if (!entryBuilder.isPristine()) {
             /* An entry finishes when a new entry starts ... */
             entryBuilder.setMessage(messageBuilder.toString().trim());
             messageBuilder.setLength(0);
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
-        } else {
-            entryBuilder = new HistoryEntryBuilder();
+            entryBuilder.reset();
         }
         parseDateTimeBy(entryBuilder, matcher);
         entryBuilder.setActive(true);

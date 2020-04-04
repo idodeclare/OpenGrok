@@ -93,7 +93,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
         long revisionCounter = 0;
         Matcher matcher = HISTORY_PATTERN.matcher(total);
         while (matcher.find()) {
-            if (entryBuilder != null) {
+            if (entryBuilder != null && !entryBuilder.isPristine()) {
                 if (matcher.start() != prevEntryEnd) {
                     // Get the comment and reduce all double new lines to single
                     //  add a space as well for better formatting in RSS feeds.
@@ -101,7 +101,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
                             matcher.start()).replaceAll("(\\r?\\n){2}", " $1").trim());
                 }
                 entries.add(0, entryBuilder.toEntry());
-                entryBuilder.clear();
+                entryBuilder.reset();
             }
             String revision = matcher.group(4);
             String author = matcher.group(3);
@@ -121,7 +121,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
                 if (entryBuilder == null) {
                     entryBuilder = new HistoryEntryBuilder();
                 } else {
-                    entryBuilder.clear();
+                    entryBuilder.reset();
                 }
                 // Add context of action to message.  Helps when branch name is used
                 //   as indicator of why promote was made.
@@ -139,7 +139,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
             }
             prevEntryEnd = matcher.end();
         }
-        if (entryBuilder != null) {
+        if (entryBuilder != null && !entryBuilder.isPristine()) {
             if (total.length() != prevEntryEnd) {
                 // Get the comment and reduce all double new lines to single
                 //  add a space as well for better formatting in RSS feeds.
@@ -147,7 +147,6 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
                         "(\\r?\\n){2}", " $1").trim());
             }
             entries.add(0, entryBuilder.toEntry());
-            entryBuilder.clear();
         }
 
         history.setHistoryEntries(entries);

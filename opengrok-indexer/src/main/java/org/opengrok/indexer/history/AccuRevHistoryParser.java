@@ -136,7 +136,7 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
                 if (entryBuilder == null) {
                     entryBuilder = new HistoryEntryBuilder();
                 } else {
-                    entryBuilder.clear();
+                    entryBuilder.reset();
                 }
 
                 user = data[3].replaceFirst("user: ", "");
@@ -169,7 +169,7 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
                 entryBuilder.setRevision(data[2]);
                 entryBuilder.setActive(true);
                 entries.add(entryBuilder.toEntry());
-                entryBuilder.clear();
+                entryBuilder.reset();
             }
         }
 

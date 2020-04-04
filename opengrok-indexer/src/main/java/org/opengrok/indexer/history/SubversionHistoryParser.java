@@ -94,7 +94,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
         public void startElement(String uri, String localName, String qname, Attributes attr) {
             isRenamed = false;
             if ("logentry".equals(qname)) {
-                entryBuilder.clear();
+                entryBuilder.reset();
                 entryBuilder.setActive(true);
                 entryBuilder.setRevision(attr.getValue("revision"));
             } else if ("path".equals(qname)) {
@@ -142,7 +142,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
             }
             if ("logentry".equals(qname)) {
                 entries.add(entryBuilder.toEntry());
-                entryBuilder.clear();
+                entryBuilder.reset();
             }
             sb.setLength(0);
         }

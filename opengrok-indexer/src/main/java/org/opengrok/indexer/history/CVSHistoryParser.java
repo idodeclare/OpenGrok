@@ -97,7 +97,7 @@ class CVSHistoryParser implements Executor.StreamHandler {
                 }             
             }
             if (state == ParseState.REVISION && s.startsWith("revision")) {
-                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
                 entryBuilder.setActive(true);
                 String commit = s.substring("revision".length()).trim();
                 entryBuilder.setRevision(commit);
@@ -145,7 +145,7 @@ class CVSHistoryParser implements Executor.StreamHandler {
             }
             s = in.readLine();
         }
-        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+        HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
 
         history.setHistoryEntries(entries);
     }

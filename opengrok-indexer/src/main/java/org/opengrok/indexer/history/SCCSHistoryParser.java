@@ -94,7 +94,7 @@ class SCCSHistoryParser {
                 entryBuilder.setMessage(getComment());
                 entryBuilder.setActive(isActive());
                 entries.add(entryBuilder.toEntry());
-                entryBuilder.clear();
+                entryBuilder.reset();
             }
         } finally {
             IOUtils.close(in);

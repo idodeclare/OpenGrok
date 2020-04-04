@@ -101,9 +101,11 @@ class BazaarHistoryParser implements Executor.StreamHandler {
         int state = 0;
         while ((s = in.readLine()) != null) {
             if ("------------------------------------------------------------".equals(s)) {
-                if (entryBuilder != null && state > 2) {
-                    entries.add(entryBuilder.toEntry());
-                    entryBuilder.clear();
+                if (entryBuilder != null) {
+                    if (state > 2) {
+                        entries.add(entryBuilder.toEntry());
+                    }
+                    entryBuilder.reset();
                 } else {
                     entryBuilder = new HistoryEntryBuilder();
                 }
@@ -192,7 +194,6 @@ class BazaarHistoryParser implements Executor.StreamHandler {
 
         if (entryBuilder != null && state > 2) {
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
         }
     }
 

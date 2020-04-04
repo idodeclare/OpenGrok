@@ -89,7 +89,7 @@ class GitHistoryParser implements Executor.StreamHandler {
             if (state == ParseState.HEADER) {
 
                 if (s.startsWith("commit")) {
-                    entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                    entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
                     entryBuilder.setActive(true);
                     String commit = s.substring("commit".length()).trim();
                     entryBuilder.setRevision(commit);
@@ -150,10 +150,7 @@ class GitHistoryParser implements Executor.StreamHandler {
             s = in.readLine();
         }
 
-        if (entryBuilder != null) {
-            entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
-        }
+        HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
     }
 
     /**

@@ -116,7 +116,7 @@ class MercurialHistoryParser implements Executor.StreamHandler {
         HistoryEntryBuilder entryBuilder = null;
         while ((s = in.readLine()) != null) {
             if (s.startsWith(MercurialRepository.CHANGESET)) {
-                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
                 entryBuilder.setActive(true);
                 entryBuilder.setRevision(s.substring(
                         MercurialRepository.CHANGESET.length()).trim());
@@ -154,7 +154,7 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     }
                 }
             } else if (s.startsWith(MercurialRepository.FILE_COPIES) &&
-                entryBuilder != null && isDir) {
+                    entryBuilder != null && isDir) {
                 /*
                  * 'file_copies:' should be present only for directories but
                  * we use isDir to be on the safe side.
@@ -174,15 +174,15 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                 }
             } else if (s.startsWith(DESC_PREFIX) && entryBuilder != null) {
                 entryBuilder.setMessage(decodeDescription(s));
-            } else if (s.equals(MercurialRepository.END_OF_ENTRY)
-                && entryBuilder != null) {
-                    entryBuilder = null;
+            } else if (s.equals(MercurialRepository.END_OF_ENTRY) && entryBuilder != null) {
+                entryBuilder.reset();
             } else if (s.length() > 0) {
                 LOGGER.log(Level.WARNING,
                     "Invalid/unexpected output {0} from hg log for repo {1}",
                     new Object[]{s, repository.getDirectoryName()});
             }
         }
+        HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
     }
 
     /**

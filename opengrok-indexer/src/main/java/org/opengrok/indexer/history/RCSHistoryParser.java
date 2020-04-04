@@ -122,7 +122,7 @@ class RCSHistoryParser {
             entryBuilder.setMessage(n.getLog());
             entryBuilder.setActive(true);
             entries.add(entryBuilder.toEntry());
-            entryBuilder.clear();
+            entryBuilder.reset();
         }
     }
 

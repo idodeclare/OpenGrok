@@ -30,8 +30,18 @@ import java.util.List;
  */
 class HistoryParserUtil {
 
-    static HistoryEntryBuilder resetEntryBuilder(HistoryEntryBuilder entryBuilder,
-            List<HistoryEntry> entries) {
+    /**
+     * Either construct a new instance if {@code entryBuilder} is {@code null}
+     * or else append to {@code entries} if the
+     * {@link HistoryEntryBuilder#getDate()} of {@code entryBuilder} is
+     * non-{@code null}.
+     * @param entries a defined instance
+     * @param entryBuilder an optionally defined instance
+     * @return a defined instance: either {@code entryBuilder} if it already was
+     * defined or else a new instance
+     */
+    static HistoryEntryBuilder readyEntryBuilder(
+            List<HistoryEntry> entries, HistoryEntryBuilder entryBuilder) {
 
         if (entryBuilder == null) {
             entryBuilder = new HistoryEntryBuilder();
@@ -39,7 +49,7 @@ class HistoryParserUtil {
             if (entryBuilder.getDate() != null) {
                 entries.add(entryBuilder.toEntry());
             }
-            entryBuilder.clear();
+            entryBuilder.reset();
         }
         return entryBuilder;
     }

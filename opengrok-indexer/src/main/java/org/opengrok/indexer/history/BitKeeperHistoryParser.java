@@ -102,7 +102,7 @@ class BitKeeperHistoryParser implements Executor.StreamHandler {
         final BufferedReader in = new BufferedReader(new InputStreamReader(input));
         for (String line = in.readLine(); line != null; line = in.readLine()) {
             if (line.startsWith("D ")) {
-                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
 
                 final String[] fields = line.substring(2).split("\t");
                 try {
@@ -129,6 +129,6 @@ class BitKeeperHistoryParser implements Executor.StreamHandler {
                 }
             }
         }
-        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+        HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
     }
 }
