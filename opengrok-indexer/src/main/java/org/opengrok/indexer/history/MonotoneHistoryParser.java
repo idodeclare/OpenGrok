@@ -128,7 +128,7 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
             switch (state) {
                 case 0:
                     if (s.startsWith("Revision:")) {
-                        if (entryBuilder == null) {
+                        if (entryBuilder == null || entryBuilder.isPristine()) {
                             throw new IOException("Revision came unexpectedly before separator");
                         }
                         String rev = s.substring("Revision:".length()).trim();

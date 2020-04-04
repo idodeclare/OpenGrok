@@ -23,6 +23,8 @@
  */
 package org.opengrok.indexer.history;
 
+import static org.opengrok.indexer.history.HistoryParserUtil.isNonPristine;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -93,7 +95,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
         long revisionCounter = 0;
         Matcher matcher = HISTORY_PATTERN.matcher(total);
         while (matcher.find()) {
-            if (entryBuilder != null && !entryBuilder.isPristine()) {
+            if (isNonPristine(entryBuilder)) {
                 if (matcher.start() != prevEntryEnd) {
                     // Get the comment and reduce all double new lines to single
                     //  add a space as well for better formatting in RSS feeds.
@@ -139,7 +141,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
             }
             prevEntryEnd = matcher.end();
         }
-        if (entryBuilder != null && !entryBuilder.isPristine()) {
+        if (isNonPristine(entryBuilder)) {
             if (total.length() != prevEntryEnd) {
                 // Get the comment and reduce all double new lines to single
                 //  add a space as well for better formatting in RSS feeds.

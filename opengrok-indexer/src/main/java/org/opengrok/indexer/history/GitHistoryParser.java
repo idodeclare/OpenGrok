@@ -23,6 +23,8 @@
  */
 package org.opengrok.indexer.history;
 
+import static org.opengrok.indexer.history.HistoryParserUtil.isNonPristine;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -93,9 +95,9 @@ class GitHistoryParser implements Executor.StreamHandler {
                     entryBuilder.setActive(true);
                     String commit = s.substring("commit".length()).trim();
                     entryBuilder.setRevision(commit);
-                } else if (s.startsWith("Author:") && entryBuilder != null) {
+                } else if (s.startsWith("Author:") && isNonPristine(entryBuilder)) {
                     entryBuilder.setAuthor(s.substring("Author:".length()).trim());
-                } else if (s.startsWith("AuthorDate:") && entryBuilder != null) {
+                } else if (s.startsWith("AuthorDate:") && isNonPristine(entryBuilder)) {
                     String dateString =
                             s.substring("AuthorDate:".length()).trim();
                     try {
@@ -118,7 +120,7 @@ class GitHistoryParser implements Executor.StreamHandler {
             }
             if (state == ParseState.MESSAGE) {
                 if ((s.length() == 0) || Character.isWhitespace(s.charAt(0))) {
-                    if (entryBuilder != null) {
+                    if (isNonPristine(entryBuilder)) {
                         entryBuilder.appendMessage(s);
                     }
                 } else {
@@ -131,7 +133,7 @@ class GitHistoryParser implements Executor.StreamHandler {
                     state = ParseState.HEADER;
                     continue; // Parse this line again - do not read a new line
                 }
-                if (entryBuilder != null) {
+                if (isNonPristine(entryBuilder)) {
                     try {
                         File f = new File(myDir, s);
                         String path = env.getPathRelativeToSourceRoot(f);
@@ -149,7 +151,6 @@ class GitHistoryParser implements Executor.StreamHandler {
             }
             s = in.readLine();
         }
-
         HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
     }
 

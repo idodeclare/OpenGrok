@@ -118,7 +118,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                 case 0:
                     // First, go on until revno is found.
                     if (s.startsWith("revno:")) {
-                        if (entryBuilder == null) {
+                        if (entryBuilder == null || entryBuilder.isPristine()) {
                             throw new IOException("revno came unexpectedly before separator");
                         }
                         String[] rev = s.substring("revno:".length()).trim().split(" ");

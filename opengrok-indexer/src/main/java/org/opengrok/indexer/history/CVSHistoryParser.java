@@ -137,10 +137,8 @@ class CVSHistoryParser implements Executor.StreamHandler {
                     state = ParseState.REVISION;
                 } else if (s.startsWith("========")) {
                     state = ParseState.NAMES;
-                } else {
-                    if (entryBuilder != null) {
-                        entryBuilder.appendMessage(s);
-                    }
+                } else if (HistoryParserUtil.isNonPristine(entryBuilder)) {
+                    entryBuilder.appendMessage(s);
                 }
             }
             s = in.readLine();

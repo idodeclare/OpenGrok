@@ -116,6 +116,7 @@ class BitKeeperHistoryParser implements Executor.StreamHandler {
                     entryBuilder.setActive(true);
                 } catch (final Exception e) {
                     LOGGER.log(Level.SEVERE, "Error: malformed BitKeeper log output {0}", line);
+                    entryBuilder.reset();
                     continue;
                 }
 
@@ -123,7 +124,7 @@ class BitKeeperHistoryParser implements Executor.StreamHandler {
                     renamedFiles.add(fields[4]);
                 }
             } else if (line.startsWith("C ")) {
-                if (entryBuilder != null) {
+                if (HistoryParserUtil.isNonPristine(entryBuilder)) {
                     final String messageLine = line.substring(2);
                     entryBuilder.appendMessage(messageLine);
                 }

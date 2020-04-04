@@ -31,6 +31,14 @@ import java.util.List;
 class HistoryParserUtil {
 
     /**
+     * Gets a value indicating if {@code entryBuilder} is defined and has
+     * {@link HistoryEntryBuilder#isPristine()} equal to {@code false}.
+     */
+    static boolean isNonPristine(HistoryEntryBuilder entryBuilder) {
+        return entryBuilder != null && !entryBuilder.isPristine();
+    }
+
+    /**
      * Either construct a new instance if {@code entryBuilder} is {@code null}
      * or else append to {@code entries} if the
      * {@link HistoryEntryBuilder#getDate()} of {@code entryBuilder} is

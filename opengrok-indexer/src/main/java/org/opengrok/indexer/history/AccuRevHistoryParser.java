@@ -156,13 +156,13 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
                 }
 
             } else if (line.startsWith("  #")) {  // found comment
-                if (entryBuilder == null) {
+                if (entryBuilder == null || entryBuilder.isPristine()) {
                     throw new IOException("comment came unexpectedly before transaction");
                 }
                 entryBuilder.appendMessage(line.substring(3));
 
             } else if (line.startsWith("  v")) {  // found version
-                if (entryBuilder == null) {
+                if (entryBuilder == null || entryBuilder.isPristine()) {
                     throw new IOException("version came unexpectedly before transaction");
                 }
                 String[] data = line.split("\\s+");

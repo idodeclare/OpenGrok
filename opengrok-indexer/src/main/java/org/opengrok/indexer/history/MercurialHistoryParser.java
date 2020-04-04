@@ -23,6 +23,8 @@
  */
 package org.opengrok.indexer.history;
 
+import static org.opengrok.indexer.history.HistoryParserUtil.isNonPristine;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -120,9 +122,9 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                 entryBuilder.setActive(true);
                 entryBuilder.setRevision(s.substring(
                         MercurialRepository.CHANGESET.length()).trim());
-            } else if (s.startsWith(MercurialRepository.USER) && entryBuilder != null) {
+            } else if (s.startsWith(MercurialRepository.USER) && isNonPristine(entryBuilder)) {
                 entryBuilder.setAuthor(s.substring(MercurialRepository.USER.length()).trim());
-            } else if (s.startsWith(MercurialRepository.DATE) && entryBuilder != null) {
+            } else if (s.startsWith(MercurialRepository.DATE) && isNonPristine(entryBuilder)) {
                 Date date;
                 try {
                     date = repository.parse(s.substring(MercurialRepository.DATE.length()).trim());
@@ -134,7 +136,7 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     throw new IOException("Could not parse date: " + s, pe);
                 }
                 entryBuilder.setDate(date);
-            } else if (s.startsWith(MercurialRepository.FILES) && entryBuilder != null) {
+            } else if (s.startsWith(MercurialRepository.FILES) && isNonPristine(entryBuilder)) {
                 String[] strings = s.split(" ");
                 for (int ii = 1; ii < strings.length; ++ii) {
                     if (strings[ii].length() > 0) {
@@ -154,7 +156,7 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     }
                 }
             } else if (s.startsWith(MercurialRepository.FILE_COPIES) &&
-                    entryBuilder != null && isDir) {
+                    isNonPristine(entryBuilder) && isDir) {
                 /*
                  * 'file_copies:' should be present only for directories but
                  * we use isDir to be on the safe side.
@@ -172,10 +174,11 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                              renamedFiles.add(move[0]);
                      }
                 }
-            } else if (s.startsWith(DESC_PREFIX) && entryBuilder != null) {
+            } else if (s.startsWith(DESC_PREFIX) && isNonPristine(entryBuilder)) {
                 entryBuilder.setMessage(decodeDescription(s));
-            } else if (s.equals(MercurialRepository.END_OF_ENTRY) && entryBuilder != null) {
-                entryBuilder.reset();
+            } else if (s.equals(MercurialRepository.END_OF_ENTRY)
+                    && isNonPristine(entryBuilder)) {
+                entryBuilder = HistoryParserUtil.readyEntryBuilder(entries, entryBuilder);
             } else if (s.length() > 0) {
                 LOGGER.log(Level.WARNING,
                     "Invalid/unexpected output {0} from hg log for repo {1}",

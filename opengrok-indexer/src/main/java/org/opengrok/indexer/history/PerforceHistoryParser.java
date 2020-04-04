@@ -25,6 +25,7 @@
 
 package org.opengrok.indexer.history;
 
+import static org.opengrok.indexer.history.HistoryParserUtil.isNonPristine;
 import static org.opengrok.indexer.history.PerforceRepository.protectPerforceFilename;
 import static org.opengrok.indexer.history.PerforceRepository.unprotectPerforceFilename;
 
@@ -173,7 +174,7 @@ class PerforceHistoryParser {
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entryBuilder != null && !entryBuilder.isPristine()) {
+        if (isNonPristine(entryBuilder)) {
             entryBuilder.setMessage(messageBuilder.toString().trim());
             entries.add(entryBuilder.toEntry());
         }
@@ -223,7 +224,7 @@ class PerforceHistoryParser {
                     messageBuilder.append("\n");
                 } else if (line.startsWith("... ...")) {
                     /* ... an entry can also finish when some branch/edit entry is encountered */
-                    if (entryBuilder != null && !entryBuilder.isPristine()) {
+                    if (isNonPristine(entryBuilder)) {
                         entryBuilder.setMessage(messageBuilder.toString().trim());
                         entries.add(entryBuilder.toEntry());
                         entryBuilder.reset();
@@ -233,10 +234,9 @@ class PerforceHistoryParser {
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entryBuilder != null && !entryBuilder.isPristine()) {
+        if (isNonPristine(entryBuilder)) {
             entryBuilder.setMessage(messageBuilder.toString().trim());
             entries.add(entryBuilder.toEntry());
-            entryBuilder.reset();
         }
 
         History history = new History();
