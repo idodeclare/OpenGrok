@@ -118,8 +118,7 @@ public class HistoryEntryBuilder {
 
     public void setMessage(String message) {
         this.messageBuilder.setLength(0);
-        this.messageBuilder.append(message);
-        trimEndAndEOL(message);
+        appendTrimEndThenEOL(message);
         this.isPristine = false;
     }
 
@@ -129,8 +128,7 @@ public class HistoryEntryBuilder {
     }
 
     public void appendMessage(String message) {
-        this.messageBuilder.append(message);
-        trimEndAndEOL(message);
+        appendTrimEndThenEOL(message);
         this.isPristine = false;
     }
 
@@ -176,10 +174,14 @@ public class HistoryEntryBuilder {
         isPristine = false;
     }
 
-    private void trimEndAndEOL(String message) {
+    private void appendTrimEndThenEOL(String message) {
+        messageBuilder.append(message);
+
         for (int i = message.length() - 1; i >= 0; --i) {
             if (Character.isWhitespace(message.charAt(i))) {
                 messageBuilder.setLength(messageBuilder.length() - 1);
+            } else {
+                break;
             }
         }
         messageBuilder.append("\n");
