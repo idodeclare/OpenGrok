@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -28,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,9 +71,9 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
     @Override
     public void processStream(InputStream input) throws IOException {
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        List<HistoryEntry> entries = new ArrayList<HistoryEntry>();
+        List<HistoryEntry> entries = new ArrayList<>();
         String s;
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         while ((s = in.readLine()) != null) {
             if (!"create version".equals(s) && !"create directory version".equals(s)) {
                 // skip this history entry
@@ -83,10 +85,14 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
                 continue;
             }
 
-            entry = new HistoryEntry();
+            if (entryBuilder == null) {
+                entryBuilder = new HistoryEntryBuilder();
+            } else {
+                entryBuilder.clear();
+            }
             if ((s = in.readLine()) != null) {
                 try {
-                    entry.setDate(repository.parse(s));
+                    entryBuilder.setDate(repository.parse(s));
                 } catch (ParseException pe) {
                     //
                     // Overriding processStream() thus need to comply with the
@@ -96,14 +102,14 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
                 }
             }
             if ((s = in.readLine()) != null) {
-                entry.setAuthor(s);
+                entryBuilder.setAuthor(s);
             }
             if ((s = in.readLine()) != null) {
                 s = s.replace('\\', '/');
-                entry.setRevision(s);
+                entryBuilder.setRevision(s);
             }
 
-            StringBuffer message = new StringBuffer();
+            StringBuilder message = new StringBuilder();
             String glue = "";
             while ((s = in.readLine()) != null && !".".equals(s)) {
                 if ("".equals(s)) {
@@ -114,9 +120,10 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
                 message.append(s.trim());
                 glue = "\n";
             }
-            entry.setMessage(message.toString());
-            entry.setActive(true);
-            entries.add(entry);
+            entryBuilder.setMessage(message.toString());
+            entryBuilder.setActive(true);
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
         history = new History();
         history.setHistoryEntries(entries);
@@ -130,7 +137,7 @@ class ClearCaseHistoryParser implements Executor.StreamHandler {
      * @throws IOException if we fail to parse the buffer
      */
     History parse(String buffer) throws IOException {
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return history;
     }
 }

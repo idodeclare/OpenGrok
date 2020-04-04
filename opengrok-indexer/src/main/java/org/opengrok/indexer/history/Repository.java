@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017-2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017-2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -109,7 +109,7 @@ public abstract class Repository extends RepositoryInfo {
 
     /**
      * Gets the instance's repository command, primarily for testing purposes.
-     * @return null if not {@link isWorking}, or otherwise a defined command
+     * @return null if not {@link #isWorking()}, or otherwise a defined command
      */
     public String getRepoCommand() {
         isWorking();
@@ -274,7 +274,7 @@ public abstract class Repository extends RepositoryInfo {
      * tags to changesets which actually exist in the history of given file.
      * Must be implemented repository-specific.
      *
-     * @see getTagList
+     * @see #getTagList()
      * @param hist History we want to assign tags to.
      */
     void assignTagsInHistory(History hist) throws HistoryException {

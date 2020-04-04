@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -28,20 +29,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Logger;
-import org.opengrok.indexer.logger.LoggerFactory;
 import org.opengrok.indexer.util.Executor;
 
 /**
  * Parse a stream of CVS log comments.
  */
 class CVSHistoryParser implements Executor.StreamHandler {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CVSHistoryParser.class);
 
     private enum ParseState {
         NAMES, TAG, REVISION, METADATA, COMMENT
@@ -59,18 +57,18 @@ class CVSHistoryParser implements Executor.StreamHandler {
      */
     @Override
     public void processStream(InputStream input) throws IOException {
-        ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
+        ArrayList<HistoryEntry> entries = new ArrayList<>();
 
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
 
         history = new History();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         HashMap<String, String> tags = null;
         ParseState state = ParseState.NAMES;
         String s = in.readLine();
         while (s != null) {
             if (state == ParseState.NAMES && s.startsWith("symbolic names:")) {
-                tags = new HashMap<String, String>();
+                tags = new HashMap<>();
                 state = ParseState.TAG;
                 s = in.readLine();
             }
@@ -99,15 +97,12 @@ class CVSHistoryParser implements Executor.StreamHandler {
                 }             
             }
             if (state == ParseState.REVISION && s.startsWith("revision")) {
-                if (entry != null) {
-                    entries.add(entry);
-                }
-                entry = new HistoryEntry();
-                entry.setActive(true);
+                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder.setActive(true);
                 String commit = s.substring("revision".length()).trim();
-                entry.setRevision(commit);
+                entryBuilder.setRevision(commit);
                 if (tags.containsKey(commit)) {
-                    entry.setTags(tags.get(commit));
+                    entryBuilder.setTags(tags.get(commit));
                 }
                 state = ParseState.METADATA;
                 s = in.readLine();
@@ -121,7 +116,7 @@ class CVSHistoryParser implements Executor.StreamHandler {
                     if ("date".equals(key)) {
                         try {
                             val = val.replace('/', '-');
-                            entry.setDate(cvsrepo.parse(val));
+                            entryBuilder.setDate(cvsrepo.parse(val));
                         } catch (ParseException pe) {
                             //
                             // Overriding processStream() thus need to comply with the
@@ -130,7 +125,7 @@ class CVSHistoryParser implements Executor.StreamHandler {
                             throw new IOException("Failed to parse date: '" + val + "'", pe);
                         }
                     } else if ("author".equals(key)) {
-                        entry.setAuthor(val);
+                        entryBuilder.setAuthor(val);
                     }
                 }
 
@@ -143,17 +138,14 @@ class CVSHistoryParser implements Executor.StreamHandler {
                 } else if (s.startsWith("========")) {
                     state = ParseState.NAMES;
                 } else {
-                    if (entry != null) {
-                        entry.appendMessage(s);
+                    if (entryBuilder != null) {
+                        entryBuilder.appendMessage(s);
                     }
                 }
             }
             s = in.readLine();
         }
-
-        if (entry != null) {
-            entries.add(entry);
-        }
+        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
 
         history.setHistoryEntries(entries);
     }
@@ -200,7 +192,7 @@ class CVSHistoryParser implements Executor.StreamHandler {
      * @throws IOException if we fail to parse the buffer
      */
     History parse(String buffer) throws IOException {
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return history;
     }
 }

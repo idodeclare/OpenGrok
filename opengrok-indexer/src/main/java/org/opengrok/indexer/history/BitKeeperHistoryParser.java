@@ -20,7 +20,7 @@
 /*
  * Copyright (c) 2017, James Service <jas2701@googlemail.com>.
  * Portions Copyright (c) 2017, 2019 Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
@@ -97,46 +97,38 @@ class BitKeeperHistoryParser implements Executor.StreamHandler {
      */
     @Override
     public void processStream(InputStream input) throws IOException {
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
 
         final BufferedReader in = new BufferedReader(new InputStreamReader(input));
         for (String line = in.readLine(); line != null; line = in.readLine()) {
             if (line.startsWith("D ")) {
-                if (entry != null) {
-                    entries.add(entry);
-                    entry = null;
-                }
+                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
 
                 final String[] fields = line.substring(2).split("\t");
-                final HistoryEntry newEntry = new HistoryEntry();
                 try {
                     if (fields[0].equals("ChangeSet")) {
                         continue;
                     }
-                    newEntry.addFile(fields[0].intern());
-                    newEntry.setRevision(fields[1]);
-                    newEntry.setDate(dateFormat.parse(fields[2]));
-                    newEntry.setAuthor(fields[3]);
-                    newEntry.setActive(true);
+                    entryBuilder.addFile(fields[0].intern());
+                    entryBuilder.setRevision(fields[1]);
+                    entryBuilder.setDate(dateFormat.parse(fields[2]));
+                    entryBuilder.setAuthor(fields[3]);
+                    entryBuilder.setActive(true);
                 } catch (final Exception e) {
                     LOGGER.log(Level.SEVERE, "Error: malformed BitKeeper log output {0}", line);
                     continue;
                 }
 
-                entry = newEntry;
                 if (fields.length == 5) {
                     renamedFiles.add(fields[4]);
                 }
             } else if (line.startsWith("C ")) {
-                if (entry != null) {
+                if (entryBuilder != null) {
                     final String messageLine = line.substring(2);
-                    entry.appendMessage(messageLine);
+                    entryBuilder.appendMessage(messageLine);
                 }
             }
         }
-
-        if (entry != null) {
-            entries.add(entry);
-        }
+        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
     }
 }

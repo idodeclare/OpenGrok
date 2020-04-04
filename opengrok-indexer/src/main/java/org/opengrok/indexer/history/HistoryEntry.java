@@ -19,12 +19,12 @@
 
 /*
  * Copyright (c) 2006, 2018 Oracle and/or its affiliates. All rights reserved.
- */
-/*
  * Copyright 2006 Trond Norbye.  All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -33,7 +33,8 @@ import java.util.logging.Logger;
 import org.opengrok.indexer.logger.LoggerFactory;
 
 /**
- * Collect all information of a given revision.
+ * Represents a collection all information of a given revision, mostly immutable
+ * except for {@link #setTags(String)} and stripping tags or files.
  *
  * @author Trond Norbye
  */
@@ -41,23 +42,14 @@ public class HistoryEntry {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HistoryEntry.class);
 
-    private String revision;
-    private Date date;
-    private String author;
+    private final String revision;
+    private final Date date;
+    private final String author;
+    private final String message;
+    private final boolean active;
+    private final SortedSet<String> files;
     private String tags;
 
-    @SuppressWarnings("PMD.AvoidStringBufferField")
-    private final StringBuffer message;
-
-    private boolean active;
-    private SortedSet<String> files;
-
-    /** Creates a new instance of HistoryEntry. */
-    public HistoryEntry() {
-        message = new StringBuffer();
-        files = new TreeSet<>();
-    }
-    
     /**
      * Copy constructor.
      * @param that HistoryEntry object
@@ -69,22 +61,27 @@ public class HistoryEntry {
         this.tags = that.tags;
         this.message = that.message;
         this.active = that.active;
-        this.files = that.files;
+        this.files = that.files; // OK to shallow copy
     }
 
-    public HistoryEntry(String revision, Date date, String author,
-            String tags, String message, boolean active) {
+    HistoryEntry(String revision, Date date, String author, String tags, String message,
+            boolean active) {
+        this(revision, date, author, tags, message, active, Collections.emptySortedSet());
+    }
+
+    HistoryEntry(String revision, Date date, String author, String tags, String message,
+            boolean active, SortedSet<String> files) {
         this.revision = revision;
-        setDate(date);
+        this.date = date == null ? null : (Date) date.clone();
         this.author = author;
         this.tags = tags;
-        this.message = new StringBuffer(message);
+        this.message = message == null ? null : ensureEOL(message);
         this.active = active;
-        this.files = new TreeSet<>();
+        this.files = new TreeSet<>(files);
     }
 
     public String getLine() {
-        return revision + " " + date + " " + author + " " + message + "\n";
+        return revision + " " + date + " " + author + " " + message;
     }
 
     public void dump() {
@@ -95,7 +92,7 @@ public class HistoryEntry {
         LOGGER.log(Level.FINE, "HistoryEntry : author         = {0}", author);
         LOGGER.log(Level.FINE, "HistoryEntry : active         = {0}", (active ?
                 "True" : "False"));
-        String[] lines = message.toString().split("\n");
+        String[] lines = message.split("\n");
         String separator = "=";
         for (String line : lines) {
             LOGGER.log(Level.FINE, "HistoryEntry : message        {0} {1}",
@@ -123,49 +120,19 @@ public class HistoryEntry {
     }
 
     public String getMessage() {
-        return message.toString().trim();
+        return message;
     }
 
     public String getRevision() {
         return revision;
     }
 
-    public void setAuthor(String author) {
-        this.author = author;
-    }
-    
     public void setTags(String tags) {
         this.tags = tags;
     }
 
-    public final void setDate(Date date) {
-        if (date == null) {
-            this.date = null;
-        } else {
-            this.date = (Date) date.clone();
-        }
-    }
-
     public boolean isActive() {
         return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public void setMessage(String message) {
-        this.message.setLength(0);
-        this.message.append(message);
-    }
-
-    public void setRevision(String revision) {
-        this.revision = revision;
-    }
-
-    public void appendMessage(String message) {
-        this.message.append(message);
-        this.message.append("\n");
     }
 
     public void addFile(String file) {
@@ -173,11 +140,7 @@ public class HistoryEntry {
     }
 
     public SortedSet<String> getFiles() {
-        return files;
-    }
-
-    public void setFiles(SortedSet<String> files) {
-        this.files = files;
+        return Collections.unmodifiableSortedSet(files);
     }
 
     @Override
@@ -205,5 +168,9 @@ public class HistoryEntry {
      */
     public void stripTags() {
         tags = null;
+    }
+
+    private String ensureEOL(String message) {
+        return message.trim() + "\n";
     }
 }

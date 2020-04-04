@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -94,8 +95,6 @@ public class DirectoryHistoryReader {
      */
     public DirectoryHistoryReader(String path) throws IOException {
         //TODO can we introduce paging here ???  this class is used just for rss.jsp !
-        int hitsPerPage = RuntimeEnvironment.getInstance().getHitsPerPage();
-        int cachePages = RuntimeEnvironment.getInstance().getCachePages();
         IndexReader ireader = null;
         IndexSearcher searcher;
         try {
@@ -220,9 +219,8 @@ public class DirectoryHistoryReader {
      * and store it into @code currentEntry.
      *
      * @return true if history entry was successfully generated otherwise false
-     * @throws IOException
      */
-    private boolean next() throws IOException {
+    private boolean next() {
         if (diter == null) {
             diter = hash.keySet().iterator();
         }
@@ -241,8 +239,8 @@ public class DirectoryHistoryReader {
 
         icomment = citer.next();
 
-        currentEntry = new HistoryEntry(icomment.get(1), idate, iauthor, null, icomment.get(0), true);
-        currentEntry.setFiles(hash.get(idate).get(iauthor).get(icomment));
+        currentEntry = new HistoryEntry(icomment.get(1), idate, iauthor, null, icomment.get(0),
+                true, hash.get(idate).get(iauthor).get(icomment));
 
         return true;
     }

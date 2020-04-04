@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -81,27 +82,24 @@ class GitHistoryParser implements Executor.StreamHandler {
     private void process(BufferedReader in) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         entries = new ArrayList<>();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         ParseState state = ParseState.HEADER;
         String s = in.readLine();
         while (s != null) {
             if (state == ParseState.HEADER) {
 
                 if (s.startsWith("commit")) {
-                    if (entry != null) {
-                        entries.add(entry);
-                    }
-                    entry = new HistoryEntry();
-                    entry.setActive(true);
+                    entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                    entryBuilder.setActive(true);
                     String commit = s.substring("commit".length()).trim();
-                    entry.setRevision(commit);
-                } else if (s.startsWith("Author:") && entry != null) {
-                    entry.setAuthor(s.substring("Author:".length()).trim());
-                } else if (s.startsWith("AuthorDate:") && entry != null) {
+                    entryBuilder.setRevision(commit);
+                } else if (s.startsWith("Author:") && entryBuilder != null) {
+                    entryBuilder.setAuthor(s.substring("Author:".length()).trim());
+                } else if (s.startsWith("AuthorDate:") && entryBuilder != null) {
                     String dateString =
                             s.substring("AuthorDate:".length()).trim();
                     try {
-                        entry.setDate(repository.parse(dateString));
+                        entryBuilder.setDate(repository.parse(dateString));
                     } catch (ParseException pe) {
                         //
                         // Overriding processStream() thus need to comply with the
@@ -120,8 +118,8 @@ class GitHistoryParser implements Executor.StreamHandler {
             }
             if (state == ParseState.MESSAGE) {
                 if ((s.length() == 0) || Character.isWhitespace(s.charAt(0))) {
-                    if (entry != null) {
-                        entry.appendMessage(s);
+                    if (entryBuilder != null) {
+                        entryBuilder.appendMessage(s);
                     }
                 } else {
                     // This is the list of files after the message - add them
@@ -133,11 +131,11 @@ class GitHistoryParser implements Executor.StreamHandler {
                     state = ParseState.HEADER;
                     continue; // Parse this line again - do not read a new line
                 }
-                if (entry != null) {
+                if (entryBuilder != null) {
                     try {
                         File f = new File(myDir, s);
                         String path = env.getPathRelativeToSourceRoot(f);
-                        entry.addFile(path.intern());
+                        entryBuilder.addFile(path.intern());
                     } catch (ForbiddenSymlinkException e) {
                         LOGGER.log(Level.FINER, e.getMessage());
                         // ignore
@@ -152,8 +150,9 @@ class GitHistoryParser implements Executor.StreamHandler {
             s = in.readLine();
         }
 
-        if (entry != null) {
-            entries.add(entry);
+        if (entryBuilder != null) {
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
     }
 
@@ -210,14 +209,14 @@ class GitHistoryParser implements Executor.StreamHandler {
      */
     History parse(String buffer) throws IOException {
         myDir = RuntimeEnvironment.getInstance().getSourceRootPath();
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return new History(entries);
     }
 
     /**
      * Class for handling renamed files stream.
      */
-    private class RenamedFilesParser implements Executor.StreamHandler {
+    private static class RenamedFilesParser implements Executor.StreamHandler {
 
         private final List<String> renamedFiles = new ArrayList<>();
 
@@ -262,8 +261,6 @@ class GitHistoryParser implements Executor.StreamHandler {
              * A foo2.f
              * A main.c
              */
-            RuntimeEnvironment env = RuntimeEnvironment.getInstance();
-
             try (BufferedReader in = new BufferedReader(new InputStreamReader(input))) {
                 String line;
                 Pattern pattern = Pattern.compile("^R\\d+\\s.*");

@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -51,11 +51,11 @@ class MercurialHistoryParser implements Executor.StreamHandler {
     /** Prefix which identifies lines with the description of a commit. */
     private static final String DESC_PREFIX = "description: ";
 
-    private List<HistoryEntry> entries = new ArrayList<HistoryEntry>();
+    private List<HistoryEntry> entries = new ArrayList<>();
     private final MercurialRepository repository;
     private final String mydir;
     private boolean isDir;
-    private final List<String> renamedFiles = new ArrayList<String>();
+    private final List<String> renamedFiles = new ArrayList<>();
 
     MercurialHistoryParser(MercurialRepository repository) {
         this.repository = repository;
@@ -111,18 +111,18 @@ class MercurialHistoryParser implements Executor.StreamHandler {
     public void processStream(InputStream input) throws IOException {
         RuntimeEnvironment env = RuntimeEnvironment.getInstance();
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        entries = new ArrayList<HistoryEntry>();
+        entries = new ArrayList<>();
         String s;
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         while ((s = in.readLine()) != null) {
             if (s.startsWith(MercurialRepository.CHANGESET)) {
-                entry = new HistoryEntry();
-                entries.add(entry);
-                entry.setActive(true);
-                entry.setRevision(s.substring(MercurialRepository.CHANGESET.length()).trim());
-            } else if (s.startsWith(MercurialRepository.USER) && entry != null) {
-                entry.setAuthor(s.substring(MercurialRepository.USER.length()).trim());
-            } else if (s.startsWith(MercurialRepository.DATE) && entry != null) {
+                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
+                entryBuilder.setActive(true);
+                entryBuilder.setRevision(s.substring(
+                        MercurialRepository.CHANGESET.length()).trim());
+            } else if (s.startsWith(MercurialRepository.USER) && entryBuilder != null) {
+                entryBuilder.setAuthor(s.substring(MercurialRepository.USER.length()).trim());
+            } else if (s.startsWith(MercurialRepository.DATE) && entryBuilder != null) {
                 Date date;
                 try {
                     date = repository.parse(s.substring(MercurialRepository.DATE.length()).trim());
@@ -133,15 +133,15 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     //
                     throw new IOException("Could not parse date: " + s, pe);
                 }
-                entry.setDate(date);
-            } else if (s.startsWith(MercurialRepository.FILES) && entry != null) {
+                entryBuilder.setDate(date);
+            } else if (s.startsWith(MercurialRepository.FILES) && entryBuilder != null) {
                 String[] strings = s.split(" ");
                 for (int ii = 1; ii < strings.length; ++ii) {
                     if (strings[ii].length() > 0) {
                         File f = new File(mydir, strings[ii]);
                         try {
                             String path = env.getPathRelativeToSourceRoot(f);
-                            entry.addFile(path.intern());
+                            entryBuilder.addFile(path.intern());
                         } catch (ForbiddenSymlinkException e) {
                             LOGGER.log(Level.FINER, e.getMessage());
                             // ignore
@@ -154,7 +154,7 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                     }
                 }
             } else if (s.startsWith(MercurialRepository.FILE_COPIES) &&
-                entry != null && isDir) {
+                entryBuilder != null && isDir) {
                 /*
                  * 'file_copies:' should be present only for directories but
                  * we use isDir to be on the safe side.
@@ -172,11 +172,11 @@ class MercurialHistoryParser implements Executor.StreamHandler {
                              renamedFiles.add(move[0]);
                      }
                 }
-            } else if (s.startsWith(DESC_PREFIX) && entry != null) {
-                entry.setMessage(decodeDescription(s));
+            } else if (s.startsWith(DESC_PREFIX) && entryBuilder != null) {
+                entryBuilder.setMessage(decodeDescription(s));
             } else if (s.equals(MercurialRepository.END_OF_ENTRY)
-                && entry != null) {
-                    entry = null;
+                && entryBuilder != null) {
+                    entryBuilder = null;
             } else if (s.length() > 0) {
                 LOGGER.log(Level.WARNING,
                     "Invalid/unexpected output {0} from hg log for repo {1}",

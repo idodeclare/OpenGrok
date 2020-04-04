@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -28,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -85,20 +87,21 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
         }
 
         ArrayList<HistoryEntry> entries = new ArrayList<>();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         int prevEntryEnd = 0;
 
         long revisionCounter = 0;
         Matcher matcher = HISTORY_PATTERN.matcher(total);
         while (matcher.find()) {
-            if (entry != null) {
+            if (entryBuilder != null) {
                 if (matcher.start() != prevEntryEnd) {
                     // Get the comment and reduce all double new lines to single
                     //  add a space as well for better formatting in RSS feeds.
-                    entry.appendMessage(total.substring(prevEntryEnd, matcher.start()).replaceAll("(\\r?\\n){2}", " $1").trim());
+                    entryBuilder.appendMessage(total.substring(prevEntryEnd,
+                            matcher.start()).replaceAll("(\\r?\\n){2}", " $1").trim());
                 }
-                entries.add(0, entry);
-                entry = null;
+                entries.add(0, entryBuilder.toEntry());
+                entryBuilder.clear();
             }
             String revision = matcher.group(4);
             String author = matcher.group(3);
@@ -115,32 +118,38 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
             if (revisionCounter < currentRevision) {
                 revisionCounter = currentRevision;
 
-                entry = new HistoryEntry();
+                if (entryBuilder == null) {
+                    entryBuilder = new HistoryEntryBuilder();
+                } else {
+                    entryBuilder.clear();
+                }
                 // Add context of action to message.  Helps when branch name is used
                 //   as indicator of why promote was made.
                 if (context != null) {
-                    entry.appendMessage("[" + context + "] ");
+                    entryBuilder.appendMessage("[" + context + "] ");
                 }
-                entry.setAuthor(author);
-                entry.setRevision(revision);
+                entryBuilder.setAuthor(author);
+                entryBuilder.setRevision(revision);
                 try {
-                    entry.setDate(repository.parse(date));
+                    entryBuilder.setDate(repository.parse(date));
                 } catch (ParseException ex) {
                     LOGGER.log(Level.WARNING, "Failed to parse date: '" + date + "'", ex);
                 }
-                entry.setActive(true);
+                entryBuilder.setActive(true);
             }
             prevEntryEnd = matcher.end();
         }
-
-        if (entry != null) {
+        if (entryBuilder != null) {
             if (total.length() != prevEntryEnd) {
                 // Get the comment and reduce all double new lines to single
                 //  add a space as well for better formatting in RSS feeds.
-                entry.appendMessage(total.substring(prevEntryEnd).replaceAll("(\\r?\\n){2}", " $1").trim());
+                entryBuilder.appendMessage(total.substring(prevEntryEnd).replaceAll(
+                        "(\\r?\\n){2}", " $1").trim());
             }
-            entries.add(0, entry);
+            entries.add(0, entryBuilder.toEntry());
+            entryBuilder.clear();
         }
+
         history.setHistoryEntries(entries);
     }
 
@@ -169,7 +178,7 @@ public class SSCMHistoryParser implements Executor.StreamHandler {
      * @throws IOException if we fail to parse the buffer
      */
     History parse(String buffer) throws IOException {
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return history;
     }
 }

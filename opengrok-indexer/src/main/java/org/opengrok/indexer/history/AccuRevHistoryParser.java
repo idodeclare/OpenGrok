@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -47,7 +48,7 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
      * Parse the history for the specified file.
      *
      * @param file the file to parse history for
-     * @param repos Pointer to the {@code AccuRevRepository}
+     * @param repos Pointer to the {@link AccuRevRepository}
      * @return object representing the file's history
      * @throws HistoryException if a problem occurs while executing p4 command
      */
@@ -68,7 +69,7 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
         
         if (relPath.equals(rootRelativePath)) {
 
-            List<HistoryEntry> entries = new ArrayList<HistoryEntry>();
+            List<HistoryEntry> entries = new ArrayList<>();
 
             entries.add(new HistoryEntry(
                     "", new Date(), "OpenGrok", null, "Workspace Root", true));
@@ -96,11 +97,11 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
     public void processStream(InputStream input) throws IOException {
 
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
-        List<HistoryEntry> entries = new ArrayList<HistoryEntry>();
+        List<HistoryEntry> entries = new ArrayList<>();
         String line;
         String user;
         Date date;
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
 
         history = new History();
 
@@ -132,16 +133,20 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
             if (line.startsWith("t")) {             // found transaction
 
                 String[] data = line.split("; ");
-                entry = new HistoryEntry();
+                if (entryBuilder == null) {
+                    entryBuilder = new HistoryEntryBuilder();
+                } else {
+                    entryBuilder.clear();
+                }
 
                 user = data[3].replaceFirst("user: ", "");
 
-                entry.setMessage("");
-                entry.setAuthor(user);
+                entryBuilder.setMessage("");
+                entryBuilder.setAuthor(user);
 
                 try {
                     date = repository.parse(data[2]);
-                    entry.setDate(date);
+                    entryBuilder.setDate(date);
                 } catch (ParseException pe) {
                     //
                     // Overriding processStream() thus need to comply with the
@@ -151,15 +156,20 @@ public class AccuRevHistoryParser implements Executor.StreamHandler {
                 }
 
             } else if (line.startsWith("  #")) {  // found comment
-
-                entry.appendMessage(line.substring(3));
+                if (entryBuilder == null) {
+                    throw new IOException("comment came unexpectedly before transaction");
+                }
+                entryBuilder.appendMessage(line.substring(3));
 
             } else if (line.startsWith("  v")) {  // found version
-
+                if (entryBuilder == null) {
+                    throw new IOException("version came unexpectedly before transaction");
+                }
                 String[] data = line.split("\\s+");
-                entry.setRevision(data[2]);
-                entry.setActive(true);
-                entries.add(entry);
+                entryBuilder.setRevision(data[2]);
+                entryBuilder.setActive(true);
+                entries.add(entryBuilder.toEntry());
+                entryBuilder.clear();
             }
         }
 

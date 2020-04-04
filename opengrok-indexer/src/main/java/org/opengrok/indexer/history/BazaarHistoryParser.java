@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
 
     private String myDir;
     private List<HistoryEntry> entries = new ArrayList<>(); //NOPMD
-    private BazaarRepository repository = new BazaarRepository(); //NOPMD
+    private BazaarRepository repository;
 
     BazaarHistoryParser(BazaarRepository repository) {
         this.repository = repository;
@@ -96,15 +97,17 @@ class BazaarHistoryParser implements Executor.StreamHandler {
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
         String s;
 
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         int state = 0;
         while ((s = in.readLine()) != null) {
             if ("------------------------------------------------------------".equals(s)) {
-                if (entry != null && state > 2) {
-                    entries.add(entry);
+                if (entryBuilder != null && state > 2) {
+                    entries.add(entryBuilder.toEntry());
+                    entryBuilder.clear();
+                } else {
+                    entryBuilder = new HistoryEntryBuilder();
                 }
-                entry = new HistoryEntry();
-                entry.setActive(true);
+                entryBuilder.setActive(true);
                 state = 0;
                 continue;
             }
@@ -113,15 +116,18 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                 case 0:
                     // First, go on until revno is found.
                     if (s.startsWith("revno:")) {
+                        if (entryBuilder == null) {
+                            throw new IOException("revno came unexpectedly before separator");
+                        }
                         String[] rev = s.substring("revno:".length()).trim().split(" ");
-                        entry.setRevision(rev[0]);
+                        entryBuilder.setRevision(rev[0]);
                         ++state;
                     }
                     break;
                 case 1:
                     // Then, look for committer.
                     if (s.startsWith("committer:")) {
-                        entry.setAuthor(s.substring("committer:".length()).trim());
+                        entryBuilder.setAuthor(s.substring("committer:".length()).trim());
                         ++state;
                     }
                     break;
@@ -130,7 +136,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                     if (s.startsWith("timestamp:")) {
                         try {
                             Date date = repository.parse(s.substring("timestamp:".length()).trim());
-                            entry.setDate(date);
+                            entryBuilder.setDate(date);
                         } catch (ParseException e) {
                             //
                             // Overriding processStream() thus need to comply with the
@@ -151,7 +157,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                     } else if (s.startsWith("  ")) {
                         // Commit messages returned by bzr log -v are prefixed
                         // with two blanks.
-                        entry.appendMessage(s.substring(2));
+                        entryBuilder.appendMessage(s.substring(2));
                     }
                     break;
                 case 4:
@@ -169,7 +175,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                         File f = new File(myDir, s);
                         try {
                             String name = env.getPathRelativeToSourceRoot(f);
-                            entry.addFile(name.intern());
+                            entryBuilder.addFile(name.intern());
                         } catch (ForbiddenSymlinkException e) {
                             LOGGER.log(Level.FINER, e.getMessage());
                             // ignored
@@ -184,8 +190,9 @@ class BazaarHistoryParser implements Executor.StreamHandler {
                 }
         }
 
-        if (entry != null && state > 2) {
-            entries.add(entry);
+        if (entryBuilder != null && state > 2) {
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
     }
 
@@ -198,7 +205,7 @@ class BazaarHistoryParser implements Executor.StreamHandler {
      */
     History parse(String buffer) throws IOException {
         myDir = File.separator;
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return new History(entries);
     }
 }

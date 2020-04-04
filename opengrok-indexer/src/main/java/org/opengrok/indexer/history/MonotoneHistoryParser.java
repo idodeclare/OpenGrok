@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2009, 2019, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -100,40 +100,48 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
         BufferedReader in = new BufferedReader(new InputStreamReader(input));
         String s;
 
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         int state = 0;
         while ((s = in.readLine()) != null) {
             s = s.trim();
             // Later versions of monotone (such as 1.0) output even more dashes so lets require
             // the minimum amount for maximum compatibility between monotone versions.
             if (s.startsWith("-----------------------------------------------------------------")) {
-                if (entry != null && state > 2) {
-                    entries.add(entry);
+                if (entryBuilder != null && state > 2) {
+                    entries.add(entryBuilder.toEntry());
+                    entryBuilder.clear();
+                } else {
+                    entryBuilder = new HistoryEntryBuilder();
                 }
-                entry = new HistoryEntry();
-                entry.setActive(true);
+                entryBuilder.setActive(true);
                 state = 0;
 
                 continue;
             }
 
+            boolean isModAddDel = s.startsWith("Modified ") || s.startsWith("Added ") ||
+                    s.startsWith("Deleted ");
+
             switch (state) {
                 case 0:
                     if (s.startsWith("Revision:")) {
+                        if (entryBuilder == null) {
+                            throw new IOException("Revision came unexpectedly before separator");
+                        }
                         String rev = s.substring("Revision:".length()).trim();
-                        entry.setRevision(rev);
+                        entryBuilder.setRevision(rev);
                         ++state;
                     }
                     break;
                 case 1:
                     if (s.startsWith("Author:")) {
-                        entry.setAuthor(s.substring("Author:".length()).trim());
+                        entryBuilder.setAuthor(s.substring("Author:".length()).trim());
                         ++state;
                     }
                     break;
                 case 2:
                     if (s.startsWith("Date:")) {
-                        Date date = new Date();
+                        Date date;
                         try {
                             date = repository.parse(s.substring("date:".length()).trim());
                         } catch (ParseException pe) {
@@ -143,19 +151,19 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
                             //
                             throw new IOException("Could not parse date: " + s, pe);
                         }
-                        entry.setDate(date);
+                        entryBuilder.setDate(date);
                         ++state;
                     }
                     break;
                 case 3:
-                    if (s.startsWith("Modified ") || s.startsWith("Added ") || s.startsWith("Deleted ")) {
+                    if (isModAddDel) {
                         ++state;
                     } else if (s.equalsIgnoreCase("ChangeLog:")) {
                         state = 5;
                     }
                     break;
                 case 4:
-                    if (s.startsWith("Modified ") || s.startsWith("Added ") || s.startsWith("Deleted ")) {
+                    if (isModAddDel) {
                         continue;
                     } else if (s.equalsIgnoreCase("ChangeLog:")) {
                         state = 5;
@@ -166,7 +174,7 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
                             try {
                                 String path = env.getPathRelativeToSourceRoot(
                                     file);
-                                entry.addFile(path.intern());
+                                entryBuilder.addFile(path.intern());
                             } catch (ForbiddenSymlinkException e) {
                                 LOGGER.log(Level.FINER, e.getMessage());
                                 // ignore
@@ -179,7 +187,7 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
                     }
                     break;
                 case 5:
-                    entry.appendMessage(s);
+                    entryBuilder.appendMessage(s);
                     break;
                 default:
                     LOGGER.warning("Unknown parser state: " + state);
@@ -187,8 +195,9 @@ class MonotoneHistoryParser implements Executor.StreamHandler {
             }
         }
 
-        if (entry != null && state > 2) {
-            entries.add(entry);
+        if (entryBuilder != null && state > 2) {
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
     }
 }

@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -77,24 +78,27 @@ class SCCSHistoryParser {
             return null;
         }
 
-        in = new BufferedReader(new FileReader(getSCCSFile(file)));
         pass = sep = false;
         passRecord = true;
         active = true;
         field = 0;
+        HistoryEntryBuilder entryBuilder = new HistoryEntryBuilder();
+        ArrayList<HistoryEntry> entries = new ArrayList<>();
 
-        ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
-        while (next()) {
-            HistoryEntry entry = new HistoryEntry();
-            entry.setRevision(getRevision());
-            entry.setDate(getDate());
-            entry.setAuthor(getAuthor());
-            entry.setMessage(getComment());
-            entry.setActive(isActive());
-            entries.add(entry);
+        in = new BufferedReader(new FileReader(getSCCSFile(file)));
+        try {
+            while (next()) {
+                entryBuilder.setRevision(getRevision());
+                entryBuilder.setDate(getDate());
+                entryBuilder.setAuthor(getAuthor());
+                entryBuilder.setMessage(getComment());
+                entryBuilder.setActive(isActive());
+                entries.add(entryBuilder.toEntry());
+                entryBuilder.clear();
+            }
+        } finally {
+            IOUtils.close(in);
         }
-
-        IOUtils.close(in);
 
         History history = new History();
         history.setHistoryEntries(entries);
@@ -104,7 +108,6 @@ class SCCSHistoryParser {
     /**
      * Read a single line of delta record into the 'record' member.
      *
-     * @throws java.io.IOException
      * @return boolean indicating whether there is another record.
      */
     private boolean next() throws java.io.IOException {
@@ -121,8 +124,6 @@ class SCCSHistoryParser {
 
     /**
      * Split record into fields.
-     *
-     * @throws java.io.IOException
      */
     private void initFields() throws ParseException {
         if (revision == null) {

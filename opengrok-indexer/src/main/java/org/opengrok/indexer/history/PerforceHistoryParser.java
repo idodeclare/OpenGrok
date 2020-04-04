@@ -158,14 +158,14 @@ class PerforceHistoryParser {
      */
     History parseChanges(Reader fileHistory) throws IOException {
         List<HistoryEntry> entries = new ArrayList<>();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         StringBuilder messageBuilder = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(fileHistory)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = CHANGE_PATTERN.matcher(line);
                 if (matcher.find()) {
-                    entry = parseEntryLine(entries, entry, messageBuilder, matcher);
+                    entryBuilder = parseEntryLine(entries, entryBuilder, messageBuilder, matcher);
                 } else if (line.startsWith("\t")) {
                     messageBuilder.append(line.substring(1));
                     messageBuilder.append("\n");
@@ -173,9 +173,9 @@ class PerforceHistoryParser {
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entry != null) {
-            entry.setMessage(messageBuilder.toString().trim());
-            entries.add(entry);
+        if (entryBuilder != null) {
+            entryBuilder.setMessage(messageBuilder.toString().trim());
+            entries.add(entryBuilder.toEntry());
         }
 
         History history = new History();
@@ -192,7 +192,7 @@ class PerforceHistoryParser {
      */
     History parseFileLog(Reader fileLog) throws IOException {
         List<HistoryEntry> entries = new ArrayList<>();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
         String fileName = null;
         StringBuilder messageBuilder = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(fileLog)) {
@@ -207,9 +207,9 @@ class PerforceHistoryParser {
 
                 matcher = REVISION_PATTERN.matcher(line);
                 if (matcher.find()) {
-                    entry = parseEntryLine(entries, entry, messageBuilder, matcher);
+                    entryBuilder = parseEntryLine(entries, entryBuilder, messageBuilder, matcher);
                     if (fileName != null) {
-                        entry.addFile(fileName);
+                        entryBuilder.addFile(fileName);
                         /*
                          * Leave fileName defined in case multiple changes are
                          * reported for it.
@@ -223,19 +223,20 @@ class PerforceHistoryParser {
                     messageBuilder.append("\n");
                 } else if (line.startsWith("... ...")) {
                     /* ... an entry can also finish when some branch/edit entry is encountered */
-                    if (entry != null) {
-                        entry.setMessage(messageBuilder.toString().trim());
-                        entries.add(entry);
-                        entry = null;
+                    if (entryBuilder != null) {
+                        entryBuilder.setMessage(messageBuilder.toString().trim());
+                        entries.add(entryBuilder.toEntry());
+                        entryBuilder.clear();
                     }
                     messageBuilder.setLength(0);
                 }
             }
         }
         /* ... an entry can also finish when the log is finished */
-        if (entry != null) {
-            entry.setMessage(messageBuilder.toString().trim());
-            entries.add(entry);
+        if (entryBuilder != null) {
+            entryBuilder.setMessage(messageBuilder.toString().trim());
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
 
         History history = new History();
@@ -305,30 +306,32 @@ class PerforceHistoryParser {
         return cal.getTime();
     }
 
-    private static HistoryEntry parseEntryLine(List<HistoryEntry> entries, HistoryEntry entry,
-            StringBuilder messageBuilder, Matcher matcher) {
-        if (entry != null) {
+    private static HistoryEntryBuilder parseEntryLine(List<HistoryEntry> entries,
+            HistoryEntryBuilder entryBuilder, StringBuilder messageBuilder, Matcher matcher) {
+        if (entryBuilder != null) {
             /* An entry finishes when a new entry starts ... */
-            entry.setMessage(messageBuilder.toString().trim());
+            entryBuilder.setMessage(messageBuilder.toString().trim());
             messageBuilder.setLength(0);
-            entries.add(entry);
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
+        } else {
+            entryBuilder = new HistoryEntryBuilder();
         }
-        entry = new HistoryEntry();
-        parseDateTimeBy(entry, matcher);
-        entry.setActive(true);
-        return entry;
+        parseDateTimeBy(entryBuilder, matcher);
+        entryBuilder.setActive(true);
+        return entryBuilder;
     }
 
-    private static void parseDateTimeBy(HistoryEntry entry, Matcher matcher) {
-        entry.setRevision(matcher.group(1));
+    private static void parseDateTimeBy(HistoryEntryBuilder entryBuilder, Matcher matcher) {
+        entryBuilder.setRevision(matcher.group(1));
         int year = Integer.parseInt(matcher.group(2));
         int month = Integer.parseInt(matcher.group(3));
         int day = Integer.parseInt(matcher.group(4));
         int hour = Integer.parseInt(matcher.group(5));
         int minute = Integer.parseInt(matcher.group(6));
         int second = Integer.parseInt(matcher.group(7));
-        entry.setDate(newDate(year, month, day, hour, minute, second));
-        entry.setAuthor(matcher.group(8));
+        entryBuilder.setDate(newDate(year, month, day, hour, minute, second));
+        entryBuilder.setAuthor(matcher.group(8));
     }
 
     private String asRevisionSuffix(String sinceRevision) {

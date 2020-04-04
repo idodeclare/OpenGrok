@@ -22,15 +22,14 @@
  */
 package org.opengrok.indexer.history;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.Date;
-import java.util.TreeSet;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -40,29 +39,14 @@ public class HistoryEntryTest {
 
     private HistoryEntry instance;
     private Date historyDate = new Date();
-    private String historyRevision = "1.0";
-    private String historyAuthor = "test author";
-    private String historyMessage = "history entry message";
+    private static final String HISTORY_REVISION = "1.0";
+    private static final String HISTORY_AUTHOR = "test author";
+    private static final String HISTORY_MESSAGE = "history entry message";
  
-    public HistoryEntryTest() {
-    }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-    }
-
     @Before
     public void setUp() {
-        instance = new HistoryEntry(historyRevision, historyDate,
-            historyAuthor, null, historyMessage, true);
-    }
-
-    @After
-    public void tearDown() {
+        instance = new HistoryEntry(HISTORY_REVISION, historyDate,
+                HISTORY_AUTHOR, null, HISTORY_MESSAGE, true);
     }
 
     /**
@@ -70,20 +54,8 @@ public class HistoryEntryTest {
      */
     @Test
     public void getLine() {
-        assertTrue(instance.getLine().contains(historyRevision));
-        assertTrue(instance.getLine().contains(historyAuthor));
-    }
-
-    /**
-     * Test of dump method, of class HistoryEntry.
-     */
-    @Test
-    public void dump() {
-        instance.dump();
-        instance.setActive(false);
-        instance.addFile("testFile1.txt");
-        instance.addFile("testFile2.txt");
-        instance.dump();
+        assertTrue(instance.getLine().contains(HISTORY_REVISION));
+        assertTrue(instance.getLine().contains(HISTORY_AUTHOR));
     }
 
     /**
@@ -92,17 +64,7 @@ public class HistoryEntryTest {
     @Test
     public void getAuthor() {
         String result = instance.getAuthor();
-        assertEquals(historyAuthor, result);
-    }
-
-    /**
-     * Test of getDate method, of class HistoryEntry.
-     */
-    @Test
-    public void getDate() {
-        assertEquals(historyDate, instance.getDate());
-        instance.setDate(null);
-        assertNull(instance.getDate());
+        assertEquals(HISTORY_AUTHOR, result);
     }
 
     /**
@@ -110,7 +72,7 @@ public class HistoryEntryTest {
      */
     @Test
     public void getMessage() {
-        assertEquals(historyMessage, instance.getMessage());
+        assertEquals(HISTORY_MESSAGE + "\n", instance.getMessage());
     }
 
     /**
@@ -118,78 +80,7 @@ public class HistoryEntryTest {
      */
     @Test
     public void getRevision() {
-        assertEquals(historyRevision, instance.getRevision());
-    }
-
-    /**
-     * Test of setAuthor method, of class HistoryEntry.
-     */
-    @Test
-    public void setAuthor() {
-        String newAuthor = "New Author";
-        instance.setAuthor(newAuthor);
-        assertEquals(newAuthor, instance.getAuthor());
-    }
-
-    /**
-     * Test of setDate method, of class HistoryEntry.
-     */
-    @Test
-    public void setDate() {
-        Date date = new Date();
-        instance.setDate(date);
-        assertEquals(date, instance.getDate());
-    }
-
-    /**
-     * Test of isActive method, of class HistoryEntry.
-     */
-    @Test
-    public void isActive() {
-        assertEquals(true, instance.isActive());
-        instance.setActive(false);
-        assertEquals(false, instance.isActive());
-    }
-
-    /**
-     * Test of setActive method, of class HistoryEntry.
-     */
-    @Test
-    public void setActive() {
-        instance.setActive(true);
-        assertEquals(true, instance.isActive());
-        instance.setActive(false);
-        assertEquals(false, instance.isActive());
-    }
-
-    /**
-     * Test of setMessage method, of class HistoryEntry.
-     */
-    @Test
-    public void setMessage() {
-        String message = "Something";
-        instance.setMessage(message);
-        assertEquals(message, instance.getMessage());
-    }
-
-    /**
-     * Test of setRevision method, of class HistoryEntry.
-     */
-    @Test
-    public void setRevision() {
-        String revision = "1.2";
-        instance.setRevision(revision);
-        assertEquals(revision, instance.getRevision());
-    }
-
-    /**
-     * Test of appendMessage method, of class HistoryEntry.
-     */
-    @Test
-    public void appendMessage() {
-        String message = "Something Added";
-        instance.appendMessage(message);
-        assertTrue(instance.getMessage().contains(message));
+        assertEquals(HISTORY_REVISION, instance.getRevision());
     }
 
     /**
@@ -198,7 +89,7 @@ public class HistoryEntryTest {
     @Test
     public void addFile() {
         String fileName = "test.file";
-        HistoryEntry instance = new HistoryEntry();
+        HistoryEntry instance = new HistoryEntry(null, null, null, null, null, false);
         assertFalse(
             new History(Collections.singletonList(instance)).hasFileList());
         instance.addFile(fileName);
@@ -221,39 +112,11 @@ public class HistoryEntryTest {
     }
 
     /**
-     * Test of setFiles method, of class HistoryEntry.
-     */
-    @Test
-    public void setFiles() {
-        TreeSet<String> files = new TreeSet<String>();
-        files.add("file1.file");
-        files.add("file2.file");
-        instance.setFiles(files);
-        assertEquals(2, instance.getFiles().size());
-    }
-
-    /**
      * Test of toString method, of class HistoryEntry.
      */
     @Test
     public void testToString() {
-        assertTrue(instance.toString().contains(historyRevision));
-        assertTrue(instance.toString().contains(historyAuthor));
+        assertTrue(instance.toString().contains(HISTORY_REVISION));
+        assertTrue(instance.toString().contains(HISTORY_AUTHOR));
     }
-
-    /**
-     * Test of strip method, of class HistoryEntry.
-     */
-    @Test
-    public void strip() {
-        TreeSet<String> files = new TreeSet<String>();
-        files.add("file1.file");
-        files.add("file2.file");
-        instance.setFiles(files);
-        instance.setTags("test tag");
-        instance.strip();
-        assertEquals(0, instance.getFiles().size());
-        assertEquals(null, instance.getTags());
-    }
-
 }

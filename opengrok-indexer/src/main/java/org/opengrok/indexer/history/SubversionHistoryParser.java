@@ -19,7 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2017, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2017, 2020, Chris Fraire <cfraire@me.com>.
  * Portions Copyright (c) 2020, Ric Harris <harrisric@users.noreply.github.com>.
  */
 package org.opengrok.indexer.history;
@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -72,8 +73,8 @@ class SubversionHistoryParser implements Executor.StreamHandler {
         final List<HistoryEntry> entries = new ArrayList<>();
         final Set<String> renamedFiles = new HashSet<>();
         final SubversionRepository repository;
-        HistoryEntry entry;
-        StringBuilder sb;
+        final HistoryEntryBuilder entryBuilder;
+        final StringBuilder sb;
         boolean isRenamed;
 
         Handler(String home, String prefix, int length, SubversionRepository repository) {
@@ -81,6 +82,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
             this.prefix = prefix;
             this.length = length;
             this.repository = repository;
+            entryBuilder = new HistoryEntryBuilder();
             sb = new StringBuilder();
         }
 
@@ -92,9 +94,9 @@ class SubversionHistoryParser implements Executor.StreamHandler {
         public void startElement(String uri, String localName, String qname, Attributes attr) {
             isRenamed = false;
             if ("logentry".equals(qname)) {
-                entry = new HistoryEntry();
-                entry.setActive(true);
-                entry.setRevision(attr.getValue("revision"));
+                entryBuilder.clear();
+                entryBuilder.setActive(true);
+                entryBuilder.setRevision(attr.getValue("revision"));
             } else if ("path".equals(qname)) {
                 isRenamed = attr.getIndex("copyfrom-path") != -1;
             }
@@ -105,7 +107,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
         public void endElement(String uri, String localName, String qname) throws SAXException {
             String s = sb.toString();
             if ("author".equals(qname)) {
-                entry.setAuthor(s);
+                entryBuilder.setAuthor(s);
             } else if ("date".equals(qname)) {
                 try {
                     // need to strip microseconds off - assume final character is Z otherwise invalid anyway.
@@ -114,7 +116,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
                       dateString = dateString.substring(0, SVN_MILLIS_DATE_LENGTH - 1) +
                           dateString.charAt(dateString.length() - 1);
                     }
-                    entry.setDate(repository.parse(dateString));
+                    entryBuilder.setDate(repository.parse(dateString));
                 } catch (ParseException ex) {
                     throw new SAXException("Failed to parse date: " + s, ex);
                 }
@@ -128,7 +130,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
                     String path = file.getAbsolutePath().substring(length);
                     // The same file names may be repeated in many commits,
                     // so intern them to reduce the memory footprint.
-                    entry.addFile(path.intern());
+                    entryBuilder.addFile(path.intern());
                     if (isRenamed) {
                         renamedFiles.add(file.getAbsolutePath().substring(home.length() + 1));
                     }
@@ -136,10 +138,11 @@ class SubversionHistoryParser implements Executor.StreamHandler {
                     LOGGER.log(Level.FINER, "Skipping file outside repository: " + s);
                 }
             } else if ("msg".equals(qname)) {
-                entry.setMessage(s);
+                entryBuilder.setMessage(s);
             }
             if ("logentry".equals(qname)) {
-                entries.add(entry);
+                entries.add(entryBuilder.toEntry());
+                entryBuilder.clear();
             }
             sb.setLength(0);
         }
@@ -152,7 +155,6 @@ class SubversionHistoryParser implements Executor.StreamHandler {
 
     /**
      * Initialize the SAX parser instance.
-     * @throws HistoryException
      */
     private void initSaxParser() throws HistoryException {
         SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -233,7 +235,7 @@ class SubversionHistoryParser implements Executor.StreamHandler {
      */
     History parse(String buffer) throws IOException {
         handler = new Handler("/", "", 0, new SubversionRepository());
-        processStream(new ByteArrayInputStream(buffer.getBytes("UTF-8")));
+        processStream(new ByteArrayInputStream(buffer.getBytes(StandardCharsets.UTF_8)));
         return new History(handler.entries, handler.getRenamedFiles());
     }
 }

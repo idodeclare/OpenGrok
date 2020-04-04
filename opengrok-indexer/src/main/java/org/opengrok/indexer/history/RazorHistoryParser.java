@@ -19,8 +19,9 @@
 
 /*
  * Copyright (c) 2008, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright 2008 Peter Bray
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
-/* Portions Copyright 2008 Peter Bray */
 package org.opengrok.indexer.history;
 
 import java.io.BufferedReader;
@@ -53,7 +54,6 @@ class RazorHistoryParser {
                     "REVERT|INTRODUCE_AND_EDIT|BRANCH|BUMP|MERGE-CHECK-IN|PROMOTE)\\s+(\\S*)\\s+([\\.0-9]+)?\\s+(\\S*)\\s+(\\S*)\\s*$");
     private static final Pattern ADDITIONAL_INFO_PATTERN =
             Pattern.compile("^##(TITLE|NOTES|AUDIT|ISSUE):\\s+(.*)\\s*$");
-    private static final boolean DUMP_HISTORY_ENTRY_ADDITIONS = false;
 
     History parse(File file, Repository repos) throws HistoryException {
         try {
@@ -88,7 +88,7 @@ class RazorHistoryParser {
         String line;
 
         ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
-        HistoryEntry entry = null;
+        HistoryEntryBuilder entryBuilder = null;
 
         boolean ignoreEntry = false;
         boolean seenActionType = false;
@@ -102,11 +102,7 @@ class RazorHistoryParser {
 
             if (StringUtils.isOnlyWhitespace(line)) {
 
-                if (entry != null && entry.getDate() != null) {
-                    entries.add(entry);
-                    dumpEntry(entry);
-                }
-                entry = new HistoryEntry();
+                entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
                 ignoreEntry = false;
                 seenActionType = false;
 
@@ -121,7 +117,7 @@ class RazorHistoryParser {
 
                         if ("TITLE".equals(infoType)) {
                             parseDebug("Setting Message : '" + details + "'");
-                            entry.setMessage(details);
+                            entryBuilder.setMessage(details);
                             lastWasTitle = true;
                         } else {
                             parseDebug("Ignoring Info Type Line '" + line + "'");
@@ -130,10 +126,10 @@ class RazorHistoryParser {
                         if (!line.startsWith("##") && line.charAt(0) == '#') {
                             parseDebug("Seen Comment : '" + line + "'");
                             if (lastWasTitle) {
-                                entry.appendMessage("");
+                                entryBuilder.appendMessage("");
                                 lastWasTitle = false;
                             }
-                            entry.appendMessage(line.substring(1));
+                            entryBuilder.appendMessage(line.substring(1));
                         } else {
                             parseProblem("Expecting addlInfo and got '" + line + "'");
                         }
@@ -144,11 +140,7 @@ class RazorHistoryParser {
                     if (actionMatcher.find()) {
 
                         seenActionType = true;
-                        if (entry != null && entry.getDate() != null) {
-                            entries.add(entry);
-                            dumpEntry(entry);
-                        }
-                        entry = new HistoryEntry();
+                        entryBuilder = HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
 
                         String actionType = actionMatcher.group(1);
                         String userName = actionMatcher.group(2);
@@ -161,9 +153,9 @@ class RazorHistoryParser {
                                 actionType.contains("CHECK-IN") ||
                                 "CHECK-POINT".equals(actionType) ||
                                 "REVERT".equals(actionType)) {
-                            entry.setAuthor(userName);
-                            entry.setRevision(revision);
-                            entry.setActive("Active".equals(state));
+                            entryBuilder.setAuthor(userName);
+                            entryBuilder.setRevision(revision);
+                            entryBuilder.setActive("Active".equals(state));
                             Date date = null;
                             try {
                                 date = repository.parse(dateTime);
@@ -174,7 +166,7 @@ class RazorHistoryParser {
                                 //
                                 throw new IOException("Could not parse date: " + dateTime, pe);
                             }
-                            entry.setDate(date);
+                            entryBuilder.setDate(date);
                             ignoreEntry = false;
                         } else {
                             ignoreEntry = true;
@@ -185,21 +177,11 @@ class RazorHistoryParser {
                 }
             }
         }
-
-        if (entry != null && entry.getDate() != null) {
-            entries.add(entry);
-            dumpEntry(entry);
-        }
+        HistoryParserUtil.resetEntryBuilder(entryBuilder, entries);
 
         History history = new History();
         history.setHistoryEntries(entries);
         return history;
-    }
-
-    private void dumpEntry(HistoryEntry entry) {
-        if (DUMP_HISTORY_ENTRY_ADDITIONS) {
-            entry.dump();
-        }
     }
 
     private void parseDebug(String message) {

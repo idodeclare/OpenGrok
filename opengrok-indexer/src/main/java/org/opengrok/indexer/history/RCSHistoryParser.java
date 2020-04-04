@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2006, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -83,14 +84,15 @@ class RCSHistoryParser {
             return null;
         }
 
+        HistoryEntryBuilder entryBuilder = new HistoryEntryBuilder();
         try {
             Archive archive = new Archive(rcsfile.getPath());
             Version ver = archive.getRevisionVersion();
             Node n = archive.findNode(ver);
             n = n.root();
 
-            ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
-            traverse(n, entries);
+            ArrayList<HistoryEntry> entries = new ArrayList<>();
+            traverse(n, entries, entryBuilder);
 
             History history = new History();
             history.setHistoryEntries(entries);
@@ -101,26 +103,26 @@ class RCSHistoryParser {
         }
     }
 
-    private void traverse(Node n, List<HistoryEntry> history) {
+    private void traverse(Node n, List<HistoryEntry> entries, HistoryEntryBuilder entryBuilder) {
         if (n == null) {
             return;
         }
-        traverse(n.getChild(), history);
+        traverse(n.getChild(), entries, entryBuilder);
         TreeMap<?, ?> brt = n.getBranches();
         if (brt != null) {
             for (Object o : brt.values()) {
                 Node b = (Node) o;
-                traverse(b, history);
+                traverse(b, entries, entryBuilder);
             }
         }
         if (!n.isGhost()) {
-            HistoryEntry entry = new HistoryEntry();
-            entry.setRevision(n.getVersion().toString());
-            entry.setDate(n.getDate());
-            entry.setAuthor(n.getAuthor());
-            entry.setMessage(n.getLog());
-            entry.setActive(true);
-            history.add(entry);
+            entryBuilder.setRevision(n.getVersion().toString());
+            entryBuilder.setDate(n.getDate());
+            entryBuilder.setAuthor(n.getAuthor());
+            entryBuilder.setMessage(n.getLog());
+            entryBuilder.setActive(true);
+            entries.add(entryBuilder.toEntry());
+            entryBuilder.clear();
         }
     }
 
