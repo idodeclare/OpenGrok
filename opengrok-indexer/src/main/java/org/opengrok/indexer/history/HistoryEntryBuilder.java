@@ -22,6 +22,7 @@
  * Copyright 2006 Trond Norbye.  All rights reserved.
  * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
+
 package org.opengrok.indexer.history;
 
 import java.util.Collections;
