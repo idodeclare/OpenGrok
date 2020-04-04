@@ -19,12 +19,15 @@
 
 /*
  * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
- * Portions Copyright (c) 2019, Chris Fraire <cfraire@me.com>.
+ * Portions Copyright (c) 2019-2020, Chris Fraire <cfraire@me.com>.
  */
 
 package org.opengrok.indexer.history;
 
-import java.nio.file.Paths;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -35,9 +38,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opengrok.indexer.configuration.RuntimeEnvironment;
 import org.opengrok.indexer.util.PlatformUtils;
-import org.opengrok.indexer.web.Util;
-
-import static org.junit.Assert.*;
 
 /**
  *
@@ -47,17 +47,6 @@ public class BazaarHistoryParserTest {
 
     private BazaarHistoryParser instance;
     
-    public BazaarHistoryParserTest() {
-    }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-    }
-
     @Before
     public void setUp() {
         if (RuntimeEnvironment.getInstance().getSourceRootPath() == null) {

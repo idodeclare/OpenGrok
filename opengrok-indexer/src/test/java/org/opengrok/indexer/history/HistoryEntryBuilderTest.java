@@ -19,6 +19,7 @@
 
 /*
  * Copyright (c) 2008, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Portions Copyright (c) 2020, Chris Fraire <cfraire@me.com>.
  */
 package org.opengrok.indexer.history;
 
@@ -243,17 +244,6 @@ public class HistoryEntryBuilderTest {
         builder.setFiles(files);
         assertEquals(2, builder.getFiles().size());
         assertEquals(2, builder.toEntry().getFiles().size());
-    }
-
-    /**
-     * Test of toString method, of class HistoryEntry.
-     */
-    @Test
-    public void testToString() {
-        assertTrue(builder.toString().contains(historyRevision));
-        assertTrue(builder.toEntry().toString().contains(historyRevision));
-        assertTrue(builder.toString().contains(historyAuthor));
-        assertTrue(builder.toEntry().toString().contains(historyAuthor));
     }
 
     /**

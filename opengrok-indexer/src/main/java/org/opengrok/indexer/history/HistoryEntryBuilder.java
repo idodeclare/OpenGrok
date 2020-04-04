@@ -39,6 +39,7 @@ public class HistoryEntryBuilder {
     private final StringBuilder messageBuilder = new StringBuilder();
     private final SortedSet<String> files = new TreeSet<>();
     private boolean isPristine;
+    private int lineno;
     private String revision;
     private Date date;
     private String author;
@@ -69,7 +70,7 @@ public class HistoryEntryBuilder {
     }
 
     public String getMessage() {
-        return messageBuilder.toString().trim();
+        return messageBuilder.toString();
     }
 
     public String getRevision() {
@@ -88,6 +89,7 @@ public class HistoryEntryBuilder {
     public void reset() {
         messageBuilder.setLength(0);
         files.clear();
+        lineno = 0;
         revision = null;
         date = null;
         author = null;
@@ -118,7 +120,8 @@ public class HistoryEntryBuilder {
 
     public void setMessage(String message) {
         this.messageBuilder.setLength(0);
-        appendTrimEndThenEOL(message);
+        this.lineno = 0;
+        appendTrimEnd(message);
         this.isPristine = false;
     }
 
@@ -128,7 +131,7 @@ public class HistoryEntryBuilder {
     }
 
     public void appendMessage(String message) {
-        appendTrimEndThenEOL(message);
+        appendTrimEnd(message);
         this.isPristine = false;
     }
 
@@ -174,7 +177,10 @@ public class HistoryEntryBuilder {
         isPristine = false;
     }
 
-    private void appendTrimEndThenEOL(String message) {
+    private void appendTrimEnd(String message) {
+        if (lineno++ > 0) {
+            messageBuilder.append("\n");
+        }
         messageBuilder.append(message);
 
         for (int i = message.length() - 1; i >= 0; --i) {
@@ -184,6 +190,5 @@ public class HistoryEntryBuilder {
                 break;
             }
         }
-        messageBuilder.append("\n");
     }
 }

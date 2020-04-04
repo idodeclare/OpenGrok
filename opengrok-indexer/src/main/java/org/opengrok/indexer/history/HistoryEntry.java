@@ -75,7 +75,7 @@ public class HistoryEntry {
         this.date = date == null ? null : (Date) date.clone();
         this.author = author;
         this.tags = tags;
-        this.message = message == null ? null : ensureEOL(message);
+        this.message = message;
         this.active = active;
         this.files = files != null ? new TreeSet<>(files) : new TreeSet<>();
     }
@@ -171,9 +171,5 @@ public class HistoryEntry {
      */
     public void stripTags() {
         tags = null;
-    }
-
-    private String ensureEOL(String message) {
-        return message.trim() + "\n";
     }
 }
