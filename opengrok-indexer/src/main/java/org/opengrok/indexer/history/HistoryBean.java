@@ -25,7 +25,6 @@
 package org.opengrok.indexer.history;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -47,7 +46,8 @@ public class HistoryBean {
     }
 
     public List<HistoryEntryBean> getHistoryEntries() {
-        return Collections.unmodifiableList(entries);
+        // A JavaBean cannot return an unmodifiable collection unfortunately.
+        return entries;
     }
 
     public void setRenamedFiles(List<String> entries) {
@@ -58,6 +58,7 @@ public class HistoryBean {
     }
 
     public List<String> getRenamedFiles() {
-        return Collections.unmodifiableList(renamedFiles);
+        // A JavaBean cannot return an unmodifiable collection unfortunately.
+        return renamedFiles;
     }
 }

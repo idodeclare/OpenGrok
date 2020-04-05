@@ -27,6 +27,7 @@ package org.opengrok.indexer.history;
 
 import java.util.Date;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Represents a JavaBean version of {@link HistoryEntry} for serialization.
@@ -40,7 +41,8 @@ public class HistoryEntryBean {
     private String tags;
     private String message;
     private boolean active;
-    private SortedSet<String> files;
+    /* Note that this must match the initialization of HistoryEntry's equivalent. */
+    private SortedSet<String> files = new TreeSet<>();
 
     public String getAuthor() {
         return author;
@@ -91,10 +93,14 @@ public class HistoryEntryBean {
     }
 
     public SortedSet<String> getFiles() {
+        // A JavaBean cannot return an unmodifiable collection unfortunately.
         return files;
     }
 
     public void setFiles(SortedSet<String> files) {
-        this.files = files;
+        this.files.clear();
+        if (files != null) {
+            this.files.addAll(files);
+        }
     }
 }
