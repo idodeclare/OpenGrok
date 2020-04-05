@@ -31,15 +31,17 @@ import java.util.List;
  */
 public class HistoryBean {
 
-    private List<HistoryEntry> entries = new ArrayList<>();
+    /* Note that this must match the initialization of History's equivalent. */
+    private List<HistoryEntryBean> entries = new ArrayList<>();
 
+    /* Note that this must match the initialization of History's equivalent. */
     private List<String> renamedFiles = new ArrayList<>();
 
-    public void setHistoryEntries(List<HistoryEntry> entries) {
+    public void setHistoryEntries(List<HistoryEntryBean> entries) {
         this.entries = entries;
     }
 
-    public List<HistoryEntry> getHistoryEntries() {
+    public List<HistoryEntryBean> getHistoryEntries() {
         return entries;
     }
 

@@ -68,6 +68,8 @@ class FileHistoryCache implements HistoryCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileHistoryCache.class);
 
+    private static final HistoryBeanConverter beanConverter = new HistoryBeanConverter();
+
     private final Object lock = new Object();
 
     private static final String HISTORY_CACHE_DIR_NAME = "historycache";
@@ -226,11 +228,15 @@ class FileHistoryCache implements HistoryCache {
      * Read history from a file.
      */
     private static History readCache(File file) throws IOException {
+        HistoryBean historyBean;
         try (FileInputStream in = new FileInputStream(file);
-            XMLDecoder d = new XMLDecoder(new GZIPInputStream(
-                new BufferedInputStream(in)))) {
-            return (History) d.readObject();
+             GZIPInputStream gzIn = new GZIPInputStream(new BufferedInputStream(in));
+             HistoryNonBeanTransformerStream xform = new HistoryNonBeanTransformerStream(gzIn);
+            XMLDecoder d = new XMLDecoder(xform)) {
+            historyBean = (HistoryBean) d.readObject();
         }
+
+        return beanConverter.fromBean(historyBean);
     }
 
     /**
@@ -241,6 +247,9 @@ class FileHistoryCache implements HistoryCache {
      * @throws HistoryException
      */
     private void writeHistoryToFile(File dir, History history, File cacheFile) throws HistoryException {
+
+        HistoryBean historyBean = beanConverter.toBean(history);
+
         // We have a problem that multiple threads may access the cache layer
         // at the same time. Since I would like to avoid read-locking, I just
         // serialize the write access to the cache file. The generation of the
@@ -257,7 +266,7 @@ class FileHistoryCache implements HistoryCache {
                     new BufferedOutputStream(out)))) {
                 e.setPersistenceDelegate(File.class,
                         new FilePersistenceDelegate());
-                e.writeObject(history);
+                e.writeObject(historyBean);
             }
         } catch (IOException ioe) {
             throw new HistoryException("Failed to write history", ioe);

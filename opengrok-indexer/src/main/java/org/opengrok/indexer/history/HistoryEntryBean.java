@@ -42,10 +42,6 @@ public class HistoryEntryBean {
     private boolean active;
     private SortedSet<String> files;
 
-    public HistoryEntryBean() {
-        files = new TreeSet<>();
-    }
-
     public String getAuthor() {
         return author;
     }
@@ -59,7 +55,7 @@ public class HistoryEntryBean {
     }
 
     public String getMessage() {
-        return message.toString().trim();
+        return message;
     }
 
     public String getRevision() {
