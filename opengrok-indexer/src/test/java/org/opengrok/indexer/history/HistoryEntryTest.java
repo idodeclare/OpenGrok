@@ -33,7 +33,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- *
  * @author austvik
  */
 public class HistoryEntryTest {
@@ -73,7 +72,7 @@ public class HistoryEntryTest {
      */
     @Test
     public void getMessage() {
-        assertEquals(HISTORY_MESSAGE + "\n", instance.getMessage());
+        assertEquals(HISTORY_MESSAGE, instance.getMessage());
     }
 
     /**

@@ -25,6 +25,7 @@
 package org.opengrok.indexer.history;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -39,18 +40,24 @@ public class HistoryBean {
     private List<String> renamedFiles = new ArrayList<>();
 
     public void setHistoryEntries(List<HistoryEntryBean> entries) {
-        this.entries = entries;
+        this.entries.clear();
+        if (entries != null) {
+            this.entries.addAll(entries);
+        }
     }
 
     public List<HistoryEntryBean> getHistoryEntries() {
-        return entries;
+        return Collections.unmodifiableList(entries);
     }
 
     public void setRenamedFiles(List<String> entries) {
-        this.renamedFiles = entries;
+        this.renamedFiles.clear();
+        if (entries != null) {
+            this.renamedFiles.addAll(entries);
+        }
     }
 
     public List<String> getRenamedFiles() {
-        return renamedFiles;
+        return Collections.unmodifiableList(renamedFiles);
     }
 }
