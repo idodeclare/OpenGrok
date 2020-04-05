@@ -27,7 +27,6 @@ package org.opengrok.indexer.history;
 
 import java.util.Date;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Represents a JavaBean version of {@link HistoryEntry} for serialization.

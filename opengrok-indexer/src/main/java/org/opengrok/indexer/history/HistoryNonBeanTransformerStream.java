@@ -101,13 +101,14 @@ class HistoryNonBeanTransformerStream extends InputStream {
             }
         }
 
-        // If the next byte is a quote, then redirect to HISTORY_NON_BEAN_BYTES.
         int n = wrapper.read();
         if (n == (int) '"') {
+            // If the next byte is a quote, redirect to HISTORY_BEAN_BYTES.
             redirect = HISTORY_BEAN_BYTES;
             redirectOffset = 1;
             return c;
-        } else if (n != (int) 'E') { // 'E' for Entry
+        } else if (n != (int) 'E') {
+            // If not 'E' for Entry, then abort.
             wrapper.reset();
             return c;
         }
