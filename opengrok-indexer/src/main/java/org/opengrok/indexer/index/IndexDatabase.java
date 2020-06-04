@@ -504,8 +504,6 @@ public class IndexDatabase {
                             uidIter = null;
                         }
                     }
-
-                    markProjectIndexed(project);
                 } finally {
                     reader.close();
                 }
@@ -548,6 +546,7 @@ public class IndexDatabase {
             if (env.isOptimizeDatabase()) {
                 optimize();
             }
+            markProjectIndexed(project);
             env.setIndexTimestamp();
         }
     }
